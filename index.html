@@ -248,6 +248,7 @@ button:disabled{opacity:.55;cursor:wait}
  #logList .book-photo img{object-fit:contain}
  #logList .entry-menu{margin-left:auto}
 }
+.water-approach{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;margin:8px 0 0;font-size:14px}.water-approach dt{color:var(--mut)}.water-approach dd{margin:0}
 </style>
 </head>
 <body>
@@ -1460,6 +1461,372 @@ const baitBySeason={
   "Geringe Aktivität. Einen Gummifisch langsam an der tiefen Kante führen."
  ]
 };
+// Frühling bis Winter: Suchstelle, Starttiefe des Köders, Tageszeit.
+const waterApproach={
+ "Bachforelle": [
+  [
+   "Auslauf eines Gumpens",
+   "10–30 cm über Grund",
+   "Später Vormittag"
+  ],
+  [
+   "Schattenkante unter Ufergehölz",
+   "Direkt auf der Oberfläche",
+   "Früh morgens; bei steigenden Fischen auch abends"
+  ],
+  [
+   "Tiefe Rinne neben der Hauptströmung",
+   "Im unteren Drittel der Rinne",
+   "Nachmittag"
+  ],
+  [
+   "Langsame Seite eines Kolkauslaufs",
+   "Eine Handbreit über Grund",
+   "Wärmste Stunden um Mittag"
+  ]
+ ],
+ "Regenbogenforelle": [
+  [
+   "Erste Abbruchkante am Ufer",
+   "0,5–2 m unter der Oberfläche",
+   "Vormittag"
+  ],
+  [
+   "Schattige Steilkante mit kühlerem Wasser",
+   "In 2 m starten, dann schrittweise tiefer",
+   "Früher Morgen"
+  ],
+  [
+   "Kiesufer mit raschem Tiefenwechsel",
+   "0,5–1,5 m unter der Oberfläche",
+   "Morgen oder später Nachmittag"
+  ],
+  [
+   "Tiefer Rand einer ruhigen Bucht",
+   "Im unteren Drittel beginnen",
+   "Mittag"
+  ]
+ ],
+ "Seeforelle": [
+  [
+   "Parallel zum steil abfallenden Kiesufer",
+   "1–3 m unter der Oberfläche",
+   "Früher Morgen"
+  ],
+  [
+   "Seeseite einer Halde bei Beutefischschwärmen",
+   "Auf Höhe sichtbarer Beutefische beginnen",
+   "Erstes Tageslicht"
+  ],
+  [
+   "Offene Halde abseits von Laichzuflüssen",
+   "Zuerst 2–4 m unter der Oberfläche",
+   "Morgen"
+  ],
+  [
+   "Landzunge mit tiefem Wasser in Ufernähe",
+   "1–3 m, danach in Stufen tiefer",
+   "Später Vormittag"
+  ]
+ ],
+ "Saibling": [
+  [
+   "Übergang von der Kiesbank zur Halde",
+   "Zuerst 0,5–1 m über Grund",
+   "Vormittag"
+  ],
+  [
+   "Schattige Steilkante im kühlen Wasser",
+   "Köder in der kühlen Schicht stufenweise absenken",
+   "Früher Morgen"
+  ],
+  [
+   "Tiefe Halde abseits kiesiger Laichplätze",
+   "0,5–1 m über der Halde",
+   "Vormittag"
+  ],
+  [
+   "Tiefere Kante mit Fischkontakten",
+   "Knapp oberhalb der festgestellten Fischschicht",
+   "Mittagsstunden"
+  ]
+ ],
+ "Äsche": [
+  [
+   "Gleichmässiger Zug abseits flacher Laichplätze",
+   "Eine Handbreit über Kies",
+   "Später Vormittag"
+  ],
+  [
+   "Kühle Rinne mit sichtbaren Steigringen",
+   "Auf der Oberfläche",
+   "Frühmorgens bei kühlem Wasser"
+  ],
+  [
+   "Langer, gleichmässiger Kieszug",
+   "10–30 cm über Kies",
+   "Nachmittag bei Insektenschlupf"
+  ],
+  [
+   "Tieferer, langsam durchströmter Zug",
+   "Knapp über Grund",
+   "Mittag"
+  ]
+ ],
+ "Hecht": [
+  [
+   "Aussenseite eines flachen Krautfeldes",
+   "0,5–1,5 m unter der Oberfläche",
+   "Später Vormittag"
+  ],
+  [
+   "Lücke zwischen zwei Krautbänken",
+   "20–50 cm über den Krautspitzen",
+   "Früh morgens"
+  ],
+  [
+   "Drop-off neben einem Kleinfischschwarm",
+   "In 2–4 m starten, dann die Kante tiefer absuchen",
+   "Später Vormittag oder Nachmittag"
+  ],
+  [
+   "Tiefer Rand einer Bucht mit Futterfischen",
+   "Knapp unter der Unterkante des Beutefischschwarms",
+   "Mittag bis früher Nachmittag"
+  ]
+ ],
+ "Zander": [
+  [
+   "Tiefe Kante mit festem Grund, abseits der Nester",
+   "Mit kurzen Sprüngen bis 30 cm über Grund",
+   "Abenddämmerung"
+  ],
+  [
+   "Steiniger Uferabschnitt mit Anschluss ans Tiefwasser",
+   "0,5–1,5 m unter der Oberfläche",
+   "Abenddämmerung"
+  ],
+  [
+   "Übergang von Stein zu Sand",
+   "10–40 cm über Grund",
+   "Später Nachmittag bis Dämmerung"
+  ],
+  [
+   "Ruhiger Fuss einer tiefen Kante",
+   "Mit Grundkontakt und kurzen Hebebewegungen",
+   "Später Nachmittag"
+  ]
+ ],
+ "Egli (Flussbarsch)": [
+  [
+   "Fuss der ersten Uferkante",
+   "10–40 cm über Grund",
+   "Vormittag"
+  ],
+  [
+   "Krautrand bei flüchtenden Jungfischen",
+   "Bei Oberflächenjagd in den obersten 0,5–1 m",
+   "Früh morgens oder kurz vor Sonnenuntergang"
+  ],
+  [
+   "Steiler Übergang von flach zu tief",
+   "30–80 cm über Grund beginnen",
+   "Morgen oder später Nachmittag"
+  ],
+  [
+   "Tiefere, ruhige Kante mit Schwarmkontakt",
+   "10–30 cm über Grund",
+   "Später Vormittag bis Mittag"
+  ]
+ ],
+ "Felchen": [
+  [
+   "Auslauf einer Halde mit Insektenschlupf",
+   "Unterste Nymphe 20–50 cm über Grund",
+   "Morgen"
+  ],
+  [
+   "Freiwasser über einer tiefen Halde",
+   "Auf Schwarmhöhe, sonst ab Grund meterweise höher suchen",
+   "Früh morgens"
+  ],
+  [
+   "Seeseitiger Fuss der Halde",
+   "0,5–1 m über Grund beginnen",
+   "Vormittag"
+  ],
+  [
+   "Tiefe Halde mit Schwarmkontakt",
+   "Unterste Nymphe knapp über Grund",
+   "Später Vormittag"
+  ]
+ ],
+ "Barbe": [
+  [
+   "Kieskante neben der Hauptströmung",
+   "Unmittelbar über Kies",
+   "Nachmittag"
+  ],
+  [
+   "Rinnenrand unterhalb einer Kiesbank",
+   "Auf dem Kiesgrund",
+   "Früh morgens oder abends"
+  ],
+  [
+   "Eingang zur tieferen Rinne",
+   "Auf Grund am Rinnenrand",
+   "Später Nachmittag"
+  ],
+  [
+   "Ruhige Seite eines Kolks",
+   "Auf Grund im langsameren Wasser",
+   "Mittag"
+  ]
+ ],
+ "Alet": [
+  [
+   "Ruhiger Rand der Hauptströmung",
+   "In der oberen Wasserschicht starten",
+   "Nachmittag"
+  ],
+  [
+   "Schatten unter überhängenden Ästen",
+   "Auf der Oberfläche",
+   "Morgen oder Abend"
+  ],
+  [
+   "Naht zwischen ruhigem und ziehendem Wasser",
+   "0,5–1 m unter der Oberfläche",
+   "Nachmittag"
+  ],
+  [
+   "Tieferer ruhiger Uferbereich",
+   "Direkt am Grund",
+   "Mittagsstunden"
+  ]
+ ],
+ "Rotauge": [
+  [
+   "Besonnter Rand einer ruhigen Bucht",
+   "10–20 cm über Grund",
+   "Später Vormittag"
+  ],
+  [
+   "Aussenkante eines Pflanzenfeldes",
+   "Knapp über den Pflanzenspitzen",
+   "Früh morgens"
+  ],
+  [
+   "Unterer Rand der ersten Halde",
+   "Eine Handbreit über Grund",
+   "Nachmittag"
+  ],
+  [
+   "Ruhiger, tiefer Uferzug",
+   "Direkt über dem Boden ausloten",
+   "Mittag"
+  ]
+ ],
+ "Brachsmen": [
+  [
+   "Weicher Boden vor einer flachen Bucht",
+   "Auf Grund",
+   "Nachmittag"
+  ],
+  [
+   "Freie Stelle bei wandernden Blasenspuren",
+   "Auf der Schlammoberfläche",
+   "Frühmorgens"
+  ],
+  [
+   "Fuss der Uferhalde",
+   "Direkt auf Grund",
+   "Später Nachmittag"
+  ],
+  [
+   "Tiefere ruhige Mulde",
+   "Knapp aufliegend",
+   "Mittag"
+  ]
+ ],
+ "Karpfen": [
+  [
+   "Besonnte, windgeschützte Flachbucht",
+   "Auf Grund im flachen Wasser",
+   "Nachmittag"
+  ],
+  [
+   "Freier Fleck an der Krautkante",
+   "Direkt auf freiem Grund",
+   "Früher Morgen oder Abend"
+  ],
+  [
+   "Tiefer Rand eines Pflanzenfeldes",
+   "Auf Grund an der Kante",
+   "Nachmittag"
+  ],
+  [
+   "Ruhige Mulde mit sichtbaren Fressspuren",
+   "Auf Grund, möglichst nahe der beobachteten Route",
+   "Wärmste Tagesstunden"
+  ]
+ ],
+ "Schleie": [
+  [
+   "Freie Lücke am Schilfrand",
+   "Köder den Boden berühren lassen",
+   "Später Vormittag"
+  ],
+  [
+   "Schmale Gasse zwischen Seerosen",
+   "Direkt auf freiem Grund",
+   "Tagesanbruch"
+  ],
+  [
+   "Tiefe Seite des Krautgürtels",
+   "Auf Grund am Rand der Pflanzen",
+   "Später Vormittag"
+  ],
+  [
+   "Geschützter Bereich mit weichem Boden",
+   "Knapp aufliegend",
+   "Mittag, geringe Aktivität"
+  ]
+ ],
+ "Wels": [
+  [
+   "Tiefe Kante neben sich erwärmendem Flachwasser",
+   "0,5–1 m über Grund",
+   "Später Nachmittag"
+  ],
+  [
+   "Verbindung zwischen tiefem Standplatz und flacher Futterzone",
+   "Im flachen Wasser zuerst 0,5–2 m unter der Oberfläche",
+   "Abenddämmerung"
+  ],
+  [
+   "Rand einer tiefen Mulde",
+   "Knapp über Grund führen",
+   "Dämmerung"
+  ],
+  [
+   "Ruhige Seite einer tiefen Kante",
+   "0,5–1 m über Grund beginnen",
+   "Mittag, geringe Aktivität"
+  ]
+ ]
+};
+function approachDetails(name,season,lake,river){
+  let [spot,depth,time]=waterApproach[name][season];
+  if(name==="Egli (Flussbarsch)"&&river&&!lake){
+    spot=["Ruhiger Rand einer Kiesrinne","Kehrwasser neben einer Krautbank","Übergang vom Kehrwasser zur tiefen Rinne","Strömungsgeschützter Kolkrand"][season];
+  }else if(name==="Hecht"&&river&&!lake){
+    spot=["Flache Mündung eines Seitenarms","Krautlücke im ruhigen Seitenarm","Tiefe Strömungskante neben einem Rückwasser","Ruhiger Kolk neben der Hauptströmung"][season];
+  }else if(name==="Wels"&&river&&!lake){
+    spot=["Ruhiger Kolkausgang","Flacher Auslauf unterhalb des Kolks","Übergang vom Kolk in die Rinne","Tiefer Kolk abseits der Hauptströmung"][season];
+  }
+  return `<dl class="water-approach"><dt>Stelle</dt><dd>${esc(spot)}</dd><dt>Starttiefe</dt><dd>${esc(depth)}</dd><dt>Tageszeit</dt><dd>${esc(time)}</dd></dl>`;
+}
 function renderWaterFish(sec,date=new Date()){
   const box=$("#waterFish");
   box.hidden=unknownWater()||(!isSO()&&!isCM())||!sec.id;
@@ -1480,9 +1847,9 @@ function renderWaterFish(sec,date=new Date()){
     const protectedNow=rule.prot||[rule.schon,rule.schon2].some(period=>period&&inRange(date,...period));
     const reason=bernLake&&n==="Felchen"?"Fangnachweis im See (Kanton Bern)":documented?.includes(n)?"Fangnachweis 2024":local.includes(n)?"Im eigenen Fangbuch":"Typisch für diesen Gewässertyp";
     const tip=closed?"Gewässer gesperrt":protectedNow?"Geschützt oder in der Schonzeit":rule.pickW||rule.chk?"Lokale Vorschriften prüfen":(rule.national?"Kantonale Regeln vorab prüfen. ":"")+baitBySeason[n][season];
-    return {blocked:closed||protectedNow,html:`<div class="it"><b>${esc(n)}</b><div class="mut small">${reason}</div><div>${esc(tip)}</div></div>`};
+    return {blocked:closed||protectedNow,html:`<div class="it"><b>${esc(n)}</b><div class="mut small">${reason}</div><div>${esc(tip)}</div>${closed||protectedNow||rule.pickW||rule.chk?"":approachDetails(n,season,lake,river)}</div>`};
   }).sort((a,b)=>Number(a.blocked)-Number(b.blocked));
-  const html=`<h2>Fische im ${seasonName}</h2><p class="mut small">${esc(sec.name)} · Ködertipps für die Jahreszeit. Ködervorschriften vor Ort beachten.</p><div class="list">${rows.slice(0,3).map(r=>r.html).join("")}</div>${rows.length>3?`<details><summary>Weitere Arten (${rows.length-3})</summary><div class="list">${rows.slice(3).map(r=>r.html).join("")}</div></details>`:""}${!rows.length?"<p>Für diese Auswahl fehlen passende Artendaten.</p>":""}${documented?'<a class="small" href="https://so.ch/verwaltung/volkswirtschaftsdepartement/amt-fuer-wald-jagd-und-fischerei/fischerei/fangstatistik/" target="_blank" rel="noopener">Quelle: Kantonale Fangstatistik</a>':bernLake?'<a class="small" href="https://www.be.ch/de/start/dienstleistungen/medien/medienmitteilungen.html?newsID=c050d5c2-0070-3add-9647-46dffb9b608e" target="_blank" rel="noopener">Quelle: Fangstatistik Kanton Bern</a>':""}`;
+  const html=`<h2>Fische im ${seasonName}</h2><p class="mut small">${esc(sec.name)} · Richtwerte für deinen ersten Versuch. Tiefe und Stelle vor Ort prüfen. Lokale Fangzeiten und Ködervorschriften beachten.</p><div class="list">${rows.slice(0,3).map(r=>r.html).join("")}</div>${rows.length>3?`<details><summary>Weitere Arten (${rows.length-3})</summary><div class="list">${rows.slice(3).map(r=>r.html).join("")}</div></details>`:""}${!rows.length?"<p>Für diese Auswahl fehlen passende Artendaten.</p>":""}${documented?'<a class="small" href="https://so.ch/verwaltung/volkswirtschaftsdepartement/amt-fuer-wald-jagd-und-fischerei/fischerei/fangstatistik/" target="_blank" rel="noopener">Quelle: Kantonale Fangstatistik</a>':bernLake?'<a class="small" href="https://www.be.ch/de/start/dienstleistungen/medien/medienmitteilungen.html?newsID=c050d5c2-0070-3add-9647-46dffb9b608e" target="_blank" rel="noopener">Quelle: Fangstatistik Kanton Bern</a>':""}`;
   if(box.dataset.content!==html){box.innerHTML=html;box.dataset.content=html}
 
 }

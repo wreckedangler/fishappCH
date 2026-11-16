@@ -1,0 +1,39 @@
+{
+  "version": 2,
+  "updated": "2026-03-01",
+  "_hinweis": "Lebende Regel-Datei. Die App laedt sie bei jedem Start (sobald online). Fuer Aenderungen: version um 1 erhoehen, updated setzen, Werte in rules/news anpassen. slot = Laengenbereiche [min,max] (null = offen nach oben). schon = [[MM,TT],[MM,TT]]. secs-Codes: A1..A6, E, EK, D, LS, LT, CH, B.",
+  "news": [
+    {
+      "date": "28.08.2026",
+      "text": "Fischereiverbot wegen Trockenheit teilweise aufgehoben. Weiterhin gesperrt (bis auf Widerruf): Patentstrecken der Duennern, Luessel, Luetzel und des Chastelbachs.",
+      "secs": ["D", "LS", "LT", "CH"]
+    }
+  ],
+  "rules": {
+    "SO": {
+      "updated": "2026-03-01",
+      "protected": ["Äsche", "Aal", "Nase", "Lachs", "Strömer", "Bachneunauge", "Bitterling"],
+      "troutByGroup": {
+        "aare": [[38, null]],
+        "jura": [[30, null]],
+        "duennern": [[32, 42], [55, null]],
+        "emme": [[35, 45]],
+        "default": [[26, null]]
+      },
+      "troutSchon": [[10, 1], [3, 15]],
+      "troutDay": 2,
+      "troutYear": 20,
+      "species": {
+        "Saibling": { "day": 2, "dayGroup": "trout", "note": "Tageslimite gemeinsam mit Bachforellen" },
+        "Hecht": { "slot": [[45, null]], "schon": [[3, 1], [4, 30]], "day": 5 },
+        "Felchen": { "slot": [[25, null]], "schon": [[11, 1], [12, 31]], "day": 20 },
+        "Egli (Flussbarsch)": { "note": "Kein Mindestmass, keine Schonzeit, keine Tageslimite" }
+      },
+      "birs": {
+        "Bachforelle": { "slot": [[26, null]], "schon": [[10, 15], [2, 29]], "day": 4 },
+        "Äsche": { "slot": [[35, null]], "schon": [[2, 1], [4, 30]], "day": 4 },
+        "Barbe": { "slot": [[35, null]], "schon": [[5, 1], [6, 15]] }
+      }
+    }
+  }
+}

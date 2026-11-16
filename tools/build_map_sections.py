@@ -29,6 +29,7 @@ TO_METRES = Transformer.from_crs(4326, 2056, always_xy=True).transform
 TO_DEGREES = Transformer.from_crs(2056, 4326, always_xy=True).transform
 AG = "https://api.geo.ag.ch/v1/data/downloads/ch.ag.geo.aw.{}/download/GeoPackage/kanton_aargau"
 ZH = "https://maps.zh.ch/wfs/OGDZHWFS?"
+SO = "https://geo.so.ch/api/wfs?SERVICE=WFS&VERSION=1.1.0&REQUEST=GetFeature&TYPENAME=ch.so.awjf.gewaesser.patentgewaesser&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326"
 
 
 def transform(projection, geom):
@@ -66,6 +67,28 @@ def ag_rows(cache, key, fields):
 
 def only(values):
     return next(iter(values)) if len(values) == 1 else ""
+
+
+def solothurn(cache):
+    file = cache / "solothurn-wfs.json"
+    if not file.exists():
+        file.write_bytes(urlopen(SO, timeout=60).read())
+    zones = {}
+    for feature in json.loads(file.read_text(encoding="utf8"))["features"]:
+        p = feature["properties"]
+        key = tuple(" ".join(clean(p.get(k)).split()) for k in ("revierid", "fischerei", "fischbestand", "beschreibung"))
+        if not key[0]:
+            continue
+        row = zones.setdefault(key, dict(zip(("id", "art", "b", "t"), key), l=[]))
+        for line in paths(shape(feature["geometry"])):
+            if line.geom_type != "LineString":
+                raise ValueError("Unexpected SO shape: " + line.geom_type)
+            simplified = transform(TO_DEGREES, transform(TO_METRES, line).simplify(1))
+            row["l"].append([[round(x,5), round(y,5)] for x,y,*_ in simplified.coords])
+    if len(zones) < 10:
+        raise ValueError("Incomplete Solothurn data")
+    data = {"official": True, "precision": 1, "date": date.today().isoformat(), "features": list(zones.values())}
+    (DATA / "so-sections.json").write_bytes(compact_json(data).encode("utf8"))
 
 
 def aargau(cache):
@@ -158,16 +181,16 @@ def sections(records):
         for g in paths(geom):
             if not g.is_empty and g.length > 0:
                 groups[meta, identity, g.geom_type][g.wkb] = g
-    for (meta, _, typ), segments in groups.items():
+    for (meta, identity, typ), segments in groups.items():
         if typ == "LineString" and len(segments) > 1:
             # GEOS stops at branches. Revier, water ID, status and culverts are
             # separate groups; disjoint tributaries never share a selection.
             merged = shapely.line_merge(MultiLineString(list(segments.values())))
             for g in paths(merged):
-                yield meta, g
+                yield meta, identity, g
         else:
             for g in segments.values():
-                yield meta, g
+                yield meta, identity, g
 
 
 def encoded(g, tolerance):
@@ -189,15 +212,102 @@ class Cell:
         self.rows.append([fid, index, zoom, size, bounds, geometry])
 
     def write(self, root, key):
-        content = compact_json([list(self.metadata), self.rows]).encode("utf8")
-        name = key + "-" + sha256(content).hexdigest()[:10] + ".json"
-        (root / name).write_bytes(content)
-        return name
+        return write_asset(root, key, [list(self.metadata), self.rows])
+
+
+def write_asset(root, key, payload):
+    content = compact_json(payload).encode("utf8")
+    name = key + "-" + sha256(content).hexdigest()[:10] + ".json"
+    (root / name).write_bytes(content)
+    return name
+
+
+def connected(ids, records):
+    """Partition matching water names by actual contact, never by proximity."""
+    geometries = [records[i][2] for i in ids]
+    tree = shapely.STRtree(geometries)
+    remaining = set(range(len(ids)))
+    while remaining:
+        stack = [remaining.pop()]
+        component = []
+        while stack:
+            pos = stack.pop()
+            component.append(ids[pos])
+            neighbours = remaining.intersection(tree.query(geometries[pos], predicate="intersects"))
+            remaining.difference_update(neighbours)
+            stack.extend(neighbours)
+        yield sorted(component)
+
+
+def zone_groups(code, records):
+    kinds = defaultdict(set)
+    if code == "AG":
+        for meta, (number, art, part), _ in records:
+            if number and art:
+                kinds[meta[2], number, part].add(art)
+    official, touching = defaultdict(list), defaultdict(list)
+    for fid, (meta, identity, geom) in enumerate(records):
+        name, kind, rev, region, detail, _, rule = meta
+        if code == "AG":
+            number, art, part = identity
+            if not (number and rev):
+                continue
+            if kind == "Schongebiet":
+                touching[kind, rev, number].append(fid)
+            else:
+                # Water footprints have no ART. Attach them only if their
+                # water number, Revier and Teilrevier identify a single class.
+                klass = art or only(kinds[rev, number, part])
+                target = official if klass else touching
+                target[kind, rev, number, part, klass].append(fid)
+        elif name and (code == "GR" or rev) and not any(word in name.lower() for word in ("zuflüsse", "inkl.", "einzugsgebiet")):
+            touching[kind, rev, name, region, detail, rule].append(fid)
+        elif code == "SG" and geom.geom_type == "Polygon":
+            touching[kind, rev, region].append(fid)
+        # SG supplies catchment names for many tributaries. The Revier number
+        # alone cannot identify individual watercourses at their confluence.
+    yield from (members for members in official.values() if len(members) > 1)
+    for members in touching.values():
+        if len(members) > 1:
+            yield from (part for part in connected(members, records) if len(part) > 1)
+
+
+def polygon_parts(geom):
+    if geom.geom_type == "Polygon" and not geom.is_empty:
+        yield geom
+    elif hasattr(geom, "geoms"):
+        for part in geom.geoms:
+            yield from polygon_parts(part)
+
+
+def selection_geometry(records, members):
+    parts = []
+    for buried in (False, True):
+        geoms = [records[i][2] for i in members if records[i][0][5] == buried]
+        lines = [g for g in geoms if g.geom_type == "LineString"]
+        areas = [p for g in geoms if g.geom_type == "Polygon" for p in polygon_parts(shapely.make_valid(g))]
+        if lines or areas:
+            linework = shapely.line_merge(shapely.union_all(lines))
+            parts.append([int(buried), [encoded(g, 1) for g in paths(linework) if g.geom_type == "LineString"],
+                          [encoded(g, 1) for g in polygon_parts(shapely.union_all(areas))]])
+    return parts
+
+
+def selection_files(code, records, root):
+    shards, index = defaultdict(dict), []
+    for members in zone_groups(code, records):
+        group_id = min(members)
+        shard = str(group_id // 512)
+        shards[shard][group_id] = selection_geometry(records, members)
+        index.append([members, shard])
+    files = {shard: write_asset(root, f"{code}-selection-{shard}", data) for shard, data in shards.items()}
+    return write_asset(root, code + "-groups", index), files
 
 
 def build(canton, records, root):
-    cells, overview = defaultdict(Cell), Cell()
-    for fid, (meta, g) in enumerate(sections(records)):
+    cells, overview, places = defaultdict(Cell), Cell(), {}
+    records = list(sections(records))
+    for fid, (meta, _, g) in enumerate(records):
         poly = g.geom_type == "Polygon"
         size = round(max(g.bounds[2] - g.bounds[0], g.bounds[3] - g.bounds[1])) if poly else round(g.length)
         name, kind, rev, region, _, buried, _ = meta
@@ -215,8 +325,18 @@ def build(canton, records, root):
                 cells[f"{x}_{y}"].add(meta, fid, zoom, size, bounds, geom)
         if zoom <= 11:
             overview.add(meta, fid, zoom, size, bounds, encoded(g, 12))
+        title = name or region
+        if title:
+            key = (title, rev, kind)
+            rank = (not buried, not poly, size)
+            if key not in places or rank > places[key][0]:
+                point = g.representative_point() if poly else g.interpolate(.5, normalized=True)
+                lon, lat = TO_DEGREES(point.x, point.y)
+                places[key] = (rank, [title, rev, kind, round(lat, 5), round(lon, 5)])
     result = {key: cell.write(root, canton + "-" + key) for key, cell in sorted(cells.items())}
     result["overview"] = overview.write(root, canton + "-overview")
+    result["groups"], result["selections"] = selection_files(canton, records, root)
+    result["search"] = write_asset(root, canton + "-search", [v[1] for v in places.values()])
     result["built"] = date.today().isoformat()
     print(canton, len(cells), "cells,", len(overview.rows), "overview reaches", flush=True)
     return result
@@ -231,10 +351,12 @@ def main():
     with TemporaryDirectory() as temp:
         cache = args.cache or Path(temp)
         cache.mkdir(exist_ok=True, parents=True)
+        solothurn(cache)
         manifest = {code: build(code, records, root) for code, records in
                     (("AG", aargau(cache)), ("ZH", zurich(cache)), ("SG", eastern("SG")), ("GR", eastern("GR")))}
     (root / "index.json").write_text(compact_json(manifest), encoding="utf8")
-    current = {name for cells in manifest.values() for name in cells.values()}
+    current = {name for cells in manifest.values() for v in cells.values()
+               for name in (v.values() if isinstance(v, dict) else [v])}
     for f in root.glob("*-*.json"):
         if f.name not in current:
             f.unlink()

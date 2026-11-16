@@ -14,19 +14,20 @@ Handy, ohne App Store.
   Solothurn – der genaue Patentabschnitt, Pachtrevier oder die Schonstrecke.
   Liegen mehrere Gewässer nah beieinander, fragt die App nach und merkt sich
   die Wahl.
-- **Karte** (swisstopo Landeskarte/Luftbild) mit allen offiziellen
-  Fischereigewässern des Kantons Solothurn: Patentstrecken (offen/gesperrt),
-  Schonstrecken, Pacht- und Privatgewässer; Antippen zeigt Beschreibung und
-  Regeln. Eigene Fangorte als Ebene.
-- **Statusleiste:** zeigt jederzeit, ob am aktuellen Ort heute gefischt
-  werden darf.
+- **Karte und Suche** mit swisstopo-Luftbild und Landeskarte. Benannte Gewässer,
+  Orte und Reviere lassen sich suchen. Antippen markiert den amtlich zugeordneten
+  Abschnitt. Schutzflächen bleiben über einer gewählten Strecke sichtbar.
+- **Statusleiste** zeigt auf der Karte das angetippte Gewässer und auf «Hier» den
+  Status des gewählten Gewässers.
 - **Fangerfassung** mit Schnellwahl der Art, sofortiger Prüfung von Mass,
   Schonzeit, Schutzstatus, Tages- und Jahreslimiten; Text zum Übertragen in
   die offizielle App.
 - **Fische**: Übersicht aller Arten mit Erkennungsmerkmalen, Vorkommen, Ködern, Tipp und Status heute im gewählten Kanton
 - **Statistik**, Angelzeit-Uhr, CSV-Export/Import.
-- **Alle 26 Kantone:** Solothurn vollständig; übrige Kantone vorerst mit den
-  nationalen Mindestvorgaben des Bundes (VBGF), klar gekennzeichnet.
+- **Alle 26 Kantone** haben eine Gewässerauskunft. Zwölf Kantone liefern
+  Revier- oder Zonenvektoren, Appenzell Innerrhoden eine amtliche Rasterkarte
+  mit Punktauskunft. Bei Bundesgewässern ohne Revierauskunft bleibt die
+  Fischereiberechtigung ungeklärt.
 
 ## Installieren
 
@@ -37,7 +38,7 @@ Seite in Chrome (Android) bzw. Safari (iOS) öffnen → Menü →
 
 | Daten | Quelle | Aktualisierung |
 |---|---|---|
-| Gewässer, Schonstrecken SO | Kanton Solothurn, AWJF – `ch.so.awjf.gewaesser.patentgewaesser` (geo.so.ch, Open Data) | live vom Kanton, automatisch wöchentlich |
+| Gewässer, Schonstrecken SO | Kanton Solothurn, AWJF – `ch.so.awjf.gewaesser.patentgewaesser` (geo.so.ch, Open Data) | gebündelter amtlicher Stand, danach wöchentliche WFS-Aktualisierung |
 | Reviere und Gewässernamen AG, ZH | AGIS-GeoPackages und GIS-ZH-Fischereireviere (WFS) | Amtliche Geometrien je Kartenausschnitt aus `data/sections` |
 | Fischereizonen SG, GR | Fischereigeodienste der beiden Kantone (WFS) | Amtliche Geometrien je Kartenausschnitt aus `data/sections` |
 | Fischereigewässer TG, BE, VS, FR, GL, SH, VD und Fischereikarte AI | WFS / ArcGIS, in AI WMS und GetFeatureInfo | Live beim Öffnen des Kartenausschnitts |
@@ -51,7 +52,8 @@ Seite in Chrome (Android) bzw. Safari (iOS) öffnen → Menü →
 `python tools/build_map_sections.py` erstellt daraus und aus den Originaldaten
 von AGIS und GIS-ZH die Mobilkarte. Der zweite Schritt benötigt Shapely ab 2.1
 und pyproj. `node --test tools/map-sections.test.cjs` prüft unter anderem
-benannte Abschnitte, überlagerte Schutzflächen und die Auswahl einzelner Zuflüsse.
+alle Zonengruppen der Mobilkarte, die Wyna in Revier 114, die Emme,
+überlagerte Schutzflächen und die Auswahl einzelner Zuflüsse.
 
 ### Regeln ändern
 

@@ -65,15 +65,74 @@ const FishSections = (() => {
     return {...point,d:Math.sqrt(best)};
   }
   function restriction(kind) {return /schon|verbot|nationalpark/i.test(kind)}
-  function style(row) {
-    const kind=row.meta[1];
+  function symbol(kind,buried=false,closed=false) {
     if(/naturköder/i.test(kind))return "condition";
     if(restriction(kind))return "protected";
+    if(closed)return "closed";
+    if(buried)return "culvert";
     if(/privat/i.test(kind))return "private";
-    if(row.meta[5])return "culvert";
-    return "district";
+    if(["Patent","Frei"].includes(kind))return "permit";
+    if(["Pacht","Revier","Fischereirevier"].includes(kind))return "district";
+    if(/bewilligung/i.test(kind))return "condition";
+    if(["Fischgewässer","Gewässer"].includes(kind))return "water";
+    return "unknown";
   }
-  const palette={district:"#eea748",private:"#8c99aa",culvert:"#a2abb5",condition:"#a67ae4",protected:"#dc5151"};
+  const symbols={
+    water:{label:"Gewässer · Berechtigung ungeklärt",color:"#4a89a4"},
+    district:{label:"Pachtgewässer / Revier",color:"#e99a35"},
+    permit:{label:"Patentgewässer / Freiangelrecht",color:"#079875"},
+    private:{label:"Privates Fischereirecht",color:"#8b7d99",dash:"7 4"},
+    unknown:{label:"Unbekannte Einordnung",color:"#7b8c92",dash:"3 4"},
+    culvert:{label:"Eingedolter Abschnitt",color:"#7b8c92",dash:"7 5"},
+    condition:{label:"Besondere Vorschrift",color:"#a66bc4"},
+    closed:{label:"Heute gesperrt",color:"#d94e54",dash:"4 5"},
+    protected:{label:"Schongebiet / Verbot",color:"#c93745"}
+  };
+  const highlight="#ffd43b";
+  function initPanes(map) {
+    const levels={zoneCasing:384,zoneInk:392,chosenEdge:426,chosenInk:428,
+      ruleEdge:438,ruleInk:440,chosenRuleEdge:448,chosenRuleInk:450,zonePin:670};
+    for(const [name,z] of Object.entries(levels)){
+      const pane=map.createPane(name);pane.style.zIndex=z;pane.style.pointerEvents="none";
+    }
+  }
+  function brush(key,zoom,selected=false,area=false) {
+    const s=symbols[key],rule=["protected","closed","condition"].includes(key);
+    const width=area&&!selected?(zoom<12?.85:1.35):
+      (zoom<10?1.5:zoom<12?2:zoom<15?2.8:3.5)+(key==="protected"?.6:0);
+    const common={interactive:false,smoothFactor:.5,lineCap:"round",lineJoin:"round",fillRule:"nonzero"};
+    return {
+      edge:{...common,pane:selected?(rule?"chosenRuleEdge":"chosenEdge"):(rule?"ruleEdge":"zoneCasing"),
+        color:selected?highlight:"#fff",weight:width+(selected?5:area?1:zoom<12?1.5:2.2),opacity:selected?1:.73,fill:false},
+      ink:{...common,pane:selected?(rule?"chosenRuleInk":"chosenInk"):(rule?"ruleInk":"zoneInk"),
+        color:s.color,weight:width,opacity:1,dashArray:s.dash||null,fillColor:s.color,fillOpacity:selected?.25:rule?.21:.12}
+    };
+  }
+  function shapePair(owner,latlngs,area,key,zoom,selected=false) {
+    const options=brush(key,zoom,selected,area),shape=area?L.polygon:L.polyline;
+    return [shape(latlngs,options.edge).addTo(owner),shape(latlngs,options.ink).addTo(owner)];
+  }
+  function selectionParts(row) {
+    const paths=geometry(row);
+    return {symbol:symbol(row.meta[1],row.meta[5]),lines:row.poly?[]:[paths[0]],polygons:row.poly?[paths]:[]};
+  }
+  function drawSelection(owner,parts,zoom) {
+    const hasLines=parts.some(p=>p.lines.length);
+    for(const part of parts) {
+      if(part.polygons.length){
+        const ll=part.polygons.map(rings=>leafletPaths(rings,true));
+        if(hasLines){
+          // River footprints give width; their survey seams aren't zone borders.
+          L.polygon(ll,{...brush(part.symbol,zoom,true).ink,stroke:false}).addTo(owner);
+        }else shapePair(owner,ll,true,part.symbol,zoom,true);
+      }
+      if(part.lines.length)shapePair(owner,leafletPaths(part.lines,false),false,part.symbol,zoom,true);
+    }
+  }
+  function pin(owner,lat,lon) {
+    return L.circleMarker([lat,lon],{pane:"zonePin",interactive:false,radius:6.5,
+      color:"#17292d",weight:2.5,fillColor:highlight,fillOpacity:1}).addTo(owner);
+  }
   function unpack(code,data) {
     const [metadata, rows]=data;
     return rows.map(([id,m,zoom,size,bounds,raw])=>({key:code+"-"+id,code,meta:metadata[m],zoom,size,bounds,raw,poly:Array.isArray(raw)}));
@@ -92,6 +151,10 @@ const FishSections = (() => {
       this.batches=new Map();
       this.labels=[];
       this.visible=new Map();
+      this.catalogues=new Map();
+      this.selectionFiles=new Map();
+      this.selectedParts=new Map();
+      this.searchFiles=new Map();
       this.attributions=new Set();
       this.epoch=0;
     }
@@ -137,8 +200,9 @@ const FishSections = (() => {
       try{return await job.promise}finally{if(forTap)job.taps--}
     }
     async sync() {
-      const epoch=++this.epoch,zoom=this.map.getZoom();
-      const view=bbox(this.map.getBounds().pad(.16));
+      const zoom=this.map.getZoom(),bounds=this.map.getBounds();
+      if(!this.busy&&!this.error&&this.drawnZoom===zoom&&this.drawnBounds?.contains(bounds))return;
+      const epoch=++this.epoch,buffered=bounds.pad(.24),view=bbox(buffered);
       const stamp=JSON.stringify([zoom,view]);
       if(stamp===this.stamp&&!this.error&&!this.busy)return;
       this.busy=true;this.error=false;
@@ -163,6 +227,7 @@ const FishSections = (() => {
         await Promise.all(Array.from({length:Math.min(files.length,4)},worker));
         if(epoch!==this.epoch)return;
         this.stamp=stamp;this.error=failed;
+        this.drawnZoom=zoom;this.drawnBounds=buffered;
         this.visible=rows;
         this.paint(zoom);
         this.updateCredits(new Set(files.map(f=>f[0])));
@@ -182,36 +247,34 @@ const FishSections = (() => {
       // Keep the old canvas visible until the complete new viewport is ready.
       const groups=new Map();
       for(const row of this.visible.values()) {
-        const key=style(row)+(row.poly?"/area":"/line");
+        const key=symbol(row.meta[1],row.meta[5])+(row.poly?"/area":"/line");
         if(!groups.has(key))groups.set(key,[]);
         groups.get(key).push(row);
       }
-      for(const [key,layer] of this.batches)if(!groups.has(key)){layer.remove();this.batches.delete(key)}
-      for(const symbol of Object.keys(palette))for(const type of ["area","line"]) {
-        const key=symbol+"/"+type,rows=groups.get(key);
-        if(!rows)continue;
+      for(const [key,batch] of this.batches)if(!groups.has(key)){batch.layers.forEach(l=>l.remove());this.batches.delete(key)}
+      for(const key of groups.keys()) {
+        const [mark,type]=key.split("/"),rows=groups.get(key);
         const signature=zoom+"|"+rows.map(r=>r.key).join(",");
-        let layer=this.batches.get(key);
-        if(layer?.sectionSignature===signature)continue;
-        const poly=type==="area",restricted=symbol==="protected";
-        const weight=zoom<10?1.5:zoom<12?2:zoom<15?2.6:3.2;
-        const options={interactive:false,smoothFactor:.5,fillRule:"nonzero",color:palette[symbol],weight:weight+(restricted?.6:0),
-          opacity:symbol==="culvert"?.72:.96,fillOpacity:restricted?.21:.12,dashArray:symbol==="culvert"||symbol==="private"?"4 5":null};
+        let batch=this.batches.get(key);
+        if(batch?.signature===signature)continue;
+        const poly=type==="area";
         const latlngs=rows.map(row=>{
           if(!row.latlngs)row.latlngs=leafletPaths(geometry(row),row.poly);
           return poly?row.latlngs:row.latlngs[0];
         });
-        if(layer){layer.setLatLngs(latlngs);layer.setStyle(options)}
-        else {layer=(poly?L.polygon:L.polyline)(latlngs,options).addTo(this.map);this.batches.set(key,layer)}
-        layer.sectionSignature=signature;
-        layer.bringToFront();
+        if(batch){
+          const {edge,ink}=brush(mark,zoom,false,poly);
+          batch.layers[0].setLatLngs(latlngs).setStyle(edge);
+          batch.layers[1].setLatLngs(latlngs).setStyle(ink);
+        }else {batch={layers:shapePair(this.map,latlngs,poly,mark,zoom)};this.batches.set(key,batch)}
+        batch.signature=signature;
       }
       this.drawLabels(zoom);
     }
     drawLabels(zoom) {
-      for(const label of this.labels)label.layer.remove();
+      const previous=new Map(this.labels.map(label=>[label.name,label.layer]));
       this.labels=[];
-      if(zoom<9)return;
+      if(zoom<9){for(const layer of previous.values())layer.remove();return}
       const map=this.map,size=map.getSize(),view=bbox(map.getBounds()),center=map.getCenter();
       const used=new Set(), mapRect=map.getContainer().getBoundingClientRect();
       const controls=[...map.getContainer().querySelectorAll(".leaflet-control")].map(el=>el.getBoundingClientRect());
@@ -222,22 +285,61 @@ const FishSections = (() => {
         if(!name||used.has(name)||name.length>34)continue;
         const point=nearest(center.lat,center.lng,geometry(row),row.poly);
         if(!Number.isFinite(point.d))continue;
-        const ll=L.latLng(point.lat,point.lon),p=map.latLngToContainerPoint(ll);
+        const ll=L.latLng(point.lat,point.lon),p=map.latLngToContainerPoint(ll).add([0,-18]);
         const halfWidth=Math.min(112,Math.max(24,name.length*3.8+8));
         if(p.x-halfWidth<8||p.x+halfWidth>size.x-8||p.y<94||p.y>size.y-70)continue;
         const x=mapRect.left+p.x,y=mapRect.top+p.y;
         if(controls.some(r=>x+halfWidth>r.left-4&&x-halfWidth<r.right+4&&y+12>r.top-4&&y-12<r.bottom+4))continue;
         if(this.labels.some(l=>Math.abs(l.p.x-p.x)<halfWidth+l.halfWidth+16&&Math.abs(l.p.y-p.y)<38))continue;
-        const title=document.createElement("span");title.textContent=name;
-        const layer=L.tooltip({className:"water-map-label",direction:"center",permanent:true,interactive:false,opacity:1})
-          .setLatLng(ll).setContent(title).addTo(map);
-        this.labels.push({layer,row,ll,p,halfWidth});used.add(name);
+        let layer=previous.get(name);
+        if(layer){previous.delete(name);layer.setLatLng(ll)}
+        else{
+          const title=document.createElement("span");title.textContent=name;
+          layer=L.tooltip({className:"water-map-label",direction:"center",offset:[0,-18],permanent:true,interactive:false,opacity:1})
+            .setLatLng(ll).setContent(title).addTo(map);
+        }
+        this.labels.push({name,layer,row,ll,p,halfWidth});used.add(name);
         if(this.labels.length>=Math.min(8,Math.max(3,Math.floor(size.y/100))))break;
       }
+      for(const layer of previous.values())layer.remove();
     }
     labelAt(latlng) {
       const p=this.map.latLngToContainerPoint(latlng);
-      return this.labels.find(l=>{const pt=this.map.latLngToContainerPoint(l.ll);return Math.abs(pt.x-p.x)<=l.halfWidth&&Math.abs(pt.y-p.y)<=11});
+      return this.labels.find(l=>{const pt=this.map.latLngToContainerPoint(l.ll);return Math.abs(pt.x-p.x)<=l.halfWidth&&Math.abs(pt.y-18-p.y)<=11});
+    }
+    catalogue(code,index) {
+      const file=index[code].groups;
+      if(!file)return Promise.resolve(new Map());
+      if(!this.catalogues.has(file))this.catalogues.set(file,fetchJSON(file).then(entries=>{
+        const groups=new Map();
+        for(const [members,shard] of entries){
+          const group={id:members[0],file:index[code].selections[shard]};
+          for(const id of members)groups.set(code+"-"+id,group);
+        }
+        return groups;
+      }).catch(e=>{this.catalogues.delete(file);throw e}));
+      return this.catalogues.get(file);
+    }
+    async wholeZone(hit) {
+      if(!hit.group)return hit.parts;
+      if(this.selectedParts.has(hit.zoneId))return this.selectedParts.get(hit.zoneId);
+      const {file,id}=hit.group;
+      if(!this.selectionFiles.has(file)){
+        this.selectionFiles.set(file,fetchJSON(file).catch(e=>{this.selectionFiles.delete(file);throw e}));
+        if(this.selectionFiles.size>12)this.selectionFiles.delete(this.selectionFiles.keys().next().value);
+      }
+      const data=await this.selectionFiles.get(file);
+      const parts=data[id].map(([buried,lines,areas])=>({symbol:symbol(hit.kind,!!buried),
+        lines:lines.map(decode),polygons:areas.map(rings=>rings.map(decode))}));
+      this.selectedParts.set(hit.zoneId,parts);
+      if(this.selectedParts.size>20)this.selectedParts.delete(this.selectedParts.keys().next().value);
+      return parts;
+    }
+    async searchIndex(code,entry) {
+      if(!this.searchFiles.has(code))this.searchFiles.set(code,fetchJSON(entry.search).catch(error=>{
+        this.searchFiles.delete(code);throw error;
+      }));
+      return this.searchFiles.get(code);
     }
     async hits(lat,lon,tol) {
       const zoom=this.map.getZoom(),box=tapBox(lat,lon,tol*1.04),index=await this.manifest();
@@ -246,6 +348,10 @@ const FishSections = (() => {
       // Always check the original detail cell, including protection that is too
       // small for an overview symbol. Never infer rights from an empty result.
       const files=this.files(index,box,false);
+      const indexes=new Map();
+      for(const [code] of files)if(!indexes.has(code)){
+        indexes.set(code,this.catalogue(code,index).catch(()=>null));
+      }
       await Promise.all(files.map(async file=>{
         for(const row of await this.load(file,true)) {
           if(found.has(row.key)||(!restriction(row.meta[1])&&row.zoom>zoom)||!intersects(box,row.bounds))continue;
@@ -254,11 +360,18 @@ const FishSections = (() => {
           const [water,kind,rev,region,detail,buried,rule]=row.meta;
           const name=water||(row.code==="SG"?region:"")||(row.poly?"Gewässerfläche ohne amtlichen Namen":"Bach ohne amtlichen Namen");
           found.set(row.key,{...point,t:"zone",id:row.key,code:row.code,name,water,kind,rev,region,detail,buried,rule,built:index[row.code].built,
-            lake:row.code==="AG"?/(see|weiher|teich)(?:$|[\s(/-])/i.test(water):row.poly,l:paths});
+            lake:row.code==="AG"?/(see|weiher|teich)(?:$|[\s(/-])/i.test(water):row.poly,l:paths,area:row.poly,parts:[selectionParts(row)]});
         }
       }));
+      for(const hit of found.values()){
+        const catalogue=await indexes.get(hit.code);
+        hit.group=catalogue?.get(hit.id);
+        hit.zoneId=hit.group?hit.code+"/zone/"+hit.group.id:hit.id;
+        hit.fullParts=this.selectedParts.get(hit.zoneId);
+        hit.partial=!catalogue;
+      }
       return [...found.values()];
     }
   }
-  return {Layer,nearest,intersects,tapBox,leafletPaths};
+  return {Layer,nearest,intersects,tapBox,leafletPaths,symbol,symbols,highlight,initPanes,shapePair,drawSelection,pin};
 })();

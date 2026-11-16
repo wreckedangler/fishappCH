@@ -283,6 +283,17 @@ button:disabled{opacity:.55;cursor:wait}
 #mapSheet .sh-a{margin-top:9px}
 #mapSheet .sh-p{margin-top:-3px}
 #mapSheet .sh-warn{color:var(--bad);font-weight:600;font-size:13px;margin:6px 0}
+.leaflet-nationalWater-pane{filter:brightness(0) saturate(100%) invert(49%) sepia(25%) saturate(679%) hue-rotate(153deg)}
+.map-tools{display:flex;gap:6px}.map-tools button{min-height:44px;background:var(--sf);color:var(--tx)}
+#v-karte:has(#shorePanel:not([hidden])) .map-tools{display:none}
+#mapSearchDialog{position:fixed;inset:max(8px,env(safe-area-inset-top)) 0 auto;margin:0 auto;width:min(440px,calc(100% - 24px));max-height:80dvh;overflow:auto;overscroll-behavior:contain}
+#mapSearchStatus{min-height:1.4em;margin:6px 0}
+#mapSearchDialog header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+#mapSearchDialog h2{margin:0}#mapSearchDialog input{width:100%;margin:4px 0;font-size:16px}
+#mapResults h3{font-size:14px;margin:14px 0 4px;color:var(--mut)}
+#mapResults button{display:block;text-align:left;width:100%;min-height:46px;padding:8px 4px;background:transparent;color:var(--tx);border:0;border-bottom:1px solid var(--line);border-radius:0}
+#mapResults small{display:block;color:var(--mut);font-weight:400}
+#map .leaflet-control-scale{pointer-events:none;margin-left:12px}.leaflet-control-scale-line{font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
@@ -422,7 +433,13 @@ button:disabled{opacity:.55;cursor:wait}
 
 <input id="galleryPhoto" type="file" accept="image/*" hidden>
 <div id="toast" role="status"></div>
-<dialog id="legendDialog" aria-labelledby="legendTitle"><header><h2 id="legendTitle">Kartenlegende</h2><form method="dialog"><button autofocus>Schliessen</button></form></header><div class="symbols"><div><i style="background:#12b886"></i>Patentgewässer / frei</div><div><i style="background:repeating-linear-gradient(90deg,#ff6b6b 0 4px,transparent 4px 9px)"></i>Patent – heute gesperrt (SO)</div><div><i style="background:#a8261c;height:6px"></i>Schonstrecke / Schongebiet</div><div><i style="background:#f08c00"></i>Pacht / Revier</div><div><i style="background:#7d8b88"></i>Privat / unbekannt</div><div><i style="background:#a67ae4"></i>Naturköderverbot</div><div><i style="background:repeating-linear-gradient(90deg,#a2abb5 0 4px,transparent 4px 8px)"></i>Eingedolt / privates Recht</div><div><i style="background:#ffd43b;height:6px"></i>Gewählt</div><div><i style="background:#713fad;width:10px;height:10px;border-radius:50%"></i>Meine Fänge</div><div><i style="background:#1c7ed6;width:12px;height:12px;border-radius:50%"></i>Mein Standort</div><div><i style="background:#07565d;width:14px;height:14px;border-radius:50%"></i>Nummerierte Uferstelle</div><p>Tippe auf eine Linie, eine Fläche oder einen Gewässernamen. Beim Zoomen erscheinen kleinere Bäche und eingedolte Abschnitte. Innerrhoden verwendet die kantonalen Kartenfarben. Für jede Stelle die Berechtigung prüfen.</p></div></dialog>
+<dialog id="legendDialog" aria-labelledby="legendTitle"><header><h2 id="legendTitle">Kartenlegende</h2><form method="dialog"><button autofocus>Schliessen</button></form></header><div class="symbols"><div id="zoneSymbols"></div><div><i style="background:#713fad;width:10px;height:10px;border-radius:50%"></i>Meine Fänge</div><div><i style="background:#1c7ed6;width:12px;height:12px;border-radius:50%"></i>Mein Standort</div><div><i style="background:#07565d;width:14px;height:14px;border-radius:50%"></i>Nummerierte Uferstelle</div><p>Tippe auf eine Linie, eine Fläche oder einen Gewässernamen. Blaue Gewässer auf dem Luftbild stammen von swisstopo. Beim Zoomen erscheinen kleinere Bäche und eingedolte Abschnitte. Innerrhoden verwendet die kantonalen Kartenfarben. Für jede Stelle die Berechtigung prüfen.</p></div></dialog>
+<dialog id="mapSearchDialog" aria-labelledby="mapSearchTitle">
+  <header><h2 id="mapSearchTitle">Karte durchsuchen</h2><form method="dialog"><button type="submit" aria-label="Suche schliessen">Schliessen</button></form></header>
+  <label for="mapQuery">Gewässer, Revier oder Ort</label>
+  <input id="mapQuery" type="search" enterkeyhint="search" autocomplete="off" maxlength="90" placeholder="z. B. Wyna 114 oder Lugano">
+  <p id="mapSearchStatus" class="mut small" role="status"></p><div id="mapResults"></div>
+</dialog>
 <dialog id="picker" aria-labelledby="pickerTitle">
   <div class="picker-head"><h2 id="pickerTitle"></h2><button type="button" id="pickerClose">Schliessen</button></div>
   <input type="search" id="pickerSearch" aria-label="Auswahl durchsuchen" placeholder="Suchen …">
@@ -517,18 +534,33 @@ function fallbackGeo(){return{official:false,date:null,features:SECTIONS.map(s=>
 let GEO=store.get("geo",null)||fallbackGeo();
 function sqSeg(p,a,b){const k=Math.cos(p[1]*Math.PI/180);let x=a[0]*k,y=a[1],dx=b[0]*k-x,dy=b[1]-y;if(dx||dy){const t=((p[0]*k-x)*dx+(p[1]-y)*dy)/(dx*dx+dy*dy);if(t>1){x=b[0]*k;y=b[1]}else if(t>0){x+=dx*t;y+=dy*t}}dx=p[0]*k-x;dy=p[1]-y;return dx*dx+dy*dy}
 function dp(pts,tol){if(pts.length<3)return pts;const sq=tol*tol,keep=new Uint8Array(pts.length);keep[0]=keep[pts.length-1]=1;const st=[[0,pts.length-1]];while(st.length){const[f,l]=st.pop();let m=0,i0=0;for(let i=f+1;i<l;i++){const d=sqSeg(pts[i],pts[f],pts[l]);if(d>m){m=d;i0=i}}if(m>sq){keep[i0]=1;st.push([f,i0],[i0,l])}}return pts.filter((_,i)=>keep[i])}
+async function loadBundledSO(){
+  if(GEO.official&&GEO.precision===1)return;
+  try{
+    const response=await fetch("./data/so-sections.json");if(!response.ok)return;
+    const snapshot=await response.json();
+    if(snapshot.official&&snapshot.features?.length>=10&&(!GEO.official||GEO.precision!==1)){
+      GEO=snapshot;onGeoChanged();
+    }
+  }catch{/* Live WFS and previously saved geometry can still be used. */}
+}
 async function refreshGeo(force){
   if(!location.protocol.startsWith("http")||!navigator.onLine)return"offline";
   const age=GEO.date?(Date.now()-new Date(GEO.date).getTime())/864e5:1e9;
-  if(!force&&GEO.official&&age<7)return"fresh";
+  if(!force&&GEO.official&&GEO.precision===1&&age<7)return"fresh";
   try{
     const j=await fetch(WFS,{cache:"no-store"}).then(r=>{if(!r.ok)throw 0;return r.json()});
-    const tol=8/111320,r5=c=>[+c[0].toFixed(5),+c[1].toFixed(5)];
+    const tol=1/111320,r5=c=>[+c[0].toFixed(5),+c[1].toFixed(5)];
     const feats=(j.features||[]).map(x=>{const g=x.geometry||{};let L=[];
       if(g.type==="MultiLineString")L=g.coordinates;else if(g.type==="LineString")L=[g.coordinates];else if(g.type==="Polygon")L=[g.coordinates[0]];else if(g.type==="MultiPolygon")L=g.coordinates.map(p=>p[0]);
       const p=x.properties||{};return{id:String(p.revierid||"").trim(),art:p.fischerei||"",b:p.fischbestand||"",t:String(p.beschreibung||"").trim().replace(/\s+/g," "),l:L.map(l=>dp(l,tol).map(r5))}}).filter(f=>f.id&&f.l.length);
     if(feats.length<10)throw 0;
-    GEO={official:true,date:new Date().toISOString(),features:feats};
+    const zones=new Map();
+    for(const f of feats){
+      const key=JSON.stringify([f.id,f.art,f.b,f.t]);
+      if(zones.has(key))zones.get(key).l.push(...f.l);else zones.set(key,f);
+    }
+    GEO={official:true,precision:1,date:new Date().toISOString(),features:[...zones.values()]};
     store.set("geo",GEO);
     onGeoChanged();
     return"new";
@@ -540,8 +572,8 @@ function kindOf(art){return{Patent:"patent",Pacht:"pacht",Privat:"privat",Schon:
 
 /* ================= REGELN ================= */
 function secById(id){
-  const s=SECTIONS.find(x=>x.id===id);if(s)return Object.assign({kind:"patent"},s);
-  const f=GEO.features.find(x=>x.id===id);
+  const s=SECTIONS.find(x=>x.id===id),f=GEO.features.find(x=>x.id===id);
+  if(s&&f?.art==="Patent")return Object.assign({kind:"patent"},s);
   if(f){const k=kindOf(f.art);
     if(k==="schon")return{id,kind:k,name:"Schonstrecke "+id,desc:f.t,group:"schon",regime:"SO",notes:["Strecke vor Ort mit Tafeln markiert"]};
     if(k==="pacht")return{id,kind:k,name:"Pachtrevier "+id,desc:f.t,group:"pacht",regime:"SO",closed:STREAM_CLOSED,notes:["Mit dem Patent nicht befischbar – nur mit Bewilligung des Pächters (meist Fischereiverein)."]};
@@ -646,7 +678,7 @@ function onPos(p){
 }
 function updateHere(){
   const p=state.pos;state.here=null;
-  if(!p||state.canton!=="SO"||!GEO.features.length){renderAll();return}
+  if(!p||state.canton!=="SO"||!GEO.official||!GEO.features.length){renderAll();return}
   let best=null,bs=null;const near={};
   for(const f of GEO.features){const d=distToLines(p.lat,p.lon,f.l);if(f.art==="Schon"){if(!bs||d<bs.d)bs={f,d}}else{if(!near[f.id]||d<near[f.id].d)near[f.id]={f,d};if(!best||d<best.d)best={f,d}}}
   // Eigene Wahl merken, solange man in der Nähe bleibt
@@ -680,6 +712,7 @@ function selectedWaterName(){return state.cantonAuto?"":state.xsel[state.canton]
 function hereSummary(){
   if(unknownWater())return{cls:"warn",t:"Gewässer noch nicht bestimmt",s:"Gewässer wählen oder Standort verwenden"};
   const det=isSO(),sec=currentSec(),h=state.here;
+  if(det&&!GEO.official)return{cls:"warn",t:sec.name,s:"Amtliche Gewässerdaten fehlen · Berechtigung ungeklärt"};
   if(isCM()){const R=RULES[state.canton];
     const water=selectedWaterName()||sec.name;
     if(!sec.id)return{cls:"warn",t:selectedWaterName()||cname(state.canton)+": Gewässer wählen",s:"Regelgruppe wählen · Berechtigung prüfen"};
@@ -704,6 +737,14 @@ function renderTop(){
   let t=x.t,s=x.s,cls=x.cls;
   if(!state.pos&&(state.secAuto||state.cantonAuto)&&isSO()){s=state.geoErr||"Standort wird gesucht …"}
   const h=state.here;if(cls!=="bad"&&h&&h.alts&&h.alts.length&&!h.pinned&&state.secAuto)s="Mehrere Gewässer nah – tippen zum Wählen";
+  if($("#v-karte").classList.contains("on")){
+    const z=mapSel;
+    t=z?(z.name||z.water?.name||"Gewässer"):"Gewässerkarte";
+    s=z?((z.code?cname(z.code):"Solothurn")+(z.rev?" · Revier "+z.rev:"")+" · Kartenauskunft"):"Gewässer suchen oder auf der Karte antippen";
+    cls=z&&restrictedHit(z)?"warn":"none";
+    $("#tbCanton").textContent=z?.code||"CH";
+    $("#tbCanton").setAttribute("aria-label","Kanton und Gewässer wählen");
+  }
   $("#tbTxt").textContent=t;$("#tbSub").textContent=s;
   $("#tbDot").className="dot "+(cls==="none"?"":cls);
   $("#topbar").classList.toggle("bad",cls==="bad");
@@ -1168,7 +1209,7 @@ function renderRegeln(){
   $("#rulesBody").innerHTML=h;
   $("#dataCard").innerHTML=`<h2>Daten & Aktualität</h2>
     <p class="small">Regelstand: <b>${esc(DATA_META.updated)}</b> (v${DATA_META.version})${DATA_META.checked?" · geprüft "+new Date(DATA_META.checked).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"}):""}</p>
-    <p class="small">Gewässerdaten SO: ${GEO.official?`<b>offiziell</b>, geladen ${new Date(GEO.date).toLocaleDateString("de-CH")}`:"<b>noch nicht geladen</b> – grobe Ersatzlinien aktiv"}</p>
+    <p class="small">Gewässerdaten SO: ${GEO.official?`<b>offiziell</b>, geladen ${new Date(GEO.date).toLocaleDateString("de-CH")}`:"<b>noch nicht geladen</b> · Berechtigung an der Kartenposition ungeklärt"}</p>
     <button class="full" id="btnRefresh">Jetzt alles aktualisieren</button>
     <p class="mut small" style="margin-top:12px">Quellen: Gewässer © Kanton Solothurn, AWJF (geo.so.ch, Open Data) · Karte © swisstopo · Kantonserkennung: geo.admin.ch · Regeln SO: «Auszug aus den Fischereivorschriften ab 01.03.2026» (AWJF) · übrige Kantone: kantonale Verordnungen, siehe Kantonsseite · National: VBGF. Ohne Gewähr – verbindlich sind die amtlichen Vorschriften.</p>`;
   $("#btnRefresh").onclick=async e=>{const b=e.target;b.textContent="Aktualisiere …";const[a,g]=await Promise.all([fetchUpdates(true),refreshGeo(true)]);b.textContent=(a==="offline"&&g==="offline")?"Keine Verbindung":"Aktualisiert";renderRegeln()};
@@ -1986,27 +2027,12 @@ function renderArten(){
 }
 
 /* ================= KARTE ================= */
-let casR=null,map=null,gLayer=null,meMarker=null,meCircle=null,catchLayer=null,follow=false;
-function styleFor(f){
-  const k=kindOf(f.art);
-  if(k==="schon")return{color:"#7a0019",weight:9,opacity:1};
-  if(k==="pacht")return{color:"#f08c00",weight:3,opacity:.85};
-  if(k==="privat")return{color:"#7d8b88",weight:3,opacity:.8,dashArray:"6 6"};
-  if(k!=="patent")return{color:"#7d8b88",weight:3,opacity:.85};
-  const sec=secById(f.id),bad=secStatus(sec).some(x=>x.lvl==="bad");
-  return{color:bad?"#ff6b6b":"#12b886",weight:6,opacity:.95,dashArray:bad?"2 10":null,lineCap:"round"};
-}
-function popupFor(f){
-  const sec=secById(f.id),st=secStatus(sec),k=sec.kind;
-  const status=k==="schon"?`<span class="pill p-bad">Fischen verboten</span>`:st.some(x=>x.lvl==="bad")?`<span class="pill p-bad">heute gesperrt</span>`:k==="patent"?`<span class="pill p-ok">heute offen</span>`:`<span class="pill p-warn">nicht mit Patent</span>`;
-  const r=k==="patent"||k==="pacht"||k==="privat"?soRule(sec,"Bachforelle"):null;
-  return`<h3>${esc(sec.name)}</h3>${status}<div style="margin-top:6px">${esc(f.t)}</div>
-    ${st.length?`<ul style="margin:6px 0 0;padding-left:18px">${st.map(s=>`<li>${esc(s.txt)}</li>`).join("")}</ul>`:""}
-    ${r?`<div style="margin-top:6px"><b>Bachforelle:</b> ${fmtSlot(r.slot)}, Schonzeit ${fmtR(r.schon)}</div>`:""}
-    ${k==="patent"||k==="pacht"||k==="privat"?`<button data-pick="${esc(f.id)}">Regeln für diesen Abschnitt</button>`:""}`;
+let map=null,gLayer=null,meMarker=null,meCircle=null,catchLayer=null,follow=false;
+function soSymbol(f){
+  return FishSections.symbol(f.art,false,kindOf(f.art)==="patent"&&secStatus(secById(f.id)).some(s=>s.lvl==="bad"));
 }
 const soPaths=new WeakMap();
-let soViewport=null,soFeatures=null,soScale="";
+let soViewport=null,soFeatures=null,soScale="",soCredit=false;
 function soPath(f){
   if(soPaths.has(f))return soPaths.get(f);
   const latlngs=f.l.map(l=>l.map(([x,y])=>L.latLng(y,x)));
@@ -2015,19 +2041,18 @@ function soPath(f){
   soPaths.set(f,path);return path;
 }
 function drawGeo(){
-  if(!map?._loaded)return;
+  if(!map?._loaded||!GEO.official)return;
   const view=map.getBounds(),scale=map.getZoom()+"|"+dayKey(new Date());
   if(soFeatures===GEO.features&&soScale===scale&&soViewport?.contains(view))return;
   soViewport=view.pad(.24);soFeatures=GEO.features;soScale=scale;
   if(!gLayer)gLayer=L.layerGroup().addTo(map);else gLayer.clearLayers();
+  const visible=GEO.features.some(f=>soViewport.intersects(soPath(f).bounds));
+  if(visible!==soCredit){map.attributionControl[visible?"addAttribution":"removeAttribution"]("© Amt für Wald, Jagd und Fischerei SO");soCredit=visible}
   const labelPositions=[];
-  const overview=map.getZoom()<12;
   const order={privat:0,pacht:1,patent:2,schon:3};
   [...GEO.features].sort((a,b)=>order[kindOf(a.art)]-order[kindOf(b.art)]).forEach(f=>{
     const {latlngs,bounds}=soPath(f);if(!soViewport.intersects(bounds))return;
-    const sf=styleFor(f);if(overview)sf.weight=kindOf(f.art)==="schon"?3:2;
-    L.polyline(latlngs,{pane:"casing",renderer:casR,color:"#fff",weight:sf.weight+(overview?1:3),opacity:.9,interactive:false,lineCap:"round"}).addTo(gLayer);
-    L.polyline(latlngs,Object.assign({interactive:false},sf)).addTo(gLayer);
+    FishSections.shapePair(gLayer,latlngs,false,soSymbol(f),map.getZoom());
     const k=kindOf(f.art);
     if(map.getZoom()>=13&&(k==="patent"||k==="schon")){const longest=f.l.reduce((a,l)=>l.length>a.length?l:a,f.l[0]);const m=longest[Math.floor(longest.length/2)];
       const pt=map.project([m[1],m[0]]);
@@ -2110,16 +2135,19 @@ const eastWms=[
 const XBOX={TG:[8.66,47.37,9.5,47.7],BE:[6.86,46.32,8.46,47.35],VS:[6.77,45.85,8.48,46.66],FR:[6.74,46.43,7.38,47.01],GL:[8.87,46.79,9.26,47.18],SH:[8.4,47.55,8.88,47.81],VD:[6.06,46.18,7.25,46.99],ZH:[8.35,47.15,8.99,47.7],AG:[7.71,47.13,8.46,47.63]};
 function xInView(){if(!map)return[];const b=map.getBounds();return Object.keys(XSRC).filter(c=>{const x=XBOX[c];return!x||(x[0]<b.getEast()&&x[2]>b.getWest()&&x[1]<b.getNorth()&&x[3]>b.getSouth())})}
 const XGEO={};
-let xLayer=null,sectionMap=null,xFrame=0,xVersion=0,xStamp="";
+let xLayer=null,sectionMap=null,xFrame=0,xVersion=0,xStamp="",xView=null;
 const westCredits=new Set();
-function xg(c){return XGEO[c]||(XGEO[c]={feats:{},busy:false,all:false,fail:0})}
+function xg(c){return XGEO[c]||(XGEO[c]={feats:{},zones:new Map(),busy:false,all:false,fail:0})}
 function xAdd(c,fc,mapf,layerIndex){
-  const features=xg(c).feats;
+  const {feats:features,zones}=xg(c);
   for(const [index,x] of fc.features.entries()){
     const g=x.geometry;if(!g)continue;
     const p=x.properties||{},m=mapf(p,x);if(!m?.id)continue;
     const poly=g.type.includes("Polygon"),line=g.type.includes("LineString");
     if(!poly&&!line)continue;
+    const sourceId=/null|undefined/i.test(m.id)?(x.id??p.OBJECTID??index):m.id;
+    const zoneId=JSON.stringify([c,layerIndex,sourceId,m.art,m.name,m.t||"",m.x||[],m.cw||"",m.url||""]);
+    if(!zones.has(zoneId))zones.set(zoneId,new Set());
     const parts=g.type.startsWith("Multi")?g.coordinates:[g.coordinates];
     for(const [part,coords] of parts.entries()){
       const l=poly?coords:[coords];
@@ -2127,7 +2155,7 @@ function xAdd(c,fc,mapf,layerIndex){
       const bounds=[Infinity,Infinity,-Infinity,-Infinity];
       for(const ring of l)for(const [x,y] of ring){bounds[0]=Math.min(x,bounds[0]);bounds[1]=Math.min(y,bounds[1]);bounds[2]=Math.max(x,bounds[2]);bounds[3]=Math.max(y,bounds[3])}
       const id=[layerIndex,m.id,x.id??p.OBJECTID??index,part].join("|");
-      features[id]={...m,id,l,poly,bounds};
+      features[id]={...m,id,zoneId,l,poly,bounds};zones.get(zoneId).add(id);
     }
   }
 }
@@ -2175,17 +2203,12 @@ async function loadXc(c){
 function scheduleWest(){
   if(!xFrame)xFrame=requestAnimationFrame(()=>{xFrame=0;drawX()});
 }
-function styleX(f){const k=kindOf(f.art);
-  if(k==="schon")return{color:"#a8261c",weight:3,opacity:1,fillOpacity:.22};
-  if(k==="privat"||k==="other")return{color:"#7d8b88",weight:3,opacity:.9,dashArray:"6 6",fillOpacity:.2};
-  if(k==="frei"||k==="patent")return{color:"#12b886",weight:4,opacity:.95,fillOpacity:.25};
-  return{color:"#f08c00",weight:4,opacity:.9,fillOpacity:.2}}
 function drawX(){
   if(!map)return;
-  const zoom=map.getZoom(),b=map.getBounds().pad(.12),box=[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()];
-  const stamp=[zoom,xVersion,...box].join("|");
-  if(stamp===xStamp)return;
-  xStamp=stamp;
+  const zoom=map.getZoom(),view=map.getBounds(),stamp=zoom+"|"+xVersion;
+  if(stamp===xStamp&&xView?.contains(view))return;
+  xStamp=stamp;xView=view.pad(.25);
+  const box=[xView.getWest(),xView.getSouth(),xView.getEast(),xView.getNorth()];
   if(!xLayer)xLayer=L.layerGroup().addTo(map);
   xLayer.clearLayers();
   const groups=new Map(),active=new Set();
@@ -2202,10 +2225,7 @@ function drawX(){
   for(const code of westCredits)if(!active.has(code)){map.attributionControl.removeAttribution(XSRC[code].attr);westCredits.delete(code)}
   for(const code of active)if(!westCredits.has(code)){map.attributionControl.addAttribution(XSRC[code].attr);westCredits.add(code)}
   for(const {f,parts} of [...groups.values()].sort((a,b)=>(a.f.art==="Schon")-(b.f.art==="Schon"))){
-    const st={...styleX(f),interactive:false,fillRule:"nonzero"},weight=zoom<12?2:st.weight;
-    const shape=f.poly?L.polygon:L.polyline;
-    shape(parts,{pane:"casing",renderer:casR,weight:weight+2,fill:false,color:"#fff",opacity:.7,interactive:false}).addTo(xLayer);
-    shape(parts,{...st,weight}).addTo(xLayer);
+    FishSections.shapePair(xLayer,parts,f.poly,FishSections.symbol(f.art),zoom);
   }
 }
 async function zoneJson(url){
@@ -2223,7 +2243,7 @@ async function aiHits(layer,lat,lon){
     crs:"EPSG:3857",bbox:[x-half,y-half,x+half,y+half].join(","),width:101,height:101,i:50,j:50,
     feature_count:20,styles:"",format:"image/png",info_format:"application/json"});
   const data=await zoneJson(layer._url+"?"+params);
-  return data.features.map(f=>({t:"zone",code:"AI",lat,lon,d:0,l:[],name:String(f.properties?.Info||f.label||"Kartierte Zone"),kind:"Amtliche Karteninformation"}));
+  return data.features.map(f=>({t:"zone",code:"AI",zoneId:"AI/"+(f.id??f.properties?.Info??f.label),lat,lon,d:0,l:[],parts:[],pointOnly:true,name:String(f.properties?.Info||f.label||"Kartierte Zone"),kind:"Amtliche Karteninformation"}));
 }
 function xPill(f){const k=kindOf(f.art);return k==="schon"?`<span class="pill p-bad">Schongebiet</span>`:k==="privat"?`<span class="pill p-warn">Privates Fischereirecht</span>`:k==="frei"?`<span class="pill p-ok">Freiangelrecht</span>`:k==="patent"?`<span class="pill p-ok">Patentgewässer</span>`:k==="revier"?`<span class="pill p-mut">Fischereirevier</span>`:k==="pacht"?`<span class="pill p-warn">Pachtgewässer</span>`:`<span class="pill p-warn">Berechtigung unbekannt</span>`}
 /* ---- Karte: Auswahl per Antippen, Bestätigen im Blatt unten ---- */
@@ -2236,12 +2256,25 @@ async function identifyJSON(url){
 }
 async function waterAt(lat,lon,tolm){
   const d=tolm/111320,dx=d/Math.cos(lat*Math.PI/180),ext=[lon-dx*10,lat-d*10,lon+dx*10,lat+d*10].join(",");
-  const u=`https://api3.geo.admin.ch/rest/services/api/MapServer/identify?geometry=${lon},${lat}&geometryType=esriGeometryPoint&layers=all:ch.swisstopo.swisstlm3d-gewaessernetz&sr=4326&tolerance=10&mapExtent=${ext}&imageDisplay=200,200,96&returnGeometry=false&lang=de&limit=10`;
-  const j=await identifyJSON(u);const rs=(j.results||[]).map(x=>x.attributes||x.properties||{});
-  if(!rs.length)return null;
-  const pick=rs.find(a=>a.objektart===101&&a.name)||rs.find(a=>a.name)||rs[0];
-  const names=String(pick.name||"").split("|").map(x=>x.trim()).filter(Boolean);
-  return{name:names[0]||"",names,lake:pick.objektart===101};
+  const layers="ch.swisstopo.swisstlm3d-gewaessernetz";
+  const params=new URLSearchParams({geometry:lon+","+lat,geometryType:"esriGeometryPoint",layers:"all:"+layers,sr:"4326",
+    tolerance:"10",mapExtent:ext,imageDisplay:"200,200,96",returnGeometry:"true",geometryFormat:"geojson",lang:"de",limit:"20"});
+  const data=await identifyJSON("https://api3.geo.admin.ch/rest/services/api/MapServer/identify?"+params);
+  const candidates=[];
+  for(const record of data.results){
+    const attrs=record.attributes||record.properties||{},g=record.geometry;
+    if(!g||!Array.isArray(g.coordinates))continue;
+    const poly=g.type==="Polygon"||g.type==="MultiPolygon",line=g.type==="LineString"||g.type==="MultiLineString";
+    if(!poly&&!line)continue;
+    const paths=g.type.startsWith("Multi")?g.coordinates:[g.coordinates];
+    const lines=line?paths:[],polygons=poly?paths:[];
+    const point=poly?polygons.map(rings=>FishSections.nearest(lat,lon,rings,true)).sort((a,b)=>a.d-b.d)[0]:FishSections.nearest(lat,lon,lines);
+    if(!point||point.d>tolm)continue;
+    const names=String(attrs.name||attrs.seename||attrs.seename_d||record.value||"").split("|").map(n=>n.trim()).filter(n=>n&&n!=="-"&&!/^\d+$/.test(n));
+    candidates.push({...point,names,name:names[0]||"",lake:poly||Number(attrs.objektart)===101,area:poly,
+      zoneId:record.layerBodId+"/"+(record.featureId??record.id??[point.lon,point.lat].join(",")),parts:[{symbol:"water",lines,polygons}]});
+  }
+  return candidates.sort((a,b)=>a.d-b.d||Number(!a.name)-Number(!b.name)||Number(a.area)-Number(b.area))[0]||null;
 }
 const wNorm=x=>String(x).toLowerCase().replace(/[^a-zäöüéèàâêîôûç]/g,"");
 function matchW(c,w){
@@ -2254,30 +2287,38 @@ function matchW(c,w){
   const g=R.w.filter(([id,l])=>re.test(l));
   return{cand:[],sug:g.length===1?g[0][0]:""};
 }
-let lastNear=null;
-let selKey="";
+let lastNear=null,chosenMapHit=null,selKey="",selPin=null;
 function drawSel(){
   if(!map)return;
-  const id=mapSel&&mapSel.t==="sec"?mapSel.id:(!mapSel&&isSO()&&!unknownWater()?state.sec:null);
-  const xf=mapSel&&mapSel.t==="x"&&XGEO[mapSel.code]?XGEO[mapSel.code].feats[mapSel.id]:null;
-  const zone=mapSel?.t==="zone"?mapSel:null;
-  const overview=map.getZoom()<12;
-  const key=[zone?.id,zone?.name,zone?.kind,zone?.lat,zone?.lon,overview,id,xf?mapSel.code+mapSel.id+xf.l.length:"",mapSel&&mapSel.t==="w"?mapSel.lat+","+mapSel.lon:"",GEO.features.length].join("|");
-  if(key===selKey&&(selLayer||!id&&!xf))return;selKey=key;
-  if(selLayer){selLayer.remove();selLayer=null}
-  const parts=[];
-  const f=id?GEO.features.find(x=>x.id===id):null;
-  if(f){const ll=f.l.map(l=>l.map(([lo,la])=>[la,lo]));
-    parts.push(L.polyline(ll,{color:"#ffd43b",weight:overview?6:12,opacity:.95,pane:"selection",interactive:false,lineCap:"round"}));
-    parts.push(L.polyline(ll,Object.assign({},styleFor(f),{weight:overview?2:5,pane:"selection",interactive:false,lineCap:"round"})))}
-  if(xf)xf.l.forEach(l=>{const ll=l.map(([lo,la])=>[la,lo]);parts.push(L.polyline(ll,{color:"#ffd43b",weight:8,opacity:.95,pane:"selection",interactive:false,lineCap:"round"}));parts.push(L.polyline(ll,Object.assign({},styleX(xf),{weight:3,dashArray:null,pane:"selection",interactive:false})))});
-  if(zone?.l.length){
-    const ll=zone.l.map(l=>l.map(([x,y])=>[y,x]));
-    parts.push(L.polyline(ll,{color:"#243336",weight:7,opacity:.88,pane:"selection",interactive:false}));
-    parts.push(L.polyline(ll,{color:"#ffd43b",weight:4,opacity:1,pane:"selection",interactive:false}));
+  const confirmed=chosenMapHit?.code===state.canton&&state.xsel?.[state.canton]===chosenMapHit?.choiceName?chosenMapHit:null;
+  const hit=mapSel||confirmed;
+  const soId=hit?.t==="sec"?hit.id:(!hit&&isSO()&&!unknownWater()?state.sec:null);
+  const zoom=map.getZoom();
+  let parts=hit?.fullParts||hit?.parts||[],identity=hit?.zoneId||"";
+  if(soId&&GEO.official){
+    const f=hit?.source||GEO.features.find(row=>row.id===soId);
+    if(f){parts=[{symbol:soSymbol(f),lines:f.l,polygons:[]}];identity=(hit?.zoneId||"SO/"+soId)+"/"+parts[0].symbol+"/"+GEO.date}
+  }else if(hit?.t==="x"){
+    const g=xg(hit.code),f=g.feats[hit.id],part={symbol:FishSections.symbol(f.art),lines:[],polygons:[]};
+    for(const id of g.zones.get(f.zoneId)){const row=g.feats[id];if(row.poly)part.polygons.push(row.l);else part.lines.push(...row.l)}
+    parts=[part];
   }
-  if(zone||mapSel&&mapSel.t==="w")parts.push(L.circleMarker([mapSel.lat,mapSel.lon],{radius:6,color:"#12222a",weight:3,fillColor:"#ffd43b",fillOpacity:1,pane:"selection",interactive:false}));
-  if(parts.length)selLayer=L.layerGroup(parts).addTo(map);
+  const key=[identity,zoom,hit?.group&&!hit.fullParts?hit.id:"",parts.length].join("|");
+  if(key!==selKey){
+    selKey=key;
+    if(!selLayer)selLayer=L.layerGroup().addTo(map);else selLayer.clearLayers();
+    FishSections.drawSelection(selLayer,parts,zoom);
+  }
+  if(Number.isFinite(hit?.lat)&&Number.isFinite(hit?.lon)){
+    if(selPin)selPin.setLatLng([hit.lat,hit.lon]);else selPin=FishSections.pin(map,hit.lat,hit.lon);
+  }else if(selPin){selPin.remove();selPin=null}
+  if(hit?.group&&!hit.fullParts&&!hit.loading&&!hit.partial){
+    hit.loading=true;
+    sectionMap.wholeZone(hit).then(all=>{hit.fullParts=all},()=>{hit.partial=true}).finally(()=>{
+      hit.loading=false;
+      if(mapSel===hit||(!mapSel&&chosenMapHit===hit)){drawSel();renderSheet()}
+    });
+  }
 }
 let hintT=null,hintMsg="";
 function flashHint(t,ms){hintMsg=t;clearTimeout(hintT);updateHint();if(ms)hintT=setTimeout(()=>{hintMsg="";updateHint()},ms)}
@@ -2297,15 +2338,15 @@ function updateHint(){
 const XICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 function renderSheet(){
   const el=$("#mapSheet");if(!el||!map)return;
-  updateHint();
+  updateHint();renderTop();
   let h="";
-  const incomplete=!!hitWarning&&mapHits.includes(mapSel);
+  const incomplete=mapHits.includes(mapSel)&&(!!hitWarning||mapHits.some(restrictedHit));
   const unknownPill='<span class="pill p-warn">Berechtigung ungeklärt</span>';
   const head=(title,pills)=>`<div class="sh-h"><div class="sh-t">${esc(title)}</div><button type="button" class="sh-x" data-sh="close" aria-label="Schliessen">${XICON}</button></div><div class="sh-p">${pills}</div>`;
   const chip=c=>`<span class="pill p-mut">${esc(cname(c))}</span>`;
   if(mapSel&&mapSel.t==="sec"){
     const f=GEO.features.find(x=>x.id===mapSel.id)||{t:""},sec=secById(mapSel.id),st=secStatus(sec),k=sec.kind;
-    const pill=k==="schon"?`<span class="pill p-bad">Fischen verboten</span>`:st.some(x=>x.lvl==="bad")?`<span class="pill p-bad">heute gesperrt</span>`:incomplete?unknownPill:k==="patent"?`<span class="pill p-ok">heute offen</span>`:`<span class="pill p-warn">nicht mit Patent</span>`;
+    const pill=k==="schon"?`<span class="pill p-bad">Fischen verboten</span>`:st.some(x=>x.lvl==="bad")?`<span class="pill p-bad">heute gesperrt</span>`:incomplete?unknownPill:k==="patent"?`<span class="pill p-ok">Patentgewässer</span>`:k==="other"?unknownPill:`<span class="pill p-warn">nicht mit Patent</span>`;
     const r=k==="patent"?soRule(sec,"Bachforelle"):null;
     const bad=st.find(x=>x.lvl==="bad"&&!/^Schonstrecke/.test(x.txt));
     const chosen=state.canton==="SO"&&state.sec===sec.id;
@@ -2326,7 +2367,7 @@ function renderSheet(){
     const z=mapSel;
     const district=z.rev?"Revier "+z.rev:z.kind;
     const type=z.buried?"Eingedolt":z.kind;
-    const badge=restrictedHit(z)?`<span class="pill p-bad">${esc(type)}</span>`:z.buried?`<span class="pill p-mut">Eingedolt</span>`:"";
+    const badge=restrictedHit(z)?`<span class="pill p-bad">${esc(type)}</span>`:z.buried?`<span class="pill p-mut">Eingedolt</span>`:unknownPill;
     const section=[district,z.region&&z.region!==z.name?z.region:""].filter(Boolean).join(" · ");
     h=head(z.name,chip(z.code)+badge)+`<div class="sh-section">${esc(section)}</div>`;
     h+=`<div class="sh-d">${restrictedHit(z)?"Kartierte Einschränkung · kantonale Vorschriften beachten.":z.buried?"Unterirdischer Abschnitt · Zugang und Berechtigung prüfen.":"Berechtigung für diesen Abschnitt prüfen."}</div>`;
@@ -2334,9 +2375,13 @@ function renderSheet(){
   } else if(mapSel&&mapSel.t==="w"){
     const c=mapSel.code,w=mapSel.water,chosen=state.canton===c&&(state.xsel||{})[c]===w.name;
     h=head(w.name||(w.lake?"See ohne Namen":"Bach ohne Namen"),`<span class="pill p-mut">${w.lake?"See":"Fliessgewässer"}</span>`+chip(c))+`
-      <div class="sh-d">${hasCM(c)?"Fischereiberechtigung an dieser Stelle unbekannt. Revier, Bewilligung und lokale Vorschriften prüfen.":"Für diesen Kanton sind nur die nationalen Mindestvorgaben geladen."}</div>
-      <div class="sh-a">${chosen?`<button type="button" class="pri" data-sh="rules">Regeln ansehen</button>`:`<button type="button" class="pri" data-sh="okw">Gewässer wählen</button>`}</div>`;
+      <div class="sh-d">${hasCM(c)?"Fischereiberechtigung an dieser Stelle unbekannt. Revier, Bewilligung und lokale Vorschriften prüfen.":"Revier und Fischereiberechtigung an dieser Stelle ungeklärt. Es sind nur die nationalen Mindestvorgaben geladen."}</div>
+      `;
+    if(c==="SO")h+='<div class="sh-d">Kein amtlicher Solothurner Revierabschnitt an dieser Position erfasst.</div>';
+    else h+=`<div class="sh-a">${chosen?`<button type="button" class="pri" data-sh="rules">Regeln ansehen</button>`:`<button type="button" class="pri" data-sh="okw">Gewässer wählen</button>`}</div>`;
   }
+  if(h&&mapSel?.partial)h+='<p class="sh-warn">Nur der geladene Teil der Zone ist markiert.</p>';
+  if(h&&mapSel?.pointOnly)h+='<p class="sh-d">Der Kartendienst liefert hier nur eine Punktauskunft.</p>';
   if(h&&pendingSelection)h=head(mapSel.name,chip(mapSel.code||"SO"));
   if(h&&!pendingSelection&&mapHits.includes(mapSel)&&mapHits.length>1){
     if(!restrictedHit(mapSel)&&mapHits.some(restrictedHit))h+='<p class="sh-warn">Am selben oder unmittelbar benachbarten Ort ist eine Einschränkung kartiert. Schutzgebiet und Geltungsbereich prüfen.</p>';
@@ -2358,6 +2403,7 @@ function pickCW(c,names,lake,pref){
   const m=matchW(c,{names,lake});return m.sug||(m.cand.length===1?m.cand[0]:"");
 }
 function chooseWater(c,name,cw){
+  chosenMapHit=mapSel?Object.assign(mapSel,{choiceName:name}):null;
   if(c!==state.canton)state.canton=c;
   state.cantonAuto=false;state.secAuto=false;
   if(cw)state.cw=Object.assign({},state.cw,{[c]:cw});
@@ -2374,7 +2420,7 @@ document.addEventListener("keydown",e=>{
 function sheetAction(a){
   if(pendingSelection&&a!=="close")return;
   if(pendingSelection){pendingSelection=false;hitWarning=""}
-  ++tapSeq;
+  ++tapSeq;clearTapPreview();
   if(a.startsWith("hit-")){const z=mapHits[Number(a.slice(4))];if(z){mapSel=z;renderSheet();drawSel();revealHit()}return}
   if(a==="zone"&&mapSel?.t==="zone"&&!restrictedHit(mapSel)&&!mapSel.buried){
     const z=mapSel;
@@ -2391,15 +2437,16 @@ function sheetAction(a){
   if(a==="close"){mapSel=null}
   else if(a==="rules"){mapSel=null;renderSheet();drawSel();show("hier");return}
   else if(a==="rules2"&&mapSel){a="ok"}
-  if(a==="ok"&&mapSel){const id=mapSel.id;state.canton="SO";state.cantonAuto=false;state.sec=id;state.secAuto=false;state.pin=null;mapSel=null;save();renderSheet();toast(secById(id).name+" gewählt");onCantonChanged();
+  if(a==="ok"&&mapSel){const id=mapSel.id;state.canton="SO";state.cantonAuto=false;state.sec=id;state.secAuto=false;state.pin=null;chosenMapHit=null;mapSel=null;save();renderSheet();toast(secById(id).name+" gewählt");onCantonChanged();
     show("hier");return}
   if(a==="okx"&&mapSel){const c=mapSel.code,f=XGEO[c].feats[mapSel.id];chooseWater(c,f.name,pickCW(c,[f.name,f.name.split(/[\s\d(]/)[0]],f.poly,f.cw));return}
   if(a==="okw"&&mapSel){const c=mapSel.code,w=mapSel.water;chooseWater(c,w.name||"Gewässer",pickCW(c,w.names,w.lake));return}
   renderSheet();drawSel();
 }
-let tapSeq=0,mapHits=[],hitWarning="",pendingSelection=false;
+let tapSeq=0,mapHits=[],hitWarning="",pendingSelection=false,tapPreview=null;
+function clearTapPreview(){if(tapPreview){tapPreview.remove();tapPreview=null}}
 function cancelMapQuery(){
-  ++tapSeq;
+  ++tapSeq;clearTapPreview();
   if(pendingSelection){pendingSelection=false;hitWarning="";mapSel=null;mapHits=[];renderSheet();drawSel()}
 }
 function restrictedHit(hit){
@@ -2411,30 +2458,46 @@ function revealHit(){
   const bottom=map.getSize().y-$("#mapSheet").offsetHeight-38;
   if(y>bottom)map.panBy([0,Math.ceil(y-bottom)],{animate:false});
 }
-function chooseHits(hits,metresPerPixel=1){
+function chooseHits(hits,metresPerPixel=1,preferred=null){
   // Prefer protection at the same line, but allow the next distinct stream to
   // be picked independently. All overlapping official records stay accessible.
   const group=h=>Math.floor(h.d/Math.max(1,Math.min(5,metresPerPixel*1.5)));
-  hits.sort((a,b)=>group(a)-group(b)||Number(restrictedHit(b))-Number(restrictedHit(a))||a.d-b.d||Number(!a.water)-Number(!b.water));
-  const seen=new Set();
-  mapHits=hits.filter(z=>{
-    const key=[z.code||"SO",z.t,z.name,z.rev,z.region,z.kind,z.buried].join("|");
-    if(seen.has(key))return false;seen.add(key);return true;
-  });
-  mapSel=mapHits[0];flashHint("");renderSheet();drawSel();revealHit();
+  const zones=new Map();
+  for(const hit of hits){
+    const key=hit.zoneId||[hit.code||"SO",hit.t,hit.id].join("|"),other=zones.get(key);
+    // Within one zone a surveyed centreline identifies culverts more precisely
+    // than a coincident water surface. Keep the actual nearest point elsewhere.
+    const close=other&&Math.abs(hit.d-other.d)<=Math.min(2,metresPerPixel);
+    const preferLine=close&&!!other.area!==!!hit.area;
+    if(!other||(preferLine?!hit.area:hit.d<other.d))zones.set(key,hit);
+  }
+  mapHits=[...zones.values()].sort((a,b)=>group(a)-group(b)||Number(restrictedHit(b))-Number(restrictedHit(a))||
+    a.d-b.d||Number(!!a.area)-Number(!!b.area)||Number(!a.water)-Number(!b.water));
+  const wanted=preferred&&mapHits.find(h=>h.code===preferred.code&&h.kind===preferred.kind&&h.name===preferred.name&&
+    (!preferred.rev||(h.t==="sec"?h.id:h.rev)===preferred.rev));
+  mapSel=wanted||mapHits[0];flashHint("");renderSheet();drawSel();revealHit();
 }
 async function mapTap(e){
   clearShore();
   pendingSelection=false;
-  const seq=++tapSeq;$("#mapMsg").className="hide";flashHint("");
+  const seq=++tapSeq;clearTapPreview();$("#mapMsg").className="hide";flashHint("");
+  const previewTimer=setTimeout(()=>{
+    if(seq!==tapSeq)return;
+    tapPreview=L.circleMarker(e.latlng,{pane:"zonePin",interactive:false,radius:9,color:"#fff",weight:2.5,dashArray:"3 3",
+      fillColor:"#17292d",fillOpacity:.65}).addTo(map);
+    flashHint("Abschnitt wird gesucht …");
+  },80);
+  try{await resolveMapTap(e,seq)}finally{clearTimeout(previewTimer);if(seq===tapSeq)clearTapPreview()}
+}
+async function resolveMapTap(e,seq){
   const label=sectionMap?.labelAt(e.latlng);
   const ll=e.latlng,lat=ll.lat,lon=ll.lng;
   const metresPerPixel=40075016*Math.cos(lat*Math.PI/180)/2**(map.getZoom()+8);
   const tol=Math.min(360,metresPerPixel*18),box=FishSections.tapBox(lat,lon,tol*1.04);
   const hits=[],jobs=[];
-  for(const f of GEO.features){
+  for(const f of GEO.official?GEO.features:[]){
     if(!FishSections.intersects(soPath(f).box,box))continue;
-    const d=distToLines(lat,lon,f.l);if(d<=tol)hits.push({t:"sec",id:f.id,name:secById(f.id).name,kind:f.art,d});
+    const point=FishSections.nearest(lat,lon,f.l);if(point.d<=tol)hits.push({...point,t:"sec",id:f.id,source:f,zoneId:JSON.stringify(["SO",f.id,f.art,f.t]),code:"SO",name:secById(f.id).name,kind:f.art});
   }
   if(sectionMap)jobs.push({code:"Kartenausschnitt",request:sectionMap.hits(lat,lon,tol)});
   if(map.getZoom()>=10)for(const code of xInView()){
@@ -2447,7 +2510,7 @@ async function mapTap(e){
       for(const f of Object.values(g.feats)){
         if(!FishSections.intersects(box,f.bounds))continue;
         const point=FishSections.nearest(lat,lon,f.l,f.poly);
-        if(point.d<=tol)matches.push({...point,t:"x",code,id:f.id,name:f.name,kind:f.art});
+        if(point.d<=tol)matches.push({...point,t:"x",code,id:f.id,zoneId:f.zoneId,area:f.poly,name:f.name,kind:f.art});
       }
       return matches;
     })()});
@@ -2460,7 +2523,7 @@ async function mapTap(e){
     if(seq!==tapSeq)return;
     if(hits.length){
       pendingSelection=true;hitWarning="Weitere Zonen werden geprüft …";chooseHits([...hits],metresPerPixel);
-    }else flashHint("Abschnitt wird gesucht …");
+    }else{if(mapSel){mapSel=null;mapHits=[];renderSheet();drawSel()}flashHint("Abschnitt wird gesucht …")}
   },200);
   const results=await Promise.allSettled(jobs.map(async j=>{hits.push(...await j.request)}));
   clearTimeout(hintTimer);
@@ -2476,9 +2539,8 @@ async function mapTap(e){
     if(seq!==tapSeq)return;
   }
   if(failed.length)hitWarning="Zonenabfrage unvollständig ("+failed.join(", ")+"). Berechtigung unbekannt.";
-  if(hits.length){chooseHits(hits,metresPerPixel);return}
+  if(hits.length){chooseHits(hits,metresPerPixel,e.preferred);return}
   mapSel=null;mapHits=[];flashHint("");renderSheet();drawSel();
-  if(hitWarning){mapFailure(()=>mapTap(e));return}
   if(map.getZoom()<10){map.setView(ll,10);flashHint("Gewässerabschnitt antippen.",2000);return}
   if(!navigator.onLine){mapFailure(()=>mapTap(e));return}
   flashHint("Gewässer wird gesucht …");
@@ -2488,11 +2550,15 @@ async function mapTap(e){
   try{[cj,w]=await Promise.all([identifyJSON(u),waterAt(lat,lon,tolm)])}
   catch(err){if(seq===tapSeq){flashHint("");mapFailure(()=>mapTap(e))}return}
   if(seq!==tapSeq)return;
+  if(w&&(Math.abs(w.lat-lat)>0.000005||Math.abs(w.lon-lon)>0.000005)){
+    const snapped=new URL(u);snapped.searchParams.set("geometry",w.lon+","+w.lat);
+    try{cj=await identifyJSON(snapped)}catch{if(seq===tapSeq){flashHint("");mapFailure(()=>mapTap(e))}return}
+    if(seq!==tapSeq)return;
+  }
   const a=cj&&cj.results&&cj.results[0]&&cj.results[0].attributes,c=a&&CANTONS.some(x=>x[0]===a.ak)?a.ak:null;
-  if(!c||!w){flashHint(c?"An dieser Stelle ist kein Gewässer":"Ausserhalb der Schweiz",2000);return}
+  if(!c||!w){if(hitWarning){mapFailure(()=>mapTap(e));return}flashHint(c?"An dieser Stelle ist kein Gewässer":"Ausserhalb der Schweiz",2000);return}
   hintMsg="";
-  if(c==="SO"&&isDetailed("SO")){flashHint("Hier ist kein Revier erfasst. Berechtigung vor Ort prüfen.",2500);return}
-  mapSel={t:"w",code:c,water:w,lat,lon};renderSheet();drawSel();revealHit();
+  mapSel={t:"w",code:c,water:w,name:w.name,lat:w.lat,lon:w.lon,zoneId:w.zoneId,parts:w.parts};mapHits=[mapSel];renderSheet();drawSel();revealHit();
 }
 function mapFailure(retry){
   const msg=$("#mapMsg");msg.className="";
@@ -2558,7 +2624,7 @@ $("#waterFish").onclick=e=>{
 };
 function initMap(){
   const msg=$("#mapMsg");
-  if(!window.L||typeof FishSections==="undefined"){
+  if(!window.L||typeof FishSections==="undefined"||typeof FishMapSearch==="undefined"){
     if(initMap.loading)return;
     initMap.loading=true;msg.className="";msg.textContent="Karte wird geladen …";
     if(!document.querySelector("#leafletStyle")){
@@ -2567,30 +2633,37 @@ function initMap(){
     const scripts=[];
     if(!window.L)scripts.push("./vendor/leaflet/leaflet.js");
     if(typeof FishSections==="undefined")scripts.push("./map-sections.js");
+    if(typeof FishMapSearch==="undefined")scripts.push("./map-search.js");
     Promise.allSettled(scripts.map(src=>new Promise((resolve,reject)=>{
       const script=document.createElement("script");script.src=src;
       script.onload=resolve;script.onerror=()=>{script.remove();reject(Error(src))};
       document.head.append(script);
     }))).then(results=>{
       initMap.loading=false;if(!$("#v-karte").classList.contains("on"))return;
-      if(results.some(r=>r.status==="rejected")||!window.L||typeof FishSections==="undefined")mapFailure(initMap);else initMap();
+      if(results.some(r=>r.status==="rejected")||!window.L||typeof FishSections==="undefined"||typeof FishMapSearch==="undefined")mapFailure(initMap);else initMap();
     });
     return;
   }
   msg.className="hide";
   if(map){setTimeout(()=>{map.invalidateSize({pan:false});sectionMap.sync();scheduleWest();loadX()},50);renderSheet();drawSel();showShoreMarkers();return}
   map=L.map("map",{preferCanvas:true,renderer:L.canvas({tolerance:12}),zoomControl:false,maxBounds:[[45.6,5.7],[48.0,10.7]],minZoom:7});
-  map.createPane("selection").style.zIndex=440;
-  map.createPane("casing").style.zIndex=390;casR=L.canvas({pane:"casing"});
+  FishSections.initPanes(map);
   map.attributionControl.setPrefix(false);
   L.control.zoom({position:"topright",zoomInTitle:"Vergrössern",zoomOutTitle:"Verkleinern"}).addTo(map);
   const topo=L.tileLayer("https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg",{maxNativeZoom:18,maxZoom:19,attribution:'© <a href="https://www.swisstopo.admin.ch">swisstopo</a>'});
   const luft=L.tileLayer("https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swissimage/default/current/3857/{z}/{x}/{y}.jpeg",{maxNativeZoom:19,maxZoom:19,attribution:'© <a href="https://www.swisstopo.admin.ch">swisstopo</a>'});
   catchLayer=L.layerGroup().addTo(map);
   (store.get("base","luft")==="topo"?topo:luft).addTo(map);
+  const hydroPane=map.createPane("nationalWater");hydroPane.style.zIndex=345;hydroPane.style.pointerEvents="none";
+  const hydro=L.tileLayer("https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swisstlm3d-gewaessernetz/default/current/3857/{z}/{x}/{y}.png",
+    {pane:"nationalWater",minZoom:11,maxNativeZoom:17,maxZoom:19,opacity:.74,updateWhenIdle:true,
+      attribution:'Gewässer © <a href="https://www.swisstopo.admin.ch/de/landschaftsmodell-swisstlm3d">swisstopo</a>'});
   const regionalLayers=[];
   function syncRegionalLayers(){
     const view=map.getBounds(),zoom=map.getZoom();
+    const waterways=map.hasLayer(luft)&&zoom>=11;
+    if(waterways&&!map.hasLayer(hydro))hydro.addTo(map);
+    else if(!waterways&&map.hasLayer(hydro))hydro.remove();
     for(const layer of regionalLayers){
       const visible=zoom>=layer.options.minZoom&&view.intersects(layer.options.bounds);
       if(visible&&!map.hasLayer(layer))layer.addTo(map);
@@ -2607,10 +2680,16 @@ function initMap(){
   }
   const Bs=L.control({position:"topleft"});Bs.onAdd=()=>{const d=L.DomUtil.create("div","mseg");L.DomEvent.disableClickPropagation(d);
     const draw=()=>{const cur=map.hasLayer(topo)?"topo":"luft";d.innerHTML=`<button type="button" data-b="luft" aria-pressed="${cur==="luft"}" class="${cur==="luft"?"on":""}">Luftbild</button><button type="button" data-b="topo" aria-pressed="${cur==="topo"}" class="${cur==="topo"?"on":""}">Karte</button>`};draw();
-    d.onclick=e=>{e.stopPropagation();const b=e.target.closest("[data-b]");if(!b||b.getAttribute("aria-pressed")==="true")return;const t=b.dataset.b==="topo";map.removeLayer(t?luft:topo);(t?topo:luft).addTo(map);store.set("base",t?"topo":"luft");draw()};return d};Bs.addTo(map);
+    d.onclick=e=>{e.stopPropagation();const b=e.target.closest("[data-b]");if(!b||b.getAttribute("aria-pressed")==="true")return;const t=b.dataset.b==="topo";map.removeLayer(t?luft:topo);(t?topo:luft).addTo(map);store.set("base",t?"topo":"luft");syncRegionalLayers();draw()};return d};Bs.addTo(map);
+  let openMapSearch;
   const shoreControl=L.control({position:"topleft"});
   shoreControl.onAdd=()=>{
-    const button=L.DomUtil.create("button","shore-toggle");button.type="button";button.textContent="Uferstellen";
+    const bar=L.DomUtil.create("div","map-tools");
+    const search=L.DomUtil.create("button","map-search",bar);search.type="button";search.textContent="Suchen";
+    search.setAttribute("aria-haspopup","dialog");search.setAttribute("aria-controls","mapSearchDialog");
+    search.onclick=()=>openMapSearch();
+    L.DomEvent.disableClickPropagation(bar);
+    const button=L.DomUtil.create("button","shore-toggle",bar);button.type="button";button.textContent="Uferstellen";
     L.DomEvent.disableClickPropagation(button);
     button.onclick=()=>{
       const sec=currentSec(),key=state.canton+"/"+sec.id;
@@ -2619,9 +2698,30 @@ function initMap(){
       if(secStatus(sec).some(s=>s.lvl==="bad")){toast("Dieses Gewässer ist gesperrt.");return}
       shoreView={key};showShoreMarkers();
     };
-    return button;
+    return bar;
   };
   shoreControl.addTo(map);
+  openMapSearch=FishMapSearch.bind(sectionMap,map,()=>{
+    const places=[];
+    for(const f of GEO.official?GEO.features:[]){
+      const line=f.l[0],p=line[Math.floor(line.length/2)];
+      places.push([secById(f.id).name,f.id,f.art,p[1],p[0],"SO"]);
+    }
+    for(const [code,group] of Object.entries(XGEO))for(const ids of group.zones.values()){
+      const f=group.feats[ids.values().next().value],line=f.l[0],p=line[Math.floor(line.length/2)];
+      places.push([f.name,"",f.art,p[1],p[0],code]);
+    }
+    return places;
+  },place=>{
+    cancelMapQuery();follow=false;clearShore();mapSel=null;mapHits=[];renderSheet();drawSel();
+    map.setView([place.lat,place.lon],place.zone?15:place.zoom,{animate:false});
+    if(place.zone)mapTap({latlng:L.latLng(place.lat,place.lon),preferred:place});
+    else flashHint(place.name,2600);
+  });
+  L.control.scale({position:"bottomleft",imperial:false,maxWidth:68}).addTo(map);
+  const symbols=Object.values(FishSections.symbols);
+  $("#zoneSymbols").innerHTML=symbols.map(s=>'<div><i style="background:'+(s.dash?'repeating-linear-gradient(90deg,'+s.color+' 0 5px,transparent 5px 8px)':s.color)+'"></i>'+esc(s.label)+'</div>').join("")+
+    '<div><i style="background:'+FishSections.highlight+';height:7px"></i>Ausgewählte Zone</div>';
   const legend=L.control({position:"bottomleft"});
   legend.onAdd=()=>{
     const button=L.DomUtil.create("button","lg");button.type="button";button.textContent="Legende";
@@ -2639,7 +2739,11 @@ function initMap(){
   sheet.onclick=e=>{const b=e.target.closest("[data-sh]");if(b)sheetAction(b.dataset.sh)};
   map.on("zoomend",drawSel);
   map.on("moveend",()=>{if(!$("#v-karte").classList.contains("on"))return;syncRegionalLayers();drawGeo();scheduleWest();loadX();sectionMap.sync();updateHint()});
-  if(state.pos)map.setView([state.pos.lat,state.pos.lon],14);else map.setView([47.30,7.75],10);
+  const saved=store.get("mapView",null);
+  if(Array.isArray(saved)&&saved.length===3&&saved.every(Number.isFinite)&&saved[0]>=45.6&&saved[0]<=48&&saved[1]>=5.7&&saved[1]<=10.7){
+    map.setView(saved.slice(0,2),Math.max(7,Math.min(19,saved[2])));
+  }else if(state.pos)map.setView([state.pos.lat,state.pos.lon],14);else map.setView([47.30,7.75],10);
+  map.on("moveend",()=>{const ll=map.getCenter();store.set("mapView",[ll.lat,ll.lng,map.getZoom()])});
   drawGeo();drawX();loadX();drawCatches();updateMe();renderSheet();drawSel();
   showShoreMarkers();setTimeout(()=>map.invalidateSize(),60);
 }
@@ -2685,6 +2789,7 @@ function show(v,restore=false){
     if(b.classList.contains("on"))b.setAttribute("aria-current","page");
     else b.removeAttribute("aria-current");
   });
+  renderTop();
   if(v!=="karte")window.scrollTo(0,0);
   if(v==="karte")initMap();if(v==="fang")renderFang();if(v==="stat")renderStats();if(v==="regeln")renderRegeln();if(v==="hier")renderHier();if(v==="arten")renderArten();
 }
@@ -2797,8 +2902,23 @@ renderAll();renderStats();
 window.addEventListener("popstate",()=>{show(route(),true);window.scrollTo(0,history.state?.scroll||0)});
 show(route(),true);
 startGeo();
-fetchUpdates();refreshGeo();
-if(location.protocol.startsWith("http")&&"serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+fetchUpdates();loadBundledSO();refreshGeo();
+if(location.protocol.startsWith("http")&&"serviceWorker" in navigator){
+  const previouslyControlled=!!navigator.serviceWorker.controller;
+  let checking=0,refreshOnReturn=false;
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{
+    if(!previouslyControlled)return;
+    if($("#v-karte").classList.contains("on")&&!document.querySelector("dialog[open]"))location.reload();
+    else refreshOnReturn=true;
+  });
+  navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(reg=>{
+    document.addEventListener("visibilitychange",()=>{
+      if(document.visibilityState!=="visible")return;
+      if(refreshOnReturn&&$("#v-karte").classList.contains("on")&&!document.querySelector("dialog[open]")){location.reload();return}
+      if(Date.now()-checking>180000){checking=Date.now();reg.update().catch(()=>{})}
+    });
+  }).catch(()=>{});
+}
 </script>
 </body>
 </html>

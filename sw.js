@@ -1,12 +1,12 @@
 // Fischer-Begleiter Service Worker
-const APP = "fb-app-v37";      // eigene Dateien: Netz zuerst, sonst Cache
+const APP = "fb-app-v38";      // eigene Dateien: Netz zuerst, sonst Cache
 const LIB = "fb-lib-v1";      // Kartenbibliothek: Cache zuerst
 const TILES = "fb-tiles-v1";  // Kartenkacheln: Cache zuerst, begrenzt
 const MAX_TILES = 600;
 const IMG = "fb-img-v1";     // Fischfotos (Wikimedia): Cache zuerst
 const SECTIONS = "fb-sections-v1"; // Abschnittsdateien mit Inhalts-Hash
 
-const FILES = ["./", "./index.html", "./map-sections.js", "./data/sections/index.json", "./manifest.webmanifest", "./icon.svg", "./data/updates.json", "./vendor/leaflet/leaflet.js", "./vendor/leaflet/leaflet.css", "./vendor/leaflet/images/layers-2x.png", "./vendor/leaflet/images/layers.png", "./vendor/leaflet/images/marker-icon-2x.png", "./vendor/leaflet/images/marker-icon.png", "./vendor/leaflet/images/marker-shadow.png"];
+const FILES = ["./", "./index.html", "./map-sections.js", "./map-search.js", "./data/sections/index.json", "./data/so-sections.json", "./manifest.webmanifest", "./icon.svg", "./data/updates.json", "./vendor/leaflet/leaflet.js", "./vendor/leaflet/leaflet.css", "./vendor/leaflet/images/layers-2x.png", "./vendor/leaflet/images/layers.png", "./vendor/leaflet/images/marker-icon-2x.png", "./vendor/leaflet/images/marker-icon.png", "./vendor/leaflet/images/marker-shadow.png"];
 
 self.addEventListener("install", e => e.waitUntil(caches.open(APP).then(c => c.addAll(FILES.map(path=>new Request(path,{cache:"reload"})))).then(() => self.skipWaiting())));
 self.addEventListener("activate", e => e.waitUntil(

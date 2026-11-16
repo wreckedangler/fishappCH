@@ -278,6 +278,7 @@ button:disabled{opacity:.55;cursor:wait}
     </div>
     <label class="chk"><input type="checkbox" id="cbCantonAuto"> Kanton und Gewässer automatisch per Standort bestimmen</label>
   </details>
+  <div class="card" id="waterFish" hidden></div>
   <div id="hereRules"></div>
 </section>
 
@@ -744,6 +745,7 @@ function renderHier(){
   const restoreWaterFocus=document.activeElement?.id==="heroCWTrigger";
 
   const det=isSO(),cm=isCM(),sec=currentSec(),x=hereSummary(),st=det||cm?secStatus(sec):[];
+  renderWaterFish(sec);
   const h=state.here;
   let extra="",altHtml="";
   if(det&&h&&h.schonNear&&h.kind!=="schon")extra+=`<li>Schonstrecke ${esc(h.schonNear.f.id)} in ca. ${fmtM(h.schonNear.d)}: ${esc(h.schonNear.f.t)}</li>`;
@@ -1258,6 +1260,232 @@ const FISH={
 const FIMG={"Bachforelle": ["https://upload.wikimedia.org/wikipedia/commons/4/46/Salmo_trutta_fario_Hungary.jpg", "https://commons.wikimedia.org/wiki/File:Salmo_trutta_fario_Hungary.jpg", "Harka, Akos", "CC BY 3.0"], "Regenbogenforelle": ["https://thumb.wikimedia.org/wikipedia/commons/thumb/d/db/Trout.jpg/960px-Trout.jpg", "https://commons.wikimedia.org/wiki/File:Trout.jpg", "Jonathunder", "CC BY-SA 3.0"], "Seeforelle": ["https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6b/Insj%C3%B6%C3%B6ring_-_Salmo_trutta_lacustris_f%C3%A5ngad_i_en_tj%C3%A4rn_i_Rogens_naturreservat.tif/lossy-page1-960px-Insj%C3%B6%C3%B6ring_-_Salmo_trutta_lacustris_f%C3%A5ngad_i_en_tj%C3%A4rn_i_Rogens_naturreservat.tif.jpg", "https://commons.wikimedia.org/wiki/File:Insj%C3%B6%C3%B6ring_-_Salmo_trutta_lacustris_f%C3%A5ngad_i_en_tj%C3%A4rn_i_Rogens_naturreservat.tif", "Björn Söderlund, Sw3dPix", "CC BY-SA 4.0"], "Saibling": ["https://upload.wikimedia.org/wikipedia/commons/e/ed/Lake_char_%28Salvelinus_umbla%29.png", "https://commons.wikimedia.org/wiki/File:Lake_char_(Salvelinus_umbla).png", "Bjoertvedt", "CC BY-SA 3.0"], "Äsche": ["https://upload.wikimedia.org/wikipedia/commons/9/96/Thymallus_thymallus_P%C3%A9nzes_p%C3%A9r.jpg", "https://commons.wikimedia.org/wiki/File:Thymallus_thymallus_P%C3%A9nzes_p%C3%A9r.jpg", "Zsoldos Márton", "CC BY-SA 3.0"], "Hecht": ["https://thumb.wikimedia.org/wikipedia/commons/thumb/0/05/Esox_lucius_2021_G1.jpg/960px-Esox_lucius_2021_G1.jpg", "https://commons.wikimedia.org/wiki/File:Esox_lucius_2021_G1.jpg", "George Chernilevsky", "CC BY-SA 4.0"], "Zander": ["https://thumb.wikimedia.org/wikipedia/commons/thumb/2/28/Hal_-_Sander_lucioperca_-_1.jpg/960px-Hal_-_Sander_lucioperca_-_1.jpg", "https://commons.wikimedia.org/wiki/File:Hal_-_Sander_lucioperca_-_1.jpg", "Emőke Dénes", "CC BY-SA 4.0"], "Egli (Flussbarsch)": ["https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e7/Perca_fluviatilis_2008_G1.jpg/960px-Perca_fluviatilis_2008_G1.jpg", "https://commons.wikimedia.org/wiki/File:Perca_fluviatilis_2008_G1.jpg", "George Chernilevsky", "Public domain"], "Felchen": ["https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/Coregonus_albellus_%2810.3897-zookeys.989.32822%29_Figure_4.jpg/960px-Coregonus_albellus_%2810.3897-zookeys.989.32822%29_Figure_4.jpg", "https://commons.wikimedia.org/wiki/File:Coregonus_albellus_(10.3897-zookeys.989.32822)_Figure_4.jpg", "Selz, Dönz, Vonlanthen, Seehausen (2020), ZooKeys", "CC BY 4.0"], "Barbe": ["https://upload.wikimedia.org/wikipedia/commons/8/81/Barbel.jpg", "https://commons.wikimedia.org/wiki/File:Barbel.jpg", "Neil Phillips from uk", "CC BY 2.0"], "Alet": ["https://thumb.wikimedia.org/wikipedia/commons/thumb/6/62/Squalius_cephalus_II.jpg/960px-Squalius_cephalus_II.jpg", "https://commons.wikimedia.org/wiki/File:Squalius_cephalus_II.jpg", "Pohled 111", "CC BY-SA 4.0"], "Rotauge": ["https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dd/Rutilus_rutilus_by_Algirdas_cropped.jpg/960px-Rutilus_rutilus_by_Algirdas_cropped.jpg", "https://commons.wikimedia.org/wiki/File:Rutilus_rutilus_by_Algirdas_cropped.jpg", "Algirdas, bearb. George Chernilevsky", "CC BY-SA 3.0"], "Brachsmen": ["https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f6/Abramis_brama_%28Seine_river%29.jpg/960px-Abramis_brama_%28Seine_river%29.jpg", "https://commons.wikimedia.org/wiki/File:Abramis_brama_(Seine_river).jpg", "Nervurax Fishing", "CC BY-SA 4.0"], "Karpfen": ["https://thumb.wikimedia.org/wikipedia/commons/thumb/8/84/Cyprinus_carpio_2021_G1.jpg/960px-Cyprinus_carpio_2021_G1.jpg", "https://commons.wikimedia.org/wiki/File:Cyprinus_carpio_2021_G1.jpg", "George Chernilevsky", "CC BY-SA 4.0"], "Schleie": ["https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fb/Tinca_tinca_Prague_Vltava_2.jpg/960px-Tinca_tinca_Prague_Vltava_2.jpg", "https://commons.wikimedia.org/wiki/File:Tinca_tinca_Prague_Vltava_2.jpg", "Karelj", "Public domain"], "Wels": ["https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d3/Silurus_glanis_02.jpg/960px-Silurus_glanis_02.jpg", "https://commons.wikimedia.org/wiki/File:Silurus_glanis_02.jpg", "Dieter Florian", "CC BY-SA 3.0 de"], "Aal": ["https://thumb.wikimedia.org/wikipedia/commons/thumb/7/71/Anguilla_anguilla_Belgium_1.jpg/960px-Anguilla_anguilla_Belgium_1.jpg", "https://commons.wikimedia.org/wiki/File:Anguilla_anguilla_Belgium_1.jpg", "vranken martin", "CC BY 4.0"], "Nase": ["https://thumb.wikimedia.org/wikipedia/commons/thumb/1/11/Cyprinidae_Chondrostoma_nasus_1.jpg/960px-Cyprinidae_Chondrostoma_nasus_1.jpg", "https://commons.wikimedia.org/wiki/File:Cyprinidae_Chondrostoma_nasus_1.jpg", "NasserHalaweh", "CC BY-SA 4.0"], "Lachs": ["https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0f/Atlantic_salmon_fish.jpg/960px-Atlantic_salmon_fish.jpg", "https://commons.wikimedia.org/wiki/File:Atlantic_salmon_fish.jpg", "Timothy Knepp, U.S. Fish and Wildlife Service", "Public domain"], "Strömer": ["https://upload.wikimedia.org/wikipedia/commons/a/a3/Leuciscus_souffia_vaskos_csabak.jpg", "https://commons.wikimedia.org/wiki/File:Leuciscus_souffia_vaskos_csabak.jpg", "Zsoldos Márton", "CC BY-SA 3.0"], "Bachneunauge": ["https://thumb.wikimedia.org/wikipedia/commons/thumb/3/38/Lampetra_planeri_76210056.jpg/960px-Lampetra_planeri_76210056.jpg", "https://commons.wikimedia.org/wiki/File:Lampetra_planeri_76210056.jpg", "Julien Renoult", "CC BY 4.0"], "Bitterling": ["https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fd/Rhodeus_amarus_2008_G1.jpg/960px-Rhodeus_amarus_2008_G1.jpg", "https://commons.wikimedia.org/wiki/File:Rhodeus_amarus_2008_G1.jpg", "George Chernilevsky", "Public domain"]};
 const FTAGS=[["alle","Alle"],["fluss","Fluss"],["see","See"],["raub","Raubfisch"],["fried","Friedfisch"],["prot","Geschützt"]];
 let artFilter="alle",artOpen=null;
+// Ausgewählte Arten mit gemeldeten Fängen im Abschnitt (AWJF Solothurn, Fangjahr 2024).
+const sectionFish={
+ "A1": [
+  "Egli (Flussbarsch)",
+  "Alet",
+  "Wels",
+  "Hecht",
+  "Bachforelle",
+  "Rotauge",
+  "Barbe",
+  "Brachsmen",
+  "Felchen",
+  "Karpfen",
+  "Schleie",
+  "Regenbogenforelle"
+ ],
+ "A2": [
+  "Egli (Flussbarsch)",
+  "Alet",
+  "Barbe",
+  "Wels",
+  "Rotauge",
+  "Hecht",
+  "Bachforelle",
+  "Karpfen",
+  "Regenbogenforelle",
+  "Brachsmen",
+  "Schleie",
+  "Äsche",
+  "Zander"
+ ],
+ "A3": [
+  "Egli (Flussbarsch)",
+  "Wels",
+  "Barbe",
+  "Alet",
+  "Hecht"
+ ],
+ "A4": [
+  "Egli (Flussbarsch)",
+  "Alet",
+  "Wels",
+  "Rotauge",
+  "Bachforelle",
+  "Barbe",
+  "Äsche",
+  "Hecht",
+  "Regenbogenforelle",
+  "Karpfen",
+  "Brachsmen"
+ ],
+ "A5": [
+  "Barbe",
+  "Wels",
+  "Äsche",
+  "Hecht",
+  "Alet"
+ ],
+ "A6": [
+  "Alet",
+  "Wels",
+  "Egli (Flussbarsch)",
+  "Bachforelle",
+  "Barbe",
+  "Regenbogenforelle",
+  "Äsche",
+  "Hecht"
+ ],
+ "B": [
+  "Bachforelle",
+  "Hecht",
+  "Rotauge"
+ ],
+ "E": [
+  "Bachforelle",
+  "Alet",
+  "Regenbogenforelle",
+  "Wels",
+  "Äsche",
+  "Egli (Flussbarsch)"
+ ],
+ "EK": [
+  "Bachforelle",
+  "Alet",
+  "Wels"
+ ],
+ "D": [
+  "Bachforelle",
+  "Alet",
+  "Regenbogenforelle",
+  "Egli (Flussbarsch)",
+  "Barbe",
+  "Wels"
+ ],
+ "LS": [
+  "Bachforelle",
+  "Hecht"
+ ],
+ "CH": [
+  "Bachforelle"
+ ]
+};
+const baitBySeason={
+ "Bachforelle": [
+  "Kleine Nymphe am Gumpenauslauf frei treiben lassen.",
+  "Bei sichtbaren Ringen eine Trockenfliege entlang der Schattenkante treiben lassen.",
+  "Kleine Nymphe in der tieferen Strömungsrinne anbieten.",
+  "Beschwerte Nymphe langsam durch den ruhigen Kolkauslauf führen."
+ ],
+ "Regenbogenforelle": [
+  "Kleinen Löffel an der ersten Tiefenkante führen.",
+  "Kleinen Blinker mit längerer Absinkpause in kühleren Schichten suchen lassen.",
+  "Kleinen Spinner entlang der Uferkante führen.",
+  "Schmalen Löffel langsam über tieferen Partien führen."
+ ],
+ "Seeforelle": [
+  "Schlanken Löffel parallel zum steilen Kiesufer führen.",
+  "Schlanken Wobbler in der kühleren Schicht bei den Beutefischen führen.",
+  "Kleinen Blinker an der Halde führen und Laichzuflüsse auslassen.",
+  "Schlanken Löffel vom steilen Ufer mit wechselnder Absinkzeit führen."
+ ],
+ "Saibling": [
+  "Kleinen Löffel am Übergang von Kiesbank zu Halde anbieten.",
+  "Kleinen Löffel an der schattigen Steilkante stufenweise tiefer führen.",
+  "Kleine Nymphe über der Halde anbieten, Laichplätze aussparen.",
+  "Kleine Nymphe langsam über der Fischschicht anheben."
+ ],
+ "Äsche": [
+  "Kleine Nymphe in einer gleichmässigen Strömungsbahn treiben lassen, Laichplätze aussparen.",
+  "Bei kühlem Wasser eine kleine Trockenfliege oberhalb sichtbarer Ringe aufsetzen.",
+  "Feine Nymphe in langen Kiesrinnen frei treiben lassen.",
+  "Eine kleine beschwerte Nymphe langsam in tieferen Zügen anbieten."
+ ],
+ "Hecht": [
+  "Flach laufenden Wobbler entlang der äusseren Krautkante führen.",
+  "Gummifisch über Krautlücken führen und kurz absinken lassen.",
+  "Grösseren Gummifisch parallel zur abfallenden Halde führen.",
+  "Gummifisch langsam unterhalb der Beutefische führen."
+ ],
+ "Zander": [
+  "Schlanken Gummifisch an einer tiefen Kante führen, Nestplätze meiden.",
+  "Flach laufenden Wobbler in der Abenddämmerung über steiniges Ufer führen.",
+  "Gummifisch am Jig kurz vom harten Grund anheben.",
+  "Schlanken Gummifisch langsam mit kurzen Grundkontakten führen."
+ ],
+ "Egli (Flussbarsch)": [
+  "Kleines Larvenimitat am Fuss der ersten Uferkante anbieten.",
+  "Kleinen Gummifisch entlang der Krautkante durch jagende Schwärme führen.",
+  "Kleinen Gummifisch schräg über die Halde führen, Absinkzeit nach dem ersten Biss wiederholen.",
+  "Kleinen Gummiköder am Dropshot knapp über dem Grund langsam bewegen."
+ ],
+ "Felchen": [
+  "Kleine Zuckmückennymphe an der erlaubten Hegene knapp über Grund anheben.",
+  "Feine Nymphe im Freiwasser anbieten und die Fischtiefe schrittweise suchen.",
+  "Kleine dunkle Nymphe an der Halde langsam heben und senken.",
+  "Kleine Nymphe an der tiefen Halde dicht über Grund anbieten."
+ ],
+ "Barbe": [
+  "Kleinen Wurm an der Strömungskante dicht über Kies anbieten.",
+  "Wurm an einer stabil liegenden Grundmontage am Rinnenrand anbieten.",
+  "Wurm am Eingang einer tieferen Rinne auf Grund anbieten.",
+  "Kleinen Wurm im langsameren Wasser am Kolkrand ruhen lassen."
+ ],
+ "Alet": [
+  "Brotflocke am ruhigen Rand der Hauptströmung abtreiben lassen.",
+  "Käferfliege unter überhängenden Ästen frei zutreiben lassen.",
+  "Kleinen Wobbler an der Strömungsnaht vorbeiführen.",
+  "Brotflocke am Grund eines langsam durchströmten Kolks anbieten."
+ ],
+ "Rotauge": [
+  "Eine Made an feiner Pose in der besonnten Bucht anbieten.",
+  "Brotflocke knapp über der Pflanzenkante treiben lassen.",
+  "Made an der Pose knapp über dem Boden an der Halde anbieten.",
+  "Einzelne Made an feiner Pose langsam in die tiefere Rinne sinken lassen."
+ ],
+ "Brachsmen": [
+  "Kleinen Wurm am Grund vor einer flachen Bucht anbieten.",
+  "Wurm an leichter Grundmontage nahe wandernden Blasenspuren ablegen.",
+  "Mais am Fuss der Halde auf dem Grund anbieten.",
+  "Kleine Made an leichter Montage in tieferen, ruhigen Bereichen anbieten."
+ ],
+ "Karpfen": [
+  "Einzelnes Maiskorn auf einem freien Fleck in der besonnten Bucht ablegen.",
+  "Mais oder Boilie vor der beobachteten Zugroute am Krautrand platzieren.",
+  "Boilie auf einer freien Stelle an der tieferen Krautkante anbieten.",
+  "Kleinen Einzelköder in einem ruhigen, tieferen Bereich anbieten."
+ ],
+ "Schleie": [
+  "Kleinen Wurm an feiner Pose auf freiem Grund neben Schilf anbieten.",
+  "Wurm frühmorgens in einer Lücke am Seerosenrand ablegen.",
+  "Kleinen Wurm am tiefen Rand des Pflanzenfeldes anbieten.",
+  "Sehr geringe Aktivität. Falls Fische sichtbar fressen, einen kleinen Wurm ruhig am Grund anbieten."
+ ],
+ "Wels": [
+  "Robusten Gummifisch bei steigender Temperatur entlang der Kolkkante führen.",
+  "Grossen Gummifisch in der Dämmerung an der Kante zum Flachwasser führen.",
+  "Robusten Gummifisch langsam am Übergang zum tiefen Kolk führen.",
+  "Geringe Aktivität. Einen Gummifisch langsam an der tiefen Kante führen."
+ ]
+};
+function renderWaterFish(sec,date=new Date()){
+  const box=$("#waterFish");
+  box.hidden=unknownWater()||(!isSO()&&!isCM())||!sec.id;
+  if(box.hidden)return;
+  const season=Math.floor(((date.getMonth()+10)%12)/3);
+  const seasonName=["Frühling","Sommer","Herbst","Winter"][season];
+  const documented=isSO()?sectionFish[sec.id]:null;
+  const local=state.log.filter(f=>(f.canton||"SO")===state.canton&&f.sec===sec.id).map(f=>f.art);
+  const label=sec.name.toLowerCase();
+  const lake=/^(?!.*(?:ausfluss|unterhalb|ausgenommen|ohne|übrige)).*(?:see$|see \(|lago |lac de |léman)/i.test(label)&&!label.includes("aare");
+  const river=isSO()||/aare|fluss|flüsse|fliessgewässer|rhein|birs|emme|saane|bach|kanal|rivière|cours d.eau/.test(label);
+  const bernLake=isCM()&&state.canton==="BE"&&["biel","thun","brienz"].includes(sec.id);
+  const typical=lake?["Egli (Flussbarsch)","Hecht","Rotauge"]:river?["Alet","Barbe","Bachforelle"]:[];
+  const names=[...new Set([...(documented||[]),...(bernLake?["Felchen"]:[]),...local,...(!documented&&!local.length?typical:[])])];
+  const closed=secStatus(sec,date).some(s=>s.lvl==="bad");
+  const rows=names.filter(n=>baitBySeason[n]).map(n=>{
+    const rule=ruleFor(sec,n);
+    const protectedNow=rule.prot||[rule.schon,rule.schon2].some(period=>period&&inRange(date,...period));
+    const reason=bernLake&&n==="Felchen"?"Fangnachweis im See (Kanton Bern)":documented?.includes(n)?"Fangnachweis 2024":local.includes(n)?"Im eigenen Fangbuch":"Typisch für diesen Gewässertyp";
+    const tip=closed?"Gewässer gesperrt":protectedNow?"Geschützt oder in der Schonzeit":rule.pickW||rule.chk?"Lokale Vorschriften prüfen":(rule.national?"Kantonale Regeln vorab prüfen. ":"")+baitBySeason[n][season];
+    return {blocked:closed||protectedNow,html:`<div class="it"><b>${esc(n)}</b><div class="mut small">${reason}</div><div>${esc(tip)}</div></div>`};
+  }).sort((a,b)=>Number(a.blocked)-Number(b.blocked));
+  const html=`<h2>Fische im ${seasonName}</h2><p class="mut small">${esc(sec.name)} · Ködertipps für die Jahreszeit. Ködervorschriften vor Ort beachten.</p><div class="list">${rows.slice(0,3).map(r=>r.html).join("")}</div>${rows.length>3?`<details><summary>Weitere Arten (${rows.length-3})</summary><div class="list">${rows.slice(3).map(r=>r.html).join("")}</div></details>`:""}${!rows.length?"<p>Für diese Auswahl fehlen passende Artendaten.</p>":""}${documented?'<a class="small" href="https://so.ch/verwaltung/volkswirtschaftsdepartement/amt-fuer-wald-jagd-und-fischerei/fischerei/fangstatistik/" target="_blank" rel="noopener">Quelle: Kantonale Fangstatistik</a>':bernLake?'<a class="small" href="https://www.be.ch/de/start/dienstleistungen/medien/medienmitteilungen.html?newsID=c050d5c2-0070-3add-9647-46dffb9b608e" target="_blank" rel="noopener">Quelle: Fangstatistik Kanton Bern</a>':""}`;
+  if(box.dataset.content!==html){box.innerHTML=html;box.dataset.content=html}
+
+}
 function artStatus(sp){
   const r=ruleFor(currentSec(),sp),now=new Date();
   if(r.prot)return["p-bad","geschützt"];

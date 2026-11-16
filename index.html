@@ -136,6 +136,7 @@ nav svg{width:24px;height:24px;stroke-width:1.75}
 #mapMsg{position:absolute;left:12px;right:12px;top:12px;z-index:500}
 #v-karte .leaflet-bottom{bottom:var(--sheet,0px);transition:bottom .22s ease}
 #mapSheet{position:absolute;left:10px;right:10px;bottom:10px;z-index:600;max-width:560px;margin:0 auto;background:var(--sf);color:var(--tx);border-radius:18px;padding:14px 16px 16px;box-shadow:0 8px 28px rgba(10,20,24,.3);transform:translateY(calc(100% + 24px));visibility:hidden;transition:transform .22s ease,visibility 0s .22s}
+#mapSheet{max-height:75%;overflow:auto}
 #mapSheet.on{transform:none;visibility:visible;transition:transform .22s ease}
 .sh-h{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .sh-t{font-size:18px;font-weight:700;line-height:1.25;letter-spacing:-.005em;padding-top:4px;min-width:0}
@@ -295,6 +296,7 @@ button:disabled{opacity:.55;cursor:wait}
     <label class="chk"><input type="checkbox" id="cbCantonAuto"> Kanton und Gewässer automatisch per Standort bestimmen</label>
   </details>
   <div class="card" id="waterFish" hidden></div>
+  <aside class="card" id="hereCoverage" hidden></aside>
   <div id="hereRules"></div>
 </section>
 
@@ -763,6 +765,11 @@ function renderHier(){
   const restoreWaterFocus=document.activeElement?.id==="heroCWTrigger";
 
   const det=isSO(),cm=isCM(),sec=currentSec(),x=hereSummary(),st=det||cm?secStatus(sec):[];
+  const coverage=$("#hereCoverage");
+  if(coverage.dataset.canton!==state.canton){
+    coverage.dataset.canton=state.canton;coverage.hidden=!eastCoverage[state.canton];
+    coverage.innerHTML=coverage.hidden?"":"<h2>Kartenabdeckung · "+esc(cname(state.canton))+"</h2>"+coverageInfo(state.canton);
+  }
   renderWaterFish(sec);
   const h=state.here;
   let extra="",altHtml="";
@@ -2003,6 +2010,8 @@ const XSRC={
  ZH:{bbox:true,minZoom:11,attr:"Fischereireviere © Kanton Zürich",layers:[{url:ZHW("gewaessernetz_l"),map:ZHM},{url:ZHW("stillgewaesser_f"),map:ZHM}]},
  TG:{attr:"Fischerei-Geodaten © Kanton Thurgau",layers:[
   {url:TGW("schongebiete"),map:p=>({id:"S"+p.objectid,art:"Schon",name:p.gebietsname||"Schongebiet",t:p.gebietsbeschreibung||"",x:[p.gueltig_von?`Gilt vom ${p.gueltig_von} bis ${p.gueltig_bis}`:"",p.fischereiregelung||""].filter(Boolean)})},
+  {url:TGW("verbote"),map:p=>({id:"V"+p.objectid,art:"Schon",name:p.gebietsname||"Lokale Einschränkung",t:p.fischereiregelung||p.gebietsbeschreibung,x:[p.gueltig_von&&p.gueltig_bis?`Gilt vom ${p.gueltig_von} bis ${p.gueltig_bis}`:""].filter(Boolean)})},
+  {url:TGW("uferregeln"),map:p=>({id:"U"+p.objectid,art:String(p.erlaubt)==="false"?"Schon":"Unbekannt",name:p.hafenname||"Uferregel",t:p.beschreibung||"Bedingungen vor Ort prüfen."})},
   {url:TGW("fischenzen"),map:p=>({id:"F"+p.objectid,art:"Privat",name:"Fischenz "+(p.gebietsname||""),t:p.gebietsbeschreibung||"",x:[p.fischereiregelung||""].filter(Boolean)})},
   {url:TGW("freiangelrecht"),map:p=>({id:"A"+p.objectid,art:"Frei",name:p.gewaessername||"Freiangelrecht",t:p.beschreibung||"",x:["Freiangelrecht nach kantonaler Regelung."]})}]}
 };
@@ -2042,6 +2051,24 @@ Object.assign(XSRC,{
   {url:AQ(VDB,197),map:p=>({id:"F"+p.OBJECTID,art:"Frei",name:"Freie Strecke "+(p.NOMPARCOURSLIBRE||""),t:p.DEFINITION||"",x:["Parcours libre: Fischen ohne Patent nach kantonaler Regelung."]})},
   {url:AQ(VDB,194),map:p=>({id:"S"+p.OBJECTID,art:"Schon",name:"Schongebiet "+(p.NOMRIVIERE||"")+(p.NORESERVE?" (Nr. "+p.NORESERVE+")":""),t:p.DEFINITION||"",x:["Réserve de pêche – Fischen verboten"]})}]}
 });
+const eastCoverage={
+  AI:["Amtliche Fischereikarte ab Zoom 11. Die genaue Abgrenzung und die Bedingungen stehen in der kantonalen Karte.","Fischereikarte Innerrhoden","https://www.geoportal.ch/ktai/map/146"],
+  AR:["Reviergrenzen und Schonstrecken sind hier nicht eingezeichnet. Die amtliche Liste beschreibt die Reviere und Grenzgewässer.","Revierliste Ausserrhoden (PDF)","https://ar.ch/fileadmin/user_upload/Departement_Bau_Volkswirtschaft/Amt_fuer_Umwelt/Umwelt/Publikationen/Formular/Fischerei/Fischerei_Fischereireviere.pdf"],
+  GL:["Gewässer mit Fangzeiten und kartierten Verboten. Zusätzliche Schutzgebietsregeln beim Kanton prüfen.","Glarner Schutzgebiete und Vorschriften","https://www.gl.ch/verwaltung/bau-und-umwelt/umwelt-wald-und-energie/jagd-und-fischerei/fischerei/fischereigesetzgebung.html/798"],
+  GR:["Ab Zoom 11 zeigt die kantonale Karte Fischgewässer, private Rechte, Sonderregeln und Schongewässer. Farben und Bedingungen im Geoportal nachschlagen.","Fischereikarte Graubünden","https://map.geo.gr.ch/theme/Fischerei"],
+  SG:["Ab Zoom 11 sind verwaltete Gewässer in den kantonalen Farben sichtbar. Zusätzliche Schonstrecken und Bewilligungen beim Kanton prüfen.","St. Galler Revierkarten","https://www.sg.ch/umwelt-natur/jagd-fischerei/fischerei/fischereipatente/pachtgewaesser-kanton-st--gallen.html"],
+  SH:["Kartierte Reviere und bezeichnete Verbote. Für das Uferpatent gelten abschnitts- und uferabhängige Grenzen.","Schaffhauser Uferpatent und Karte","https://sh.ch/CMS/Webseite/Kanton-Schaffhausen/Beh-rde/Verwaltung/Departement-des-Innern/Jagd-und-Fischerei/Fischerei-1238041-DE.html"],
+  TG:["Schongebiete, Fischenzen, Freiangelrecht, lokale Verbote und Uferregeln. Fischreiser und weitere lokale Einschränkungen separat prüfen.","Thurgauer Fischereiverwaltung","https://jfv.tg.ch/fischerei.html/8653"]
+};
+function coverageInfo(c){
+  const entry=eastCoverage[c];
+  return entry?`<p class="sh-d">${entry[0]} <a href="${entry[2]}" target="_blank" rel="noopener">${entry[1]}</a></p>`:"";
+}
+const eastWms=[
+  ["AI","https://www.geoportal.ch/services/wms/ktai","ch.geoportal.wald_flora_fauna.146.0.fischereikarte_kt_ai",[[47.23,9.30],[47.47,9.63]]],
+  ["SG","https://services.geo.sg.ch/wss/service/SG00021_WMS/guest","Pachtgewaesser_stehendeGewaesser,Pachtgewaesser_Fliessgewaesser",[[46.86,8.79],[47.55,9.70]]],
+  ["GR","https://map.geo.gr.ch/mapserv_proxy?ogcserver=Kanton+Graub%C3%BCnden%2C+Fischerei","FFS_Fischereigewaesser_Fliessgewaesser,FFS_Fischereigewaesser_See,FFS_Fluss_private_Rechte,FFS_Seen_private_Rechte,FFS_Uferfischerei_mit_kant_Bewilligung,FFS_Naturkoederverbot_Fluesse,FFS_Naturkoederverbot_Seen,FFS_Nationalpark,FFS_Schongewaesser_Fluesse,FFS_Schongewaesser_Seen",[[46.16,8.64],[47.07,10.50]]]
+];
 const XBOX={TG:[8.66,47.37,9.5,47.7],BE:[6.86,46.32,8.46,47.35],VS:[6.77,45.85,8.48,46.66],FR:[6.74,46.43,7.38,47.01],GL:[8.87,46.79,9.26,47.18],SH:[8.4,47.55,8.88,47.81],VD:[6.06,46.18,7.25,46.99],ZH:[8.35,47.15,8.99,47.7],AG:[7.71,47.13,8.46,47.63]};
 function xInView(){if(!map)return[];const b=map.getBounds();return Object.keys(XSRC).filter(c=>{const x=XBOX[c];return!x||(x[0]<b.getEast()&&x[2]>b.getWest()&&x[1]<b.getNorth()&&x[3]>b.getSouth())})}
 const XGEO={};let xLayer=null;
@@ -2178,6 +2205,7 @@ function renderSheet(){
       <div class="sh-d">${hasCM(c)?"Fischereiberechtigung an dieser Stelle unbekannt. Revier, Bewilligung und lokale Vorschriften prüfen.":"Für diesen Kanton sind nur die nationalen Mindestvorgaben geladen."}</div>
       <div class="sh-a">${chosen?`<button type="button" class="pri" data-sh="rules">Regeln ansehen</button>`:`<button type="button" class="pri" data-sh="okw">Gewässer wählen</button>`}</div>`;
   }
+  if(h&&mapSel?.code)h+=coverageInfo(mapSel.code);
   if(h){el.innerHTML=h;el.classList.add("on")}else el.classList.remove("on");
   requestAnimationFrame(()=>$("#v-karte").style.setProperty("--sheet",h?(el.offsetHeight+12)+"px":"0px"));
 }
@@ -2330,6 +2358,12 @@ function initMap(){
     layer.on("tileerror",()=>flashHint("Ein Teil der Aargauer Revierkarte konnte nicht geladen werden.",5000));
     layer.addTo(map);
   }
+  const pane=map.createPane("eastFishery");pane.style.zIndex=351;pane.style.pointerEvents="none";
+  for(const [c,url,layers,bounds] of eastWms){
+    L.tileLayer.wms(url,{layers,bounds,pane:"eastFishery",format:"image/png",transparent:true,
+      version:"1.1.1",minZoom:11,maxZoom:19,attribution:"Fischereikarte © Kanton "+cname(c)})
+      .on("tileerror",()=>flashHint("Fischereikarte "+cname(c)+" teilweise nicht geladen.",5000)).addTo(map);
+  }
   const Bs=L.control({position:"topleft"});Bs.onAdd=()=>{const d=L.DomUtil.create("div","mseg");L.DomEvent.disableClickPropagation(d);
     const draw=()=>{const cur=map.hasLayer(topo)?"topo":"luft";d.innerHTML=`<button type="button" data-b="luft" class="${cur==="luft"?"on":""}">Luftbild</button><button type="button" data-b="topo" class="${cur==="topo"?"on":""}">Karte</button>`};draw();
     d.onclick=e=>{const b=e.target.closest("[data-b]");if(!b)return;const t=b.dataset.b==="topo";map.removeLayer(t?luft:topo);(t?topo:luft).addTo(map);store.set("base",t?"topo":"luft");draw()};return d};Bs.addTo(map);
@@ -2348,7 +2382,7 @@ function initMap(){
   };
   shoreControl.addTo(map);
   const Lg=L.control({position:"bottomleft"});Lg.onAdd=()=>{const d=L.DomUtil.create("button","lg");d.type="button";L.DomEvent.disableClickPropagation(d);
-    const full=`<div><i style="background:#12b886"></i>Patentgewässer / frei</div><div><i style="background:repeating-linear-gradient(90deg,#ff6b6b 0 4px,transparent 4px 9px)"></i>Patent – heute gesperrt (SO)</div><div><i style="background:#a8261c;height:6px"></i>Schonstrecke / Schongebiet</div><div><i style="background:#f08c00"></i>Pacht / Revier</div><div><i style="background:#7d8b88"></i>Privat</div><div><i style="background:#ffd43b;height:6px"></i>Gewählt</div><div><i style="background:#1971c2;width:10px;height:10px;border-radius:50%"></i>Meine Fänge</div><div style="max-width:210px;line-height:1.35;margin-top:4px;color:var(--mut)">Zonen vorhanden für SO, BE, VS, FR, VD, GL, ZH, AG, TG, SH. Geodaten © jeweiliger Kanton.</div>`;
+    const full=`<div><i style="background:#12b886"></i>Patentgewässer / frei</div><div><i style="background:repeating-linear-gradient(90deg,#ff6b6b 0 4px,transparent 4px 9px)"></i>Patent – heute gesperrt (SO)</div><div><i style="background:#a8261c;height:6px"></i>Schonstrecke / Schongebiet</div><div><i style="background:#f08c00"></i>Pacht / Revier</div><div><i style="background:#7d8b88"></i>Privat</div><div><i style="background:#ffd43b;height:6px"></i>Gewählt</div><div><i style="background:#1971c2;width:10px;height:10px;border-radius:50%"></i>Meine Fänge</div><div style="max-width:210px;line-height:1.35;margin-top:4px;color:var(--mut)">Kartierte Zonen: SO, BE, VS, FR, VD, GL, ZH, AG, TG, SH. AI, GR und SG ab Zoom 11 in kantonalen Farben. AR: Revierliste unter «Hier». Eine leere Fläche bestätigt keine Berechtigung.</div>`;
     let open=store.get("legendOpen",false);const draw=()=>{d.setAttribute("aria-expanded",String(open));d.setAttribute("aria-label",open?"Legende schliessen":"Legende öffnen");d.innerHTML=open?full+`<div style="text-align:right;font-weight:700">Schliessen</div>`:`<b>Legende</b>`};draw();
     d.style.cursor="pointer";d.onclick=e=>{e.stopPropagation();open=!open;store.set("legendOpen",open);draw()};return d};Lg.addTo(map);map._legend=Lg;
   const Me=L.control({position:"bottomright"});Me.onAdd=()=>{const b=L.DomUtil.create("button","mebtn");b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>';b.setAttribute("aria-label","Zu meinem Standort");b.title="Zu meinem Standort";L.DomEvent.on(b,"click",e=>{L.DomEvent.stop(e);follow=true;if(state.pos)map.setView([state.pos.lat,state.pos.lon],16);else{startGeo();toast("Standort wird gesucht …")}});return b};Me.addTo(map);

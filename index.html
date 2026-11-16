@@ -120,6 +120,19 @@ nav svg{width:24px;height:24px;stroke-width:1.75}
 #v-karte.on{position:fixed;top:calc(var(--tb) + env(safe-area-inset-top));bottom:calc(var(--nav) + env(safe-area-inset-bottom));left:0;right:0;padding:0;margin:0;max-width:none}
 #map{position:absolute;inset:0;background:#dfe7e4}
 #mapMsg{position:absolute;left:12px;right:12px;top:12px;z-index:500}
+#v-karte .leaflet-bottom{bottom:var(--sheet,0px)}
+#mapSheet{position:absolute;left:10px;right:10px;bottom:10px;z-index:600;max-width:700px;margin:0 auto;background:var(--sf);color:var(--tx);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px 16px;box-shadow:0 6px 22px rgba(10,20,24,.22)}
+#mapSheet:empty{display:none}
+.sh-h{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.sh-t{font-size:18px;font-weight:700;line-height:1.25;letter-spacing:-.005em;margin-bottom:2px}
+.sh-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--mut);margin-right:8px;vertical-align:1px}
+.sh-dot.ok{background:var(--ok)}.sh-dot.warn{background:var(--warn)}.sh-dot.bad{background:var(--bad)}
+.sh-x{flex:0 0 auto;min-height:36px;padding:4px 10px;font-size:13px;font-weight:550;color:var(--mut)}
+.sh-d{font-size:14px;line-height:1.45;color:var(--mut);margin-top:6px}
+.sh-l{margin:6px 0 0;padding-left:18px;font-size:14px}.sh-l li{margin:3px 0}
+.sh-ok{margin-top:10px;font-size:14px;font-weight:650;color:var(--ok)}
+#mapSheet button.full,#mapSheet .row{margin-top:12px}
+#mapSheet label{margin-top:10px}
 .leaflet-container{font:14px/1.45 system-ui,sans-serif}
 .leaflet-popup-content-wrapper{border-radius:12px}
 .leaflet-popup-content{margin:14px 16px;min-width:220px;color:#12222a}
@@ -180,6 +193,7 @@ dialog::backdrop{background:rgba(10,20,24,.55)}
       <select id="selSec"></select>
       <label class="chk"><input type="checkbox" id="cbSecAuto"> Abschnitt automatisch per Standort</label>
     </div>
+    <button type="button" class="full" id="btnToMap" style="margin-top:18px">Auf der Karte wählen</button>
   </div>
 </section>
 
@@ -187,6 +201,7 @@ dialog::backdrop{background:rgba(10,20,24,.55)}
 <section class="view" id="v-karte">
   <div id="map"></div>
   <div id="mapMsg" class="hide"></div>
+  <div id="mapSheet" aria-live="polite"></div>
 </section>
 
 <!-- FANG -->
@@ -831,25 +846,102 @@ function drawGeo(){
   const order={privat:0,pacht:1,patent:2,schon:3};
   [...GEO.features].sort((a,b)=>order[kindOf(a.art)]-order[kindOf(b.art)]).forEach(f=>{
     const latlngs=f.l.map(l=>l.map(([lo,la])=>[la,lo]));
-    const pl=L.polyline(latlngs,styleFor(f)).bindPopup(()=>popupFor(f));pl.addTo(gLayer);
+    L.polyline(latlngs,Object.assign({interactive:false},styleFor(f))).addTo(gLayer);
     const k=kindOf(f.art);
     if(k==="patent"||k==="schon"){const longest=f.l.reduce((a,l)=>l.length>a.length?l:a,f.l[0]);const m=longest[Math.floor(longest.length/2)];
       L.marker([m[1],m[0]],{interactive:false,icon:L.divIcon({className:"",html:`<span class="mylbl ${k==="schon"?"s":""}">${esc(f.id)}</span>`,iconSize:null})}).addTo(gLayer)}
   });
 }
-function drawCatches(){if(!map)return;catchLayer.clearLayers();state.log.filter(f=>f.lat!=null&&f.kept).forEach(f=>L.circleMarker([f.lat,f.lon],{radius:6,color:"#fff",weight:2,fillColor:"#1971c2",fillOpacity:1}).bindPopup(`<b>${esc(f.art)}</b>${f.len!=null?" · "+f.len+" cm":""}<br>${new Date(f.ts).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"})}`).addTo(catchLayer))}
+function drawCatches(){if(!map)return;catchLayer.clearLayers();state.log.filter(f=>f.lat!=null&&f.kept).forEach(f=>L.circleMarker([f.lat,f.lon],{radius:6,color:"#fff",weight:2,fillColor:"#1971c2",fillOpacity:1,bubblingMouseEvents:false}).bindPopup(`<b>${esc(f.art)}</b>${f.len!=null?" · "+f.len+" cm":""}<br>${new Date(f.ts).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"})}`).addTo(catchLayer))}
 function updateMe(){
   const p=state.pos;if(!map||!p)return;const ll=[p.lat,p.lon];
   if(!meMarker){meCircle=L.circle(ll,{radius:p.acc,color:"#1c7ed6",weight:1,fillOpacity:.12,interactive:false}).addTo(map);meMarker=L.circleMarker(ll,{radius:8,color:"#fff",weight:3,fillColor:"#1c7ed6",fillOpacity:1}).addTo(map)}
   else{meMarker.setLatLng(ll);meCircle.setLatLng(ll).setRadius(p.acc)}
   if(follow)map.setView(ll,Math.max(map.getZoom(),15));
 }
+/* ---- Karte: Auswahl per Antippen, Bestätigen im Blatt unten ---- */
+let mapSel=null,selLayer=null;
+function drawSel(){
+  if(!map)return;if(selLayer){selLayer.remove();selLayer=null}
+  const parts=[];
+  const id=mapSel&&mapSel.t==="sec"?mapSel.id:(!mapSel&&isSO()?state.sec:null);
+  const f=id&&state.canton==="SO"?GEO.features.find(x=>x.id===id):null;
+  if(f){const ll=f.l.map(l=>l.map(([lo,la])=>[la,lo]));
+    parts.push(L.polyline(ll,{color:"#ffffff",weight:15,opacity:.95,interactive:false,lineCap:"round"}));
+    parts.push(L.polyline(ll,Object.assign({},styleFor(f),{weight:8,dashArray:null,interactive:false,lineCap:"round"})))}
+  if(mapSel&&mapSel.t==="canton")parts.push(L.circleMarker([mapSel.lat,mapSel.lon],{radius:7,color:"#fff",weight:3,fillColor:"#12222a",fillOpacity:1,interactive:false}));
+  if(parts.length)selLayer=L.layerGroup(parts).addTo(map);
+}
+function cwSelect(c){const R=RULES[c],cur=cwOf(c);return`<label for="shCW">An welchem Gewässer fischst du?</label><select id="shCW"><option value="">– Gewässer wählen –</option>${R.w.map(([id,l])=>`<option value="${esc(id)}"${id===cur?" selected":""}>${esc(l)}</option>`).join("")}</select>`}
+function renderSheet(){
+  const el=$("#mapSheet");if(!el||!map)return;
+  if(document.activeElement&&document.activeElement.id==="shCW")return;
+  const close=`<button type="button" class="sh-x" data-sh="close">Schliessen</button>`;
+  let h="";
+  if(mapSel&&mapSel.t==="sec"){
+    const f=GEO.features.find(x=>x.id===mapSel.id)||{t:""},sec=secById(mapSel.id),st=secStatus(sec),k=sec.kind;
+    const pill=k==="schon"?`<span class="pill p-bad">Fischen verboten</span>`:st.some(x=>x.lvl==="bad")?`<span class="pill p-bad">heute gesperrt</span>`:k==="patent"?`<span class="pill p-ok">heute offen</span>`:`<span class="pill p-warn">nicht mit Patent</span>`;
+    const r=k!=="schon"?soRule(sec,"Bachforelle"):null;
+    const chosen=state.sec===sec.id&&!state.secAuto;
+    h=`<div class="sh-h"><div><div class="sh-t">${esc(sec.name)}</div>${pill}</div>${close}</div>
+      <div class="sh-d">${esc(f.t)}</div>
+      ${st.length?`<ul class="sh-l">${st.map(s=>`<li>${esc(s.txt)}</li>`).join("")}</ul>`:""}
+      ${r&&r.slot?`<div class="sh-d">Bachforelle ${fmtSlot(r.slot)}, Schonzeit ${fmtR(r.schon)}</div>`:""}
+      ${k==="schon"?"":chosen?`<div class="sh-ok">Gewählt</div><div class="row"><button type="button" class="pri" data-sh="rules">Regeln ansehen</button><button type="button" data-sh="auto">Wieder per Standort</button></div>`:`<button type="button" class="pri full" data-sh="ok">Dieses Gewässer wählen</button>`}`;
+  } else if(mapSel&&mapSel.t==="canton"){
+    const c=mapSel.code;
+    if(mapSel.loading)h=`<div class="sh-h"><div class="sh-t">Kanton wird ermittelt …</div>${close}</div>`;
+    else if(!c)h=`<div class="sh-h"><div class="sh-t">Kein Kanton gefunden</div>${close}</div><div class="sh-d">Dieser Punkt liegt ausserhalb der Schweiz oder die Abfrage ist fehlgeschlagen.</div>`;
+    else if(c==="SO"&&isDetailed("SO"))h=`<div class="sh-h"><div class="sh-t">Solothurn</div>${close}</div><div class="sh-d">${state.canton==="SO"?"An dieser Stelle liegt kein Fischereigewässer. Tippe auf eine farbige Linie, um einen Abschnitt zu wählen.":"Für Solothurn sind alle Gewässerabschnitte auf der Karte hinterlegt."}</div>${state.canton==="SO"?"":`<button type="button" class="pri full" data-sh="okc">Kanton Solothurn wählen</button>`}`;
+    else h=`<div class="sh-h"><div><div class="sh-t">${esc(cname(c))}</div>${c===state.canton?`<span class="pill p-ok">aktueller Kanton</span>`:""}</div>${close}</div>
+      ${hasCM(c)?cwSelect(c):`<div class="sh-d">Für diesen Kanton sind nur die nationalen Mindestvorgaben geladen.</div>`}
+      <button type="button" class="pri full" data-sh="okc">${c===state.canton?"Gewässer bestätigen":"Kanton und Gewässer bestätigen"}</button>`;
+  } else {
+    const x=hereSummary();
+    h=`<div class="sh-h"><div><div class="sh-t"><span class="sh-dot ${x.cls}"></span>${esc(x.t)}</div></div></div>
+      <div class="sh-d">${esc(state.pos?(x.s||""):(state.geoErr||"Standort wird gesucht …"))}</div>
+      ${isSO()?`<div class="sh-d">Tippe auf eine Linie, um einen Abschnitt zu wählen.</div>${state.secAuto?"":`<button type="button" class="full" data-sh="auto">Abschnitt wieder per Standort bestimmen</button>`}`
+        :isCM()?cwSelect(state.canton)+`<button type="button" class="pri full" data-sh="okc">Gewässer bestätigen</button>`
+        :`<div class="sh-d">Tippe auf die Karte, um einen Kanton zu wählen.</div>`}
+      ${!state.pos&&watchId==null?`<button type="button" class="full" data-sh="geo">Standort aktivieren</button>`:""}`;
+  }
+  el.innerHTML=h;
+  $("#v-karte").style.setProperty("--sheet",(el.offsetHeight+12)+"px");
+}
+function sheetAction(a){
+  if(a==="close")mapSel=null;
+  else if(a==="ok"&&mapSel){state.sec=mapSel.id;state.secAuto=false;state.pin=null;save();toast(secById(mapSel.id).name+" gewählt")}
+  else if(a==="rules"){show("hier");return}
+  else if(a==="auto"){state.secAuto=true;mapSel=null;save();updateHere();toast("Abschnitt wird per Standort bestimmt");return}
+  else if(a==="geo"){state.geoErr=null;startGeo()}
+  else if(a==="okc"){
+    const c=mapSel&&mapSel.code?mapSel.code:state.canton,sel=$("#shCW"),w=sel?sel.value:null;
+    if(sel&&!w){toast("Bitte zuerst ein Gewässer wählen");return}
+    if(c!==state.canton){state.canton=c;state.cantonAuto=false}
+    if(w)state.cw=Object.assign({},state.cw,{[c]:w});
+    save();mapSel=null;if(sel)sel.blur();
+    toast(w?cwLabel(c,w)+" gewählt":cname(c)+" gewählt");onCantonChanged();return}
+  renderAll();
+}
+async function mapTap(e){
+  const lat=e.latlng.lat,lon=e.latlng.lng;
+  if(state.canton==="SO"&&GEO.features.length){
+    const tol=40075016*Math.cos(lat*Math.PI/180)/Math.pow(2,map.getZoom()+8)*26;
+    let best=null;for(const f of GEO.features){const d=distToLines(lat,lon,f.l)-(f.art==="Schon"?3:0);if(d<=tol&&(!best||d<best.d))best={f,d}}
+    if(best){mapSel={t:"sec",id:best.f.id};renderSheet();drawSel();return}
+  }
+  const sel={t:"canton",code:null,lat,lon,loading:true};mapSel=sel;renderSheet();drawSel();
+  try{const u=`https://api3.geo.admin.ch/rest/services/api/MapServer/identify?geometry=${lon},${lat}&geometryType=esriGeometryPoint&layers=all:ch.swisstopo.swissboundaries3d-kanton-flaeche.fill&sr=4326&tolerance=0&returnGeometry=false&lang=de`;
+    const j=await fetch(u).then(r=>r.json());const a=j.results&&j.results[0]&&j.results[0].attributes;
+    if(a&&CANTONS.some(c=>c[0]===a.ak))sel.code=a.ak}catch(err){}
+  sel.loading=false;if(mapSel===sel){renderSheet();drawSel()}
+}
 function initMap(){
   const msg=$("#mapMsg");
   if(!window.L){msg.className="";msg.innerHTML=`<div class="card">Die Karte braucht beim ersten Öffnen eine Internetverbindung. Danach funktionieren Standort und Abschnittserkennung auch offline.</div>`;
     if(!initMap.waiting){initMap.waiting=true;window.addEventListener("load",()=>{if($("#v-karte").classList.contains("on")){msg.className="hide";initMap()}})}return}
   msg.className="hide";
-  if(map){setTimeout(()=>map.invalidateSize(),50);return}
+  if(map){setTimeout(()=>map.invalidateSize(),50);renderSheet();drawSel();return}
   map=L.map("map",{preferCanvas:true,renderer:L.canvas({tolerance:12}),zoomControl:false,maxBounds:[[45.6,5.7],[48.0,10.7]],minZoom:7});
   L.control.zoom({position:"topright"}).addTo(map);
   const topo=L.tileLayer("https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg",{maxNativeZoom:18,maxZoom:19,attribution:'© <a href="https://www.swisstopo.admin.ch">swisstopo</a> · Gewässer © Kanton SO'}).addTo(map);
@@ -862,9 +954,10 @@ function initMap(){
     d.style.cursor="pointer";d.onclick=()=>{open=!open;store.set("legendOpen",open);draw()};return d};Lg.addTo(map);map._legend=Lg;
   const Me=L.control({position:"bottomright"});Me.onAdd=()=>{const b=L.DomUtil.create("button","mebtn");b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>';b.setAttribute("aria-label","Zu meinem Standort");b.title="Zu meinem Standort";L.DomEvent.on(b,"click",e=>{L.DomEvent.stop(e);follow=true;if(state.pos)map.setView([state.pos.lat,state.pos.lon],16);else{startGeo();toast("Standort wird gesucht …")}});return b};Me.addTo(map);
   map.on("dragstart",()=>{follow=false});
-  map.on("popupopen",e=>{const b=e.popup.getElement().querySelector("[data-pick]");if(b)b.onclick=()=>{state.sec=b.dataset.pick;state.secAuto=false;save();map.closePopup();toast("Abschnitt gewählt – automatische Wahl aus");renderAll();show("hier")}});
+  map.on("click",mapTap);
+  $("#mapSheet").onclick=e=>{const b=e.target.closest("[data-sh]");if(b)sheetAction(b.dataset.sh)};
   if(state.pos)map.setView([state.pos.lat,state.pos.lon],14);else map.setView([47.30,7.75],10);
-  drawGeo();drawCatches();updateMe();
+  drawGeo();drawCatches();updateMe();renderSheet();drawSel();
   setTimeout(()=>map.invalidateSize(),60);
 }
 function onGeoChanged(){if(map)drawGeo();if(state.pos)updateHere();else renderAll()}
@@ -894,7 +987,7 @@ async function fetchUpdates(){
 function loadCached(){const c=store.get("data",null);if(c&&c.version>=DATA_META.version){DATA_META={version:c.version,updated:c.updated,checked:store.get("data_checked",null)};if(c.news)NEWS=c.news;if(c.rules)Object.keys(c.rules).forEach(k=>{RULES[k]=c.rules[k]})}else DATA_META.checked=store.get("data_checked",null)}
 
 /* ================= NAVIGATION & INIT ================= */
-function renderAll(){renderTop();renderHier();if($("#v-arten").classList.contains("on"))renderArten();if($("#v-fang").classList.contains("on"))renderFang();if($("#v-regeln").classList.contains("on"))renderRegeln()}
+function renderAll(){renderTop();renderHier();if(map&&$("#v-karte").classList.contains("on")){renderSheet();drawSel()}if($("#v-arten").classList.contains("on"))renderArten();if($("#v-fang").classList.contains("on"))renderFang();if($("#v-regeln").classList.contains("on"))renderRegeln()}
 function show(v){
   document.querySelectorAll("section.view").forEach(s=>s.classList.toggle("on",s.id==="v-"+v));
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v||(v==="stat"&&b.dataset.v==="fang")));
@@ -922,6 +1015,7 @@ $("#fArt").onchange=e=>setSpecies(e.target.value);
 $("#fLen").oninput=liveCheck;
 document.querySelectorAll(".lenrow [data-d]").forEach(b=>b.onclick=()=>{const v=parseFloat($("#fLen").value)||0;$("#fLen").value=Math.max(0,v+parseFloat(b.dataset.d));liveCheck()});
 $("#btnSave").onclick=saveFang;
+$("#btnToMap").onclick=()=>show("karte");
 $("#artQ").oninput=renderArten;
 $("#artTags").onclick=e=>{const b=e.target.closest("[data-tag]");if(b){artFilter=b.dataset.tag;renderArten()}};
 $("#artList").addEventListener("toggle",e=>{const d=e.target;if(d.open)artOpen=d.dataset.sp;else if(artOpen===d.dataset.sp)artOpen=null},true);

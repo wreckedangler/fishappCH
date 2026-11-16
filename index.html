@@ -8,7 +8,7 @@
 <title>Fischer-Begleiter</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/schild-apple-180.png">
 <style>
 :root{
  --bg:#f2f4f1;--sf:#fff;--sf2:#f5f7f5;--line:#dce2de;--tx:#12222a;--mut:#5a6a6c;
@@ -27,8 +27,8 @@ body{padding:calc(var(--tb) + env(safe-area-inset-top)) 0 calc(var(--nav) + env(
 a{color:var(--acc)}
 /* Kopfzeile */
 #topbar{position:fixed;top:0;left:0;right:0;z-index:1000;padding-top:env(safe-area-inset-top);background:var(--sf);border-bottom:1px solid var(--line)}
-#topbar .in{height:var(--tb);display:flex;align-items:center;gap:9px;padding:0 12px;max-width:720px;margin:0 auto}
-#tbHome{display:grid;place-items:center;flex:none;width:48px;height:52px;margin-inline-start:-4px;padding:0;border:0;background:transparent;color:var(--acc)}
+#topbar .in{height:var(--tb);display:flex;align-items:center;gap:9px;padding:0 max(12px,env(safe-area-inset-right)) 0 max(12px,env(safe-area-inset-left))}
+#tbHome{display:grid;place-items:center;flex:none;width:48px;height:52px;padding:0;border:0;background:transparent;color:var(--acc)}
 #tbHome svg{display:block;pointer-events:none}
 #tbHome .shield-focus{fill:none;stroke:none}
 #tbHome:focus-visible{outline:0}
@@ -313,22 +313,18 @@ button:disabled{opacity:.55;cursor:wait}
 <body>
 
 <div id="topbar"><div class="in">
-  <button type="button" id="tbHome" data-v="hier" aria-label="Fischer-Begleiter – zur Startansicht">
-    <svg width="40" height="52" viewBox="207 60 864 1150" aria-hidden="true" focusable="false">
-      <defs>
-        <path id="shieldEdge" d="M640 112 C532 194 396 242 259 236 C246 333 246 432 254 530
-          C260 670 306 807 389 920 C459 1012 546 1089 639 1158 C731 1087 823 1013 890 916
-          C985 781 1019 614 1026 452 C1031 380 1028 307 1018 236 C881 245 749 191 640 112 Z"/>
-        <clipPath id="shieldClip"><use href="#shieldEdge"/></clipPath>
-      </defs>
-      <use class="shield-focus" href="#shieldEdge"/>
-      <image href="assets/app-192.png" width="1280" height="1280" clip-path="url(#shieldClip)"/>
-    </svg>
-  </button>
   <button id="tbCanton" aria-label="Kanton wählen">SO</button>
   <button type="button" id="tbStatus" aria-label="Status am aktuellen Ort">
     <span class="dot" id="tbDot"></span>
     <span style="min-width:0"><span class="txt" id="tbTxt">Standort wird gesucht …</span><span class="sub" id="tbSub"></span></span>
+  </button>
+  <button type="button" id="tbHome" data-v="hier" aria-label="Fischer-Begleiter – zur Startansicht">
+    <svg width="40" height="52" viewBox="207 60 864 1150" aria-hidden="true" focusable="false">
+      <path id="shieldEdge" class="shield-focus" d="M640 112 C532 194 396 242 259 236 C246 333 246 432 254 530
+        C260 670 306 807 389 920 C459 1012 546 1089 639 1158 C731 1087 823 1013 890 916
+        C985 781 1019 614 1026 452 C1031 380 1028 307 1018 236 C881 245 749 191 640 112 Z"/>
+      <image href="assets/schild-192.png" x="79" y="75" width="1120" height="1120"/>
+    </svg>
   </button>
 </div></div>
 

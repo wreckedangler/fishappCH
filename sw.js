@@ -1,5 +1,5 @@
 // Fischer-Begleiter Service Worker
-const APP = "fb-app-v42";      // eigene Dateien: Netz zuerst, sonst Cache
+const APP = "fb-app-v43";      // eigene Dateien: Netz zuerst, sonst Cache
 const LIB = "fb-lib-v1";      // Kartenbibliothek: Cache zuerst
 const TILES = "fb-tiles-v1";  // Kartenkacheln: Cache zuerst, begrenzt
 const MAX_TILES = 600;
@@ -8,7 +8,7 @@ const SECTIONS = "fb-sections-v1"; // Abschnittsdateien mit Inhalts-Hash
 
 const FILES = ["./", "./index.html", "./map-sections.js", "./map-search.js", "./data/sections/index.json", "./data/so-sections.json", "./manifest.webmanifest", "./icon.svg", "./data/updates.json", "./vendor/leaflet/leaflet.js", "./vendor/leaflet/leaflet.css", "./vendor/leaflet/images/layers-2x.png", "./vendor/leaflet/images/layers.png", "./vendor/leaflet/images/marker-icon-2x.png", "./vendor/leaflet/images/marker-icon.png", "./vendor/leaflet/images/marker-shadow.png"];
 FILES.push("./map-sources.js","./data/map-overview.json","./data/alpenraum.webp",...["BE","FR","GE","GL","SH","TG","VD","VS"].map(c=>"./data/fisheries/"+c+".json"));
-FILES.push(...["favicon-32","apple-touch-icon","app-192","app-512","app-maskable-512"].map(name=>"./assets/"+name+".png"));
+FILES.push(...["favicon-32","schild-apple-180","schild-192","schild-512","schild-maskable-512"].map(name=>"./assets/"+name+".png"));
 
 self.addEventListener("install", e => e.waitUntil(caches.open(APP).then(c => c.addAll(FILES.map(path=>new Request(path,{cache:"reload"})))).then(() => self.skipWaiting())));
 self.addEventListener("activate", e => e.waitUntil(

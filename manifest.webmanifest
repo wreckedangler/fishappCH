@@ -10,8 +10,8 @@
   "theme_color": "#0e5c63",
   "lang": "de-CH",
   "icons": [
-    { "src": "assets/app-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "assets/app-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "assets/app-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "assets/schild-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/schild-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/schild-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

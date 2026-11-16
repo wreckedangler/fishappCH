@@ -3,632 +3,654 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0f3d2e">
-<title>Fischer-Begleiter SO</title>
+<meta name="theme-color" content="#0b1f18">
+<title>Fischer-Begleiter</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <style>
-:root{--bg:#0b1f18;--card:#12302a;--card2:#183c34;--line:#26524a;--tx:#e8f2ee;--mut:#9fbab1;--acc:#4fd1a1;--warn:#f2b84b;--bad:#ef6b6b;--ok:#4fd1a1}
-*{box-sizing:border-box}
+:root{--bg:#0a1c16;--card:#12302a;--card2:#1a3f37;--line:#2a5a50;--tx:#f0f7f4;--mut:#a9c4bb;--acc:#4fd1a1;--warn:#f2b84b;--bad:#ff7070;--tb:56px;--nav:64px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-body{padding:env(safe-area-inset-top) 0 calc(72px + env(safe-area-inset-bottom))}
-header{padding:14px 16px 6px;display:flex;align-items:center;gap:10px}
-header h1{font-size:18px;margin:0;font-weight:650}
-header .sub{color:var(--mut);font-size:13px}
-main{padding:0 12px}
+body{padding:calc(var(--tb) + env(safe-area-inset-top)) 0 calc(var(--nav) + env(safe-area-inset-bottom) + 8px)}
+/* Topbar */
+#topbar{position:fixed;top:0;left:0;right:0;z-index:1000;padding-top:env(safe-area-inset-top);background:#071510;border-bottom:1px solid var(--line)}
+#topbar .in{height:var(--tb);display:flex;align-items:center;gap:10px;padding:0 12px}
+#tbCanton{flex:0 0 auto;min-height:36px;padding:6px 10px;border-radius:10px;background:var(--card2);border:1px solid var(--line);color:var(--tx);font-weight:700;font-size:14px}
+#tbStatus{flex:1;min-width:0;display:flex;align-items:center;gap:8px;cursor:pointer}
+#tbStatus .dot{flex:0 0 12px;height:12px;border-radius:50%;background:var(--mut)}
+#tbStatus .txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;font-size:15px}
+#tbStatus .sub{font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tbStatus .dot.ok{background:var(--acc)}#tbStatus .dot.bad{background:var(--bad)}#tbStatus .dot.warn{background:var(--warn)}
+#topbar.bad{background:#3a0f0f;border-color:#7a2a2a}
+main{padding:0 12px;max-width:720px;margin:0 auto}
 section.view{display:none}section.view.on{display:block}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:10px 0}
-.card h2{font-size:16px;margin:0 0 8px}
-.mut{color:var(--mut);font-size:14px}
-.small{font-size:13px}
-button,.btn{appearance:none;border:0;border-radius:12px;padding:13px 16px;font:inherit;font-weight:600;background:var(--card2);color:var(--tx);border:1px solid var(--line);cursor:pointer;min-height:48px}
-button.pri{background:var(--acc);color:#05261b;border-color:var(--acc)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin:12px 0}
+.card h2{font-size:17px;margin:0 0 10px}
+.mut{color:var(--mut)}.small{font-size:13px}
+button{appearance:none;border-radius:12px;padding:12px 16px;font:inherit;font-weight:650;background:var(--card2);color:var(--tx);border:1px solid var(--line);cursor:pointer;min-height:48px}
+button.pri{background:var(--acc);color:#04261a;border-color:var(--acc)}
 button.bad{background:var(--bad);color:#2a0606;border-color:var(--bad)}
 button.full{width:100%}
+button:active{transform:scale(.98)}
 .row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1}
-select,input,textarea{width:100%;font:inherit;padding:12px;border-radius:10px;border:1px solid var(--line);background:#0d2620;color:var(--tx);min-height:48px}
-label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
+select,input,textarea{width:100%;font:inherit;padding:12px;border-radius:12px;border:1px solid var(--line);background:#0c241e;color:var(--tx);min-height:48px}
+label{display:block;font-size:13px;color:var(--mut);margin:12px 0 5px}
+.chk{display:flex;align-items:center;gap:10px;margin:10px 0 0;font-size:14px;color:var(--tx)}
+.chk input{width:22px;height:22px;min-height:0;accent-color:var(--acc)}
 table{width:100%;border-collapse:collapse;font-size:14px}
-th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th,td{text-align:left;padding:9px 6px;border-bottom:1px solid var(--line);vertical-align:top}
 th{color:var(--mut);font-weight:500}
-.pill{display:inline-block;padding:3px 9px;border-radius:99px;font-size:12px;font-weight:650}
-.p-ok{background:#1d5a45;color:#bff5df}.p-warn{background:#5a4718;color:#ffe3a6}.p-bad{background:#5a1d1d;color:#ffc9c9}.p-mut{background:#24403a;color:var(--mut)}
-.verdict{border-radius:12px;padding:12px;margin-top:12px;font-weight:600}
+.pill{display:inline-block;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700;vertical-align:middle}
+.p-ok{background:#1d5a45;color:#c4f7e1}.p-warn{background:#5a4718;color:#ffe3a6}.p-bad{background:#5f1d1d;color:#ffd0d0}.p-mut{background:#24403a;color:var(--mut)}
+.hero{border-radius:16px;padding:16px;margin:12px 0;border:1px solid var(--line)}
+.hero.ok{background:linear-gradient(160deg,#17503f,#12302a)}.hero.bad{background:linear-gradient(160deg,#5a1b1b,#2d1414);border-color:#7a2a2a}.hero.warn{background:linear-gradient(160deg,#4f3d13,#2b2412)}.hero.none{background:var(--card)}
+.hero .t{font-size:22px;font-weight:750;line-height:1.2}
+.hero .d{color:var(--mut);margin-top:4px;font-size:14px}
+.hero ul{margin:10px 0 0;padding-left:20px}.hero li{margin:4px 0}
+.verdict{border-radius:14px;padding:14px;margin-top:12px}
+.verdict .big{font-size:20px;font-weight:750}
 .v-ok{background:#164a39}.v-bad{background:#4a1616}.v-warn{background:#4a3a12}
-.list .it{padding:10px 0;border-bottom:1px solid var(--line)}
-.list .it:last-child{border:0}
-nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:#081812;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
-nav button{flex:1;border:0;border-radius:0;background:none;min-height:62px;font-size:12px;font-weight:600;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:2px}
-nav button.on{color:var(--acc)}
-nav svg{width:22px;height:22px}
-.big{font-size:28px;font-weight:700}
-.timer{font-variant-numeric:tabular-nums}
-.hide{display:none!important}
+.verdict .ln{font-size:14px;margin-top:4px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{min-height:42px;padding:8px 12px;font-size:14px;border-radius:99px}
+.chips button.on{background:var(--acc);color:#04261a;border-color:var(--acc)}
+.lenrow{display:flex;gap:8px}.lenrow button{flex:0 0 56px;font-size:22px;padding:0}
+.lenrow input{flex:1;font-size:24px;font-weight:700;text-align:center}
+details summary{cursor:pointer;color:var(--mut);margin-top:12px;font-size:14px}
+.list .it{padding:10px 0;border-bottom:1px solid var(--line)}.list .it:last-child{border:0}
 .stat{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.stat div{background:var(--card2);border-radius:10px;padding:10px}
-.stat b{display:block;font-size:22px}
-ul{padding-left:20px;margin:6px 0}li{margin:3px 0}
-.copybox{white-space:pre-wrap;background:#0d2620;border:1px dashed var(--line);border-radius:10px;padding:10px;font-size:14px;margin-top:8px}
-dialog{background:var(--card);color:var(--tx);border:1px solid var(--line);border-radius:14px;max-width:420px;width:92%}
+.stat div{background:var(--card2);border-radius:12px;padding:10px;font-size:13px;color:var(--mut)}
+.stat b{display:block;font-size:22px;color:var(--tx)}
+.big{font-size:30px;font-weight:750}.timer{font-variant-numeric:tabular-nums}
+.hide{display:none!important}
+ul{padding-left:20px;margin:6px 0}li{margin:4px 0}
+.copybox{white-space:pre-wrap;background:#0c241e;border:1px dashed var(--line);border-radius:12px;padding:12px;font-size:15px;margin-top:8px}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:1000;display:flex;background:#071510;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;border:0;border-radius:0;background:none;min-height:var(--nav);font-size:11px;font-weight:650;color:var(--mut);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:0}
+nav button.on{color:var(--acc)}
+nav svg{width:24px;height:24px}
+/* Karte */
+#v-karte.on{position:fixed;top:calc(var(--tb) + env(safe-area-inset-top));bottom:calc(var(--nav) + env(safe-area-inset-bottom));left:0;right:0;padding:0;margin:0;max-width:none}
+#map{position:absolute;inset:0;background:#dfe7e4}
+#mapMsg{position:absolute;left:12px;right:12px;top:12px;z-index:500}
+.leaflet-container{font:14px/1.4 system-ui,sans-serif}
+.leaflet-popup-content{margin:12px 14px;min-width:220px}
+.leaflet-popup-content h3{margin:0 0 4px;font-size:16px}
+.leaflet-popup-content button{min-height:40px;margin-top:8px;width:100%;background:#0f3d2e;color:#fff;border:0}
+.lg{background:rgba(255,255,255,.95);color:#123;padding:8px 10px;border-radius:10px;font-size:12px;line-height:1.7;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.lg i{display:inline-block;width:22px;height:4px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.mylbl{background:#0f3d2e;color:#fff;font-weight:800;font-size:11px;padding:1px 5px;border-radius:6px;border:1px solid #fff;white-space:nowrap}
+.mylbl.s{background:#b3261e}
+.mebtn{background:#fff;color:#0f3d2e;border:0;width:44px;height:44px;min-height:0;padding:0;border-radius:10px;font-size:20px;box-shadow:0 1px 5px rgba(0,0,0,.35)}
+#toast{position:fixed;left:50%;bottom:calc(var(--nav) + 16px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#e8f2ee;color:#0b1f18;padding:10px 16px;border-radius:12px;font-weight:650;font-size:14px;z-index:2000;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90%}
+#toast.on{opacity:1}
+dialog{background:var(--card);color:var(--tx);border:1px solid var(--line);border-radius:16px;max-width:440px;width:92%}
 dialog::backdrop{background:rgba(0,0,0,.6)}
 </style>
 </head>
 <body>
-<header>
-  <svg width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><path d="M6 32c8-11 20-16 32-14 7 1 12 5 16 9l6-6v22l-6-6c-4 4-9 8-16 9C26 48 14 43 6 32z" fill="#4fd1a1"/><circle cx="18" cy="30" r="3" fill="#0b1f18"/></svg>
-  <div><h1>Fischer-Begleiter</h1><div class="sub">Kanton Solothurn · Regeln ab 01.03.2026</div></div>
-</header>
+
+<div id="topbar"><div class="in">
+  <button id="tbCanton" aria-label="Kanton">SO</button>
+  <div id="tbStatus" role="button" aria-label="Status am aktuellen Ort">
+    <span class="dot" id="tbDot"></span>
+    <div style="min-width:0"><div class="txt" id="tbTxt">Standort wird gesucht …</div><div class="sub" id="tbSub"></div></div>
+  </div>
+</div></div>
 
 <main>
-<!-- GEWÄSSER -->
-<section class="view on" id="v-wasser">
+<!-- HIER -->
+<section class="view on" id="v-hier">
+  <div id="hereHero"></div>
+  <div id="hereRules"></div>
   <div class="card">
-    <h2>Kanton</h2>
+    <h2>Ort & Kanton</h2>
+    <button class="pri full hide" id="btnGeo">📍 Standort aktivieren</button>
+    <div id="geoMsg" class="mut small"></div>
+    <label for="selCanton">Kanton</label>
     <select id="selCanton"></select>
-    <div id="cantonMsg" class="mut small" style="margin-top:8px"></div>
+    <label class="chk"><input type="checkbox" id="cbCantonAuto"> Kanton automatisch per Standort</label>
+    <div id="secPick">
+      <label for="selSec">Patentabschnitt</label>
+      <select id="selSec"></select>
+      <label class="chk"><input type="checkbox" id="cbSecAuto"> Abschnitt automatisch per Standort</label>
+    </div>
   </div>
-  <div class="card" id="cardLocate">
-    <h2>Wo bin ich?</h2>
-    <button class="pri full" id="btnLocate">📍 Standort ermitteln</button>
-    <div id="locMsg" class="mut small" style="margin-top:8px"></div>
-    <div id="nearby" class="list"></div>
-    <label for="selSec">Oder Abschnitt manuell wählen</label>
-    <select id="selSec"></select>
-  </div>
-  <div id="secInfo"></div>
+</section>
+
+<!-- KARTE -->
+<section class="view" id="v-karte">
+  <div id="map"></div>
+  <div id="mapMsg" class="hide"></div>
 </section>
 
 <!-- FANG -->
 <section class="view" id="v-fang">
-  <div class="card">
-    <h2>Fischen</h2>
-    <div id="sessBox"></div>
-  </div>
+  <div id="fangCtx"></div>
+  <div class="card"><h2>Angelzeit</h2><div id="sessBox"></div></div>
   <div class="card">
     <h2>Fang erfassen</h2>
-    <div class="mut small" id="fangSec"></div>
+    <div class="chips" id="spChips"></div>
     <label for="fArt">Fischart</label>
     <select id="fArt"></select>
-    <label for="fLen">Länge (cm) – Kopfspitze bis Schwanzende</label>
-    <input id="fLen" type="number" inputmode="decimal" step="0.5" min="0" placeholder="z.B. 39">
+    <label for="fLen">Länge in cm (Kopfspitze bis Schwanzende)</label>
+    <div class="lenrow"><button type="button" data-d="-1" aria-label="minus">−</button><input id="fLen" type="number" inputmode="decimal" step="0.5" min="0" placeholder="cm"><button type="button" data-d="1" aria-label="plus">+</button></div>
     <div id="liveCheck"></div>
-    <label for="fAnz">Anzahl (nur für Massenfänge wie Rotauge, Egli)</label>
-    <input id="fAnz" type="number" inputmode="numeric" min="1" value="1">
-    <label for="fNote">Notiz (Köder, Wetter …) – optional</label>
-    <input id="fNote" type="text" placeholder="z.B. Spinner, trüb">
-    <div class="row" style="margin-top:12px">
-      <button class="pri" id="btnSave">Fang speichern</button>
-    </div>
+    <details><summary>Anzahl & Notiz</summary>
+      <label for="fAnz">Anzahl (für Massenfänge wie Rotauge, Egli)</label>
+      <input id="fAnz" type="number" inputmode="numeric" min="1" value="1">
+      <label for="fNote">Notiz (Köder, Wetter …)</label>
+      <input id="fNote" type="text" placeholder="z.B. Spinner, trüb">
+    </details>
+    <button class="pri full" id="btnSave" style="margin-top:14px">Fang speichern</button>
     <div id="afterSave"></div>
   </div>
 </section>
 
 <!-- STATISTIK -->
 <section class="view" id="v-stat">
-  <div class="card">
-    <h2>Heute</h2>
-    <div class="stat" id="statToday"></div>
-  </div>
-  <div class="card">
-    <h2>Saison <span id="statYear"></span></h2>
-    <div class="stat" id="statSeason"></div>
-  </div>
-  <div class="card">
-    <h2>Alle Fänge</h2>
-    <div id="logList" class="list"></div>
-  </div>
+  <div class="card"><h2>Heute</h2><div class="stat" id="statToday"></div></div>
+  <div class="card"><h2>Saison <span id="statYear"></span></h2><div class="stat" id="statSeason"></div></div>
+  <div class="card"><h2>Alle Fänge</h2><div id="logList" class="list"></div></div>
   <div class="card">
     <h2>Daten sichern</h2>
-    <p class="mut small">Die Daten liegen nur auf diesem Handy (im Browser). Sichere sie regelmässig.</p>
-    <div class="row"><button id="btnExport">Als CSV exportieren</button><button id="btnImport">CSV importieren</button></div>
+    <p class="mut small">Deine Fänge liegen nur auf diesem Handy. Sichere sie ab und zu.</p>
+    <div class="row"><button id="btnExport">Exportieren (CSV)</button><button id="btnImport">Importieren</button></div>
     <input type="file" id="fileImport" accept=".csv,text/csv" class="hide">
   </div>
 </section>
 
-<!-- INFO -->
-<section class="view" id="v-info">
-  <div class="card" id="infoNews"></div>
-  <div class="card">
-    <h2>Mindestmasse & Schonzeiten (SO)</h2>
-    <div id="tblRules"></div>
-  </div>
-  <div class="card">
-    <h2>Fanglimiten</h2>
-    <ul>
-      <li>Bachforellen und Saiblinge: zusammen <b>2 pro Tag</b></li>
-      <li>Bachforellen: max. <b>20 pro Jahr</b> in Patentgewässern</li>
-      <li>Hecht: 5 pro Tag · Felchen: 20 pro Tag · Egli: keine Beschränkung</li>
-      <li>Nach 2 Bachforellen am Tag nur noch in der Aare (A1–A6) auf andere Arten weiterfischen</li>
-    </ul>
-  </div>
-  <div class="card">
-    <h2>Geräte & Köder</h2>
-    <ul>
-      <li>Max. 2 Ruten gleichzeitig, je max. 2 Köder; immer beaufsichtigen</li>
-      <li><b>Widerhaken verboten</b> in allen Gewässern</li>
-      <li>Drillinge/Mehrfachhaken verboten in Patentgewässern – ausser Aare A1–A6</li>
-      <li>Hegene max. 5 Köder: Aare A1 sowie KW Wynau/Schwarzhäusern – KW Ruppoldingen</li>
-      <li>Mitangler: 1 Rute, 1 Köder</li>
-      <li>Lebende Köderfische verboten</li>
-    </ul>
-  </div>
-  <div class="card">
-    <h2>Töten & Zurücksetzen</h2>
-    <ul>
-      <li>Fang mit Absicht zum Zurücksetzen (Catch & Release) ist verboten</li>
-      <li>Behändigte Fische sofort töten – vor dem Lösen des Hakens: kräftiger Schlag auf den Kopf, dann Entbluten (Kiemenbogen/Halsgefässe)</li>
-      <li>Geschützte oder untermassige Fische mit nasser Hand schonend zurücksetzen; Haken notfalls abschneiden</li>
-      <li>Markierte Fische der Fachstelle melden</li>
-    </ul>
-  </div>
-  <div class="card">
-    <h2>Geschützte Arten</h2>
-    <p>Äsche (ganzjährig), Aal, Bachneunauge, Bitterling, Lachs, Nase, Strömer sowie Edel-, Dohlen- und Steinkrebs.</p>
-  </div>
-  <div class="card">
-    <h2>Patentpreise</h2>
-    <table>
-      <tr><th></th><th>SO</th><th>ausserkant.</th><th>Jugend</th></tr>
-      <tr><td>Tag</td><td>20.–</td><td>30.–</td><td>15.–</td></tr>
-      <tr><td>Woche</td><td>80.–</td><td>120.–</td><td>30.–</td></tr>
-      <tr><td>Jahr</td><td>140.–</td><td>210.–</td><td>50.–</td></tr>
-    </table>
-    <p class="mut small">Ab der Saison 2027 kommen auf ein Jahrespatent <b>CHF 48.– Hegeersatzabgabe</b> dazu. Davon befreit ist, wer selbst Hegearbeit leistet (Antrag bis 31. März ans AWJF) oder Mitglied in einem Verein ist, der Hegearbeit leistet.</p>
-  </div>
-  <div class="card">
-    <h2>Pflichten am Wasser</h2>
-    <ul>
-      <li>Amtlicher Ausweis mit Foto + SaNa-Ausweis dabei</li>
-      <li>Offizielle Fangstatistik (Kantons-App oder Papier): vor Beginn «Start Fischen», jeden Fang <b>sofort</b> eintragen, beim Verlassen des Abschnitts «Stop Fischen»</li>
-    </ul>
-    <p class="mut small">Diese App ersetzt die offizielle Fangstatistik nicht.</p>
-  </div>
-  <div class="card mut small">
-    Quellen: «Auszug aus den Fischereivorschriften, gültig ab 01.03.2026» und «Neuerungen Fischereigesetzgebung SO 2026» (AWJF), so.ch/fischerei. Ohne Gewähr – verbindlich sind die Originaldokumente. Die Gewässerlinien für die Standorterkennung sind Näherungen; prüfe Abschnittsgrenzen und Schongebiete auf der Karte des Kantons (geo.so.ch).
-  </div>
+<!-- REGELN -->
+<section class="view" id="v-regeln">
+  <div id="rulesBody"></div>
+  <div class="card" id="dataCard"></div>
 </section>
 </main>
 
 <nav>
-  <button data-v="wasser" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.3-7-12a7 7 0 0 1 14 0c0 5.7-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>Gewässer</button>
+  <button data-v="hier" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.3-7-12a7 7 0 0 1 14 0c0 5.7-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>Hier</button>
+  <button data-v="karte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg>Karte</button>
   <button data-v="fang"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12c3-4 7-6 12-5 3 .6 5 2.3 6 3.5L23 8v8l-3-2.5c-1 1.2-3 2.9-6 3.5-5 1-9-1-12-5z"/></svg>Fang</button>
   <button data-v="stat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Statistik</button>
-  <button data-v="info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>Regeln</button>
+  <button data-v="regeln"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>Regeln</button>
 </nav>
 
+<div id="toast"></div>
 <dialog id="dlg"><div id="dlgBody"></div><div class="row" style="margin-top:12px"><button id="dlgNo">Abbrechen</button><button class="pri" id="dlgYes">OK</button></div></dialog>
 
 <script>
 "use strict";
-/* ================= DATEN (Stand: Vorschriften ab 01.03.2026) ================= */
-const STREAM_CLOSED = {from:[10,1], to:[3,15], why:"Fischereiverbot 01.10.–15.03. (Bachforellen-Schonzeit)"};
-const BIRS_CLOSED = {from:[10,15], to:[2,29], why:"Generelles Fischereiverbot in der Birs 15.10.–Ende Februar"};
+/* =====================================================================
+   DATEN – eingebaute Basis. Wird zur Laufzeit aktualisiert:
+   - Regeln/Hinweise:  ./data/updates.json  (vom Repo)
+   - Gewässer-Geometrie SO: live vom Kanton (geo.so.ch, Open Data)
+   ===================================================================== */
+const CANTONS=[["AG","Aargau"],["AI","Appenzell I.Rh."],["AR","Appenzell A.Rh."],["BE","Bern"],["BL","Basel-Landschaft"],["BS","Basel-Stadt"],["FR","Freiburg"],["GE","Genf"],["GL","Glarus"],["GR","Graubünden"],["JU","Jura"],["LU","Luzern"],["NE","Neuenburg"],["NW","Nidwalden"],["OW","Obwalden"],["SG","St. Gallen"],["SH","Schaffhausen"],["SO","Solothurn"],["SZ","Schwyz"],["TG","Thurgau"],["TI","Tessin"],["UR","Uri"],["VD","Waadt"],["VS","Wallis"],["ZG","Zug"],["ZH","Zürich"]];
+const cname=c=>(CANTONS.find(x=>x[0]===c)||[c,c])[1];
+const isDetailed=c=>!!(RULES[c]&&RULES[c].detailed);
 
-const SECTIONS = [
- {id:"A1", name:"Aare A1", desc:"Grenchen – Deitingen", group:"aare", regime:"SO",
-  pts:[[47.170,7.395],[47.180,7.440],[47.192,7.490],[47.205,7.537],[47.215,7.562],[47.237,7.598],[47.228,7.628]],
-  notes:["Hegene erlaubt: max. 5 Köder","Schützenhaus Feldbrunnen – Stauwehr Flumenthal: 01.11.–30.04. nur vom Ufer aus fischen","Teilweise Grenzstrecke mit Bern (Vereinbarung BE/SO). Die App zeigt jeweils den strengeren Wert."]},
- {id:"BE-SO", name:"Aare Deitingen – Wynau", desc:"Grenzstrecke BE/SO – kein SO-Patentabschnitt A1–A6", group:"none", regime:"BESO",
-  pts:[[47.228,7.628],[47.234,7.654],[47.238,7.700],[47.240,7.740],[47.242,7.768],[47.257,7.795]],
-  notes:["Diese Strecke gehört nicht zu den SO-Patentabschnitten A1–A6. Kläre vorher, welches Patent hier gilt."]},
- {id:"A2", name:"Aare A2", desc:"KW Wynau – Wehr KW Gösgen", group:"aare", regime:"SO",
-  pts:[[47.257,7.795],[47.268,7.832],[47.290,7.845],[47.305,7.858],[47.322,7.880],[47.322,7.900],[47.338,7.903],[47.352,7.906],[47.362,7.925]],
-  notes:["KW Wynau/Schwarzhäusern – KW Ruppoldingen: Hegene max. 5 Köder","Teilweise Grenzstrecke mit Aargau (dort gelten noch die bisherigen AG/SO-Regeln). Die App zeigt den strengeren Wert."]},
- {id:"A3", name:"Aare A3", desc:"Kraftwerkkanäle KW Gösgen", group:"aare", regime:"SO",
-  pts:[[47.362,7.928],[47.368,7.945],[47.374,7.968]], notes:[]},
- {id:"A4", name:"Aare A4", desc:"Restwasser Wehr Winznau – Wehr Schönenwerd", group:"aare", regime:"SO",
-  pts:[[47.362,7.928],[47.370,7.952],[47.378,7.977],[47.374,7.998]], notes:[]},
- {id:"A5", name:"Aare A5", desc:"Kraftwerkkanäle KW Aarau (SO-Gebiet)", group:"aare", regime:"SO",
-  pts:[[47.380,8.004],[47.386,8.020],[47.390,8.032]], notes:[]},
- {id:"A6", name:"Aare A6", desc:"Restwasser Wehr Schönenwerd – Kantonsgrenze SO/AG", group:"aare", regime:"SO",
-  pts:[[47.374,7.998],[47.381,8.014],[47.388,8.030]], notes:[]},
- {id:"E", name:"Emme (E)", desc:"Kantonsgrenze – Mauer Kiessammler", group:"emme", regime:"SO", closed:STREAM_CLOSED,
-  pts:[[47.155,7.565],[47.170,7.562],[47.185,7.562],[47.200,7.575],[47.212,7.592]],
-  notes:["Schongebiet: Emme in Biberist vom Wehr bis zur BLS-Eisenbahnbrücke"]},
- {id:"EK", name:"Emmekanal (EK)", desc:"Emmekanal", group:"emme", regime:"SO", closed:STREAM_CLOSED,
-  pts:[[47.168,7.572],[47.180,7.578],[47.195,7.588]], notes:[]},
- {id:"D", name:"Dünnern (D)", desc:"Balsthal ab Brücke Von Roll-Areal – Olten", group:"duennern", regime:"SO", closed:STREAM_CLOSED,
-  pts:[[47.317,7.692],[47.300,7.705],[47.288,7.720],[47.298,7.770],[47.320,7.800],[47.335,7.840],[47.344,7.872],[47.352,7.900]],
-  notes:["Schongebiete: Augstbach-Mündung bis Brücke Von Roll-Areal (Balsthal) sowie Olten Eisenbahnbrücke bis Badibrücke"]},
- {id:"LS", name:"Lüssel (LS)", desc:"ab Brücke Neuhüsli", group:"jura", regime:"SO", closed:STREAM_CLOSED,
-  pts:[[47.355,7.585],[47.362,7.580],[47.374,7.548],[47.392,7.542],[47.405,7.545],[47.418,7.535]],
-  notes:["Schongebiete in Beinwil (Kantonsgrenze bis Brücke Neuhüsli) und Breitenbach"]},
- {id:"LT", name:"Lützel (LT)", desc:"Lützel", group:"jura", regime:"SO", closed:STREAM_CLOSED,
-  pts:[[47.428,7.405],[47.425,7.425],[47.420,7.450],[47.418,7.475]],
-  notes:["Schongebiet in Kleinlützel"]},
- {id:"CH", name:"Chastelbach (CH)", desc:"ab Mündung Chaltenbach", group:"jura", regime:"SO", closed:STREAM_CLOSED,
-  pts:[[47.430,7.600],[47.425,7.585],[47.418,7.570]], notes:["Lage der Linie ungefähr – bitte auf der Karte prüfen"]},
- {id:"B", name:"Birs (B)", desc:"bei Dornach (SO-Gebiet)", group:"birs", regime:"BLSO", closed:BIRS_CLOSED,
-  pts:[[47.475,7.625],[47.485,7.618],[47.497,7.612]], notes:["Grenzgewässer BL/SO – eigene Regeln"]}
+const STREAM_CLOSED={from:[10,1],to:[3,15],why:"Fischereiverbot 01.10.–15.03."};
+const BIRS_CLOSED={from:[10,15],to:[2,29],why:"Fischereiverbot in der Birs 15.10.–Ende Februar"};
+
+/* Patentabschnitte SO. pts = grobe Ersatzlinie, nur falls die offiziellen Geodaten noch nie geladen wurden. */
+const SECTIONS=[
+ {id:"A1",name:"Aare A1",desc:"Grenchen (Arch) – Grenze Kt. BE",group:"aare",regime:"SO",pts:[[47.170,7.395],[47.180,7.440],[47.192,7.490],[47.205,7.537],[47.215,7.562],[47.237,7.598],[47.228,7.628]],notes:["Hegene erlaubt: max. 5 Köder","Schützenhaus Feldbrunnen – Stauwehr Flumenthal: 01.11.–30.04. nur vom Ufer aus fischen","Grenzstrecke mit Bern"]},
+ {id:"A2",name:"Aare A2",desc:"KW Wynau – Wehr KW Gösgen",group:"aare",regime:"SO",pts:[[47.257,7.795],[47.268,7.832],[47.290,7.845],[47.305,7.858],[47.322,7.880],[47.322,7.900],[47.338,7.903],[47.352,7.906],[47.362,7.925]],notes:["KW Wynau/Schwarzhäusern – KW Ruppoldingen: Hegene max. 5 Köder","Ab Mittibach (Murgenthal) Flussmitte als Grenze für das SO-Patent"]},
+ {id:"A3",name:"Aare A3",desc:"Kraftwerkkanäle KW Gösgen",group:"aare",regime:"SO",pts:[[47.362,7.928],[47.368,7.945],[47.374,7.968]],notes:[]},
+ {id:"A4",name:"Aare A4",desc:"Restwasserstrecke KW Gösgen – Wehr KW Aarau",group:"aare",regime:"SO",pts:[[47.362,7.928],[47.370,7.952],[47.378,7.977],[47.374,7.998]],notes:[]},
+ {id:"A5",name:"Aare A5",desc:"Kraftwerkkanäle KW Aarau (SO-Gebiet)",group:"aare",regime:"SO",pts:[[47.380,8.004],[47.386,8.020],[47.390,8.032]],notes:[]},
+ {id:"A6",name:"Aare A6",desc:"Restwasserstrecke KW Aarau (SO-Gebiet)",group:"aare",regime:"SO",pts:[[47.374,7.998],[47.381,8.014],[47.388,8.030]],notes:[]},
+ {id:"E",name:"Emme (E)",desc:"Emme auf Gebiet des Kantons Solothurn",group:"emme",regime:"SO",closed:STREAM_CLOSED,pts:[[47.155,7.565],[47.170,7.562],[47.185,7.562],[47.200,7.575],[47.212,7.592]],notes:[]},
+ {id:"EK",name:"Emmekanal (EK)",desc:"Emmekanal (ohne Strackbach)",group:"emme",regime:"SO",closed:STREAM_CLOSED,pts:[[47.168,7.572],[47.180,7.578],[47.195,7.588]],notes:[]},
+ {id:"D",name:"Dünnern (D)",desc:"ab Mündung Augstbach abwärts",group:"duennern",regime:"SO",closed:STREAM_CLOSED,pts:[[47.317,7.692],[47.300,7.705],[47.288,7.720],[47.298,7.770],[47.320,7.800],[47.335,7.840],[47.344,7.872],[47.352,7.900]],notes:[]},
+ {id:"LS",name:"Lüssel (LS)",desc:"Kantonsgrenze Bogenthal – Brislach",group:"jura",regime:"SO",closed:STREAM_CLOSED,pts:[[47.355,7.585],[47.362,7.580],[47.374,7.548],[47.392,7.542],[47.405,7.545],[47.418,7.535]],notes:[]},
+ {id:"LT",name:"Lützel (LT)",desc:"Gemeindegebiet Kleinlützel",group:"jura",regime:"SO",closed:STREAM_CLOSED,pts:[[47.428,7.405],[47.425,7.425],[47.420,7.450],[47.418,7.475]],notes:[]},
+ {id:"CH",name:"Chastelbach (CH)",desc:"ab Mündung Chaltenbach bis Kantonsgrenze SO/BL",group:"jura",regime:"SO",closed:STREAM_CLOSED,pts:[[47.430,7.600],[47.425,7.585],[47.418,7.570]],notes:[]},
+ {id:"B",name:"Birs (B)",desc:"Birs bei Dornach (SO-Gebiet, bis Flussmitte)",group:"birs",regime:"BLSO",closed:BIRS_CLOSED,pts:[[47.475,7.625],[47.485,7.618],[47.497,7.612]],notes:["Grenzgewässer BL/SO – eigene Regeln"]}
 ];
 
-/* Aktuelle Hinweise/Verfügungen. Eingebaute Basis = Stand bei Auslieferung;
-   wird beim Start aus data/updates.json (GitHub) überschrieben, falls neuer. */
-let NEWS = [
- {date:"28.08.2026", text:"Fischereiverbot wegen Trockenheit teilweise aufgehoben. Weiterhin gesperrt (bis auf Widerruf): Patentstrecken der Dünnern, Lüssel, Lützel und des Chastelbachs.", secs:["D","LS","LT","CH"]}
-];
-let DATA_META = {version:1, updated:"2026-03-01", checked:null};
+let NEWS=[{date:"28.08.2026",text:"Fischereiverbot wegen Trockenheit teilweise aufgehoben. Weiterhin gesperrt (bis auf Widerruf): Patentstrecken der Dünnern, Lüssel, Lützel und des Chastelbachs.",secs:["D","LS","LT","CH"]}];
 
-/* ===== KANTONE: SO fertig & geprüft. Weitere werden rundenweise aus den
-   offiziellen Vorschriften belegt ergänzt (status:"ready" schaltet sie frei). ===== */
-const CANTONS = [
- {code:"SO", name:"Solothurn", status:"ready"},
- {code:"AG", name:"Aargau", status:"soon"},
- {code:"BE", name:"Bern", status:"soon"},
- {code:"BL", name:"Basel-Landschaft", status:"soon"},
- {code:"BS", name:"Basel-Stadt", status:"soon"},
- {code:"JU", name:"Jura", status:"soon"},
- {code:"LU", name:"Luzern", status:"soon"},
- {code:"ZH", name:"Zürich", status:"soon"},
- {code:"BE-SEEN", name:"Bieler-/Neuenburgersee", status:"soon"},
- {code:"AR",name:"Appenzell A.Rh.",status:"soon"},{code:"AI",name:"Appenzell I.Rh.",status:"soon"},
- {code:"FR",name:"Freiburg",status:"soon"},{code:"GE",name:"Genf",status:"soon"},
- {code:"GL",name:"Glarus",status:"soon"},{code:"GR",name:"Graubünden",status:"soon"},
- {code:"NE",name:"Neuenburg",status:"soon"},{code:"NW",name:"Nidwalden",status:"soon"},
- {code:"OW",name:"Obwalden",status:"soon"},{code:"SG",name:"St. Gallen",status:"soon"},
- {code:"SH",name:"Schaffhausen",status:"soon"},{code:"SZ",name:"Schwyz",status:"soon"},
- {code:"TG",name:"Thurgau",status:"soon"},{code:"TI",name:"Tessin",status:"soon"},
- {code:"UR",name:"Uri",status:"soon"},{code:"VD",name:"Waadt",status:"soon"},
- {code:"VS",name:"Wallis",status:"soon"},{code:"ZG",name:"Zug",status:"soon"}
-];
-
-const SPECIES = ["Bachforelle","Regenbogenforelle","Seeforelle","Saibling","Äsche","Hecht","Zander","Egli (Flussbarsch)","Felchen","Barbe","Alet","Rotauge","Brachsmen","Karpfen","Schleie","Wels","Aal","Nase","Lachs","Strömer","Bachneunauge","Bitterling","andere Art"];
-const TROUT_GROUP = ["Bachforelle","Saibling"]; // gemeinsame Tageslimite 2
-
-/* ===== REGELWERTE JE KANTON (datengetrieben) =====
-   Dies ist die eingebaute Basis (Stand 01.03.2026). Sie wird beim Start aus
-   data/updates.json überschrieben, falls dort eine neuere Version liegt.
-   slot = erlaubte Längenbereiche [min,max|null]; schon = [[MM,TT],[MM,TT]]. */
-let RULES = {
- SO: {
-  updated:"2026-03-01",
+let RULES={
+ SO:{detailed:true,updated:"2026-03-01",
   protected:["Äsche","Aal","Nase","Lachs","Strömer","Bachneunauge","Bitterling"],
-  troutByGroup:{ aare:[[38,null]], jura:[[30,null]], duennern:[[32,42],[55,null]], emme:[[35,45]], default:[[26,null]] },
-  troutSchon:[[10,1],[3,15]], troutDay:2, troutYear:20,
-  species:{
-    Saibling:{ day:2, dayGroup:"trout", note:"Tageslimite gemeinsam mit Bachforellen" },
-    Hecht:{ slot:[[45,null]], schon:[[3,1],[4,30]], day:5 },
-    Felchen:{ slot:[[25,null]], schon:[[11,1],[12,31]], day:20 },
-    "Egli (Flussbarsch)":{ note:"Kein Mindestmass, keine Schonzeit, keine Tageslimite" }
-  },
-  birs:{
-    Bachforelle:{ slot:[[26,null]], schon:[[10,15],[2,29]], day:4 },
-    "Äsche":{ slot:[[35,null]], schon:[[2,1],[4,30]], day:4 },
-    Barbe:{ slot:[[35,null]], schon:[[5,1],[6,15]] }
-  }
+  troutByGroup:{aare:[[38,null]],jura:[[30,null]],duennern:[[32,42],[55,null]],emme:[[35,45]],default:[[26,null]]},
+  troutSchon:[[10,1],[3,15]],troutDay:2,troutYear:20,
+  species:{"Saibling":{day:2,dayGroup:"trout",note:"Tageslimite gemeinsam mit Bachforellen"},"Hecht":{slot:[[45,null]],schon:[[3,1],[4,30]],day:5},"Felchen":{slot:[[25,null]],schon:[[11,1],[12,31]],day:20},"Egli (Flussbarsch)":{note:"Kein Mindestmass, keine Schonzeit, keine Tageslimite"}},
+  birs:{"Bachforelle":{slot:[[26,null]],schon:[[10,15],[2,29]],day:4},"Äsche":{slot:[[35,null]],schon:[[2,1],[4,30]],day:4},"Barbe":{slot:[[35,null]],schon:[[5,1],[6,15]]}},
+  prices:{tag:[20,30,15],woche:[80,120,30],jahr:[140,210,50],gast:50,hege:48,hegeAb:2027}
+ },
+ CH:{updated:"VBGF",
+  sizes:{"Bachforelle":22,"Seeforelle":22,"Saibling":22,"Felchen":25,"Äsche":28,"Hecht":45,"Egli (Flussbarsch)":15},
+  weeks:{"Bachforelle":"16 (Fliessgewässer) bzw. 12 (Seen)","Seeforelle":"16 (Fliessgewässer) bzw. 12 (Seen)","Saibling":"8","Felchen":"6","Äsche":"10","Hecht":"8"},
+  troutLake:35
  }
 };
-function activeRules(){ return RULES[state.canton] || RULES.SO; }
-function isProtected(sp){ return (activeRules().protected||[]).includes(sp); }
+let DATA_META={version:3,updated:"2026-11-16",checked:null};
 
-function soRule(sec, sp){
-  const R=activeRules();
-  if (isProtected(sp)) return {prot:true, note: sp==="Äsche" ? "Äsche ganzjährig geschont" : sp+" ist geschützt"};
-  if (sp==="Bachforelle"){
-    const slot = (R.troutByGroup&&R.troutByGroup[sec.group]) || (R.troutByGroup&&R.troutByGroup.default) || [[26,null]];
-    return {slot, schon:R.troutSchon, day:R.troutDay, dayGroup:"trout", year:R.troutYear};
-  }
-  const s = R.species && R.species[sp];
-  if (s) return Object.assign({}, s);
-  return {note:"Keine Mindestmasse oder Schonzeiten im Auszug der Vorschriften"};
-}
-function birsRule(sp){
-  const R=activeRules();
-  const b = R.birs && R.birs[sp];
-  if (b) return Object.assign({}, b);
-  if (isProtected(sp)) return {prot:true, note:sp+" ist geschützt"};
-  return soRule({group:"birs"}, sp);
-}
-function ruleFor(sec, sp){ return sec.regime==="BLSO" ? birsRule(sp) : soRule(sec, sp); }
+const SPECIES=["Bachforelle","Regenbogenforelle","Seeforelle","Saibling","Äsche","Hecht","Zander","Egli (Flussbarsch)","Felchen","Barbe","Alet","Rotauge","Brachsmen","Karpfen","Schleie","Wels","Aal","Nase","Lachs","Strömer","Bachneunauge","Bitterling","andere Art"];
+const QUICK=["Bachforelle","Regenbogenforelle","Egli (Flussbarsch)","Hecht","Felchen","Saibling","Äsche","Barbe","Alet","Rotauge"];
+const TROUT_GROUP=["Bachforelle","Saibling"];
 
 /* ================= HILFSFUNKTIONEN ================= */
 const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const md=d=>(d.getMonth()+1)*100+d.getDate();
-function inRange(d, from, to){ const x=md(d), a=from[0]*100+from[1], b=to[0]*100+to[1]; return a<=b ? (x>=a&&x<=b) : (x>=a||x<=b); }
-const fmtR=r=>`${String(r[0][1]).padStart(2,"0")}.${String(r[0][0]).padStart(2,"0")}.–${r[1][1]===29&&r[1][0]===2?"Ende Feb.":String(r[1][1]).padStart(2,"0")+"."+String(r[1][0]).padStart(2,"0")+"."}`;
-const fmtSlot=s=>s.map(([a,b])=>b?`${a}–${b} cm`:`ab ${a} cm`).join(" und ");
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const dayKey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-const secById=id=>SECTIONS.find(s=>s.id===id);
+function inRange(d,from,to){const x=md(d),a=from[0]*100+from[1],b=to[0]*100+to[1];return a<=b?(x>=a&&x<=b):(x>=a||x<=b)}
+const p2=n=>String(n).padStart(2,"0");
+const fmtR=r=>`${p2(r[0][1])}.${p2(r[0][0])}.–${r[1][0]===2&&r[1][1]>=28?"Ende Feb.":p2(r[1][1])+"."+p2(r[1][0])+"."}`;
+const fmtSlot=s=>s.map(([a,b])=>b?`${a}–${b} cm`:`ab ${a} cm`).join(" oder ");
+const dayKey=d=>`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;
+const fmtM=m=>m<1000?`${Math.round(m)} m`:`${(m/1000).toFixed(1)} km`;
+const store={get(k,d){try{const v=localStorage.getItem("fb_"+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem("fb_"+k,JSON.stringify(v));return true}catch(e){return false}}};
+let toastT;function toast(t){const el=$("#toast");el.textContent=t;el.classList.add("on");clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove("on"),2600)}
+function ask(html,yes,noBtn){const d=$("#dlg");$("#dlgBody").innerHTML=html;$("#dlgNo").classList.toggle("hide",noBtn===false);$("#dlgYes").onclick=()=>{d.close();yes&&yes()};$("#dlgNo").onclick=()=>d.close();try{d.showModal()}catch(e){}}
 
-const store={
-  get(k,def){try{const v=localStorage.getItem("fb_"+k);return v?JSON.parse(v):def}catch(e){return def}},
-  set(k,v){try{localStorage.setItem("fb_"+k,JSON.stringify(v));return true}catch(e){return false}}
-};
-let state={canton:store.get("canton","SO"), sec:store.get("sec","A2"), log:store.get("log",[]), sess:store.get("sess",null)};
-function save(){store.set("canton",state.canton);store.set("sec",state.sec);store.set("log",state.log);store.set("sess",state.sess)}
+let state={canton:store.get("canton","SO"),cantonAuto:store.get("cantonAuto",true),sec:store.get("sec","A2"),secAuto:store.get("secAuto",true),log:store.get("log",[]),sess:store.get("sess",null),pos:null,here:null,geoErr:null};
+function save(){["canton","cantonAuto","sec","secAuto","log","sess"].forEach(k=>store.set(k,state[k]))}
 
-/* Abstand Punkt–Polylinie in Metern (lokale Projektion) */
-function distToLine(lat,lon,pts){
-  const R=6371000, k=Math.cos(lat*Math.PI/180);
-  const P=p=>[(p[1]-lon)*Math.PI/180*R*k,(p[0]-lat)*Math.PI/180*R];
-  let best=Infinity;
-  for(let i=0;i<pts.length-1;i++){
-    const [ax,ay]=P(pts[i]),[bx,by]=P(pts[i+1]);
-    const dx=bx-ax,dy=by-ay,L=dx*dx+dy*dy;
-    let t=L?-(ax*dx+ay*dy)/L:0;t=Math.max(0,Math.min(1,t));
-    best=Math.min(best,Math.hypot(ax+t*dx,ay+t*dy));
-  }
-  return best;
+/* ================= GEODATEN (offizielle SO-Gewässer) ================= */
+const WFS="https://geo.so.ch/api/wfs?SERVICE=WFS&VERSION=1.1.0&REQUEST=GetFeature&TYPENAME=ch.so.awjf.gewaesser.patentgewaesser&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326";
+function fallbackGeo(){return{official:false,date:null,features:SECTIONS.map(s=>({id:s.id,art:"Patent",b:"",t:s.desc,l:[s.pts.map(([la,lo])=>[lo,la])]}))}}
+let GEO=store.get("geo",null)||fallbackGeo();
+function sqSeg(p,a,b){const k=Math.cos(p[1]*Math.PI/180);let x=a[0]*k,y=a[1],dx=b[0]*k-x,dy=b[1]-y;if(dx||dy){const t=((p[0]*k-x)*dx+(p[1]-y)*dy)/(dx*dx+dy*dy);if(t>1){x=b[0]*k;y=b[1]}else if(t>0){x+=dx*t;y+=dy*t}}dx=p[0]*k-x;dy=p[1]-y;return dx*dx+dy*dy}
+function dp(pts,tol){if(pts.length<3)return pts;const sq=tol*tol,keep=new Uint8Array(pts.length);keep[0]=keep[pts.length-1]=1;const st=[[0,pts.length-1]];while(st.length){const[f,l]=st.pop();let m=0,i0=0;for(let i=f+1;i<l;i++){const d=sqSeg(pts[i],pts[f],pts[l]);if(d>m){m=d;i0=i}}if(m>sq){keep[i0]=1;st.push([f,i0],[i0,l])}}return pts.filter((_,i)=>keep[i])}
+async function refreshGeo(force){
+  if(!location.protocol.startsWith("http")||!navigator.onLine)return"offline";
+  const age=GEO.date?(Date.now()-new Date(GEO.date).getTime())/864e5:1e9;
+  if(!force&&GEO.official&&age<7)return"fresh";
+  try{
+    const j=await fetch(WFS,{cache:"no-store"}).then(r=>{if(!r.ok)throw 0;return r.json()});
+    const tol=8/111320,r5=c=>[+c[0].toFixed(5),+c[1].toFixed(5)];
+    const feats=(j.features||[]).map(x=>{const g=x.geometry||{};let L=[];
+      if(g.type==="MultiLineString")L=g.coordinates;else if(g.type==="LineString")L=[g.coordinates];else if(g.type==="Polygon")L=[g.coordinates[0]];else if(g.type==="MultiPolygon")L=g.coordinates.map(p=>p[0]);
+      const p=x.properties||{};return{id:String(p.revierid||"").trim(),art:p.fischerei||"",b:p.fischbestand||"",t:String(p.beschreibung||"").trim().replace(/\s+/g," "),l:L.map(l=>dp(l,tol).map(r5))}}).filter(f=>f.id&&f.l.length);
+    if(feats.length<10)throw 0;
+    GEO={official:true,date:new Date().toISOString(),features:feats};
+    store.set("geo",GEO);
+    onGeoChanged();
+    return"new";
+  }catch(e){return"error"}
 }
+function distToLines(lat,lon,lines){const R=6371000,k=Math.cos(lat*Math.PI/180);let best=Infinity;
+  for(const l of lines){for(let i=0;i<l.length-1;i++){const ax=(l[i][0]-lon)*Math.PI/180*R*k,ay=(l[i][1]-lat)*Math.PI/180*R,bx=(l[i+1][0]-lon)*Math.PI/180*R*k,by=(l[i+1][1]-lat)*Math.PI/180*R;const dx=bx-ax,dy=by-ay,L=dx*dx+dy*dy;let t=L?-(ax*dx+ay*dy)/L:0;t=Math.max(0,Math.min(1,t));const d=Math.hypot(ax+t*dx,ay+t*dy);if(d<best)best=d}}return best}
+function kindOf(art){return{Patent:"patent",Pacht:"pacht",Privat:"privat",Schon:"schon"}[art]||"other"}
 
-/* ================= STATUS & PRÜFUNG ================= */
-function sectionStatus(sec, d=new Date()){
+/* ================= REGELN ================= */
+function secById(id){
+  const s=SECTIONS.find(x=>x.id===id);if(s)return Object.assign({kind:"patent"},s);
+  const f=GEO.features.find(x=>x.id===id);
+  if(f){const k=kindOf(f.art);
+    if(k==="schon")return{id,kind:k,name:"Schonstrecke "+id,desc:f.t,group:"schon",regime:"SO",notes:["Strecke vor Ort mit Tafeln markiert"]};
+    if(k==="pacht")return{id,kind:k,name:"Pachtrevier "+id,desc:f.t,group:"pacht",regime:"SO",closed:STREAM_CLOSED,notes:["Mit dem Patent nicht befischbar – nur mit Bewilligung des Pächters (meist Fischereiverein)."]};
+    if(k==="privat")return{id,kind:k,name:"Privatgewässer "+id,desc:f.t,group:"pacht",regime:"SO",closed:STREAM_CLOSED,notes:["Nur mit Erlaubnis des Eigentümers."]};}
+  return Object.assign({kind:"patent"},SECTIONS[1]);
+}
+const R_SO=()=>RULES.SO;
+function isProt(sp){return(R_SO().protected||[]).includes(sp)}
+function soRule(sec,sp){
+  const R=R_SO();
+  if(sec.regime==="BLSO"&&R.birs&&R.birs[sp])return Object.assign({},R.birs[sp]);
+  if(isProt(sp))return{prot:true,note:sp==="Äsche"?"Äsche ganzjährig geschont":sp+" ist geschützt"};
+  if(sp==="Bachforelle"){const tb=R.troutByGroup||{};return{slot:tb[sec.group]||tb.default||[[26,null]],schon:R.troutSchon,day:R.troutDay,dayGroup:"trout",year:R.troutYear}}
+  const s=R.species&&R.species[sp];if(s)return Object.assign({},s);
+  return{note:"Für diese Art gibt es in SO kein Mindestmass und keine Schonzeit"};
+}
+function natRule(sp){
+  const C=RULES.CH;
+  if(["Aal","Lachs","Strömer","Bachneunauge","Bitterling","Nase"].includes(sp))return{prot:true,note:sp+" ist in vielen Kantonen geschützt – kantonal prüfen"};
+  const n=C.sizes[sp];
+  if(n)return{slot:[[n,null]],national:true,weeks:C.weeks[sp],note:sp==="Bachforelle"||sp==="Seeforelle"?`In grösseren Seen unter 800 m: ab ${C.troutLake} cm`:null};
+  return{national:true,note:"Kein nationales Mindestmass – kantonal prüfen"};
+}
+function ruleFor(sec,sp){return isDetailed(state.canton)?soRule(sec,sp):natRule(sp)}
+function currentSec(){return secById(state.sec)}
+function secStatus(sec,d=new Date()){
   const out=[];
-  if (sec.closed && inRange(d,sec.closed.from,sec.closed.to)) out.push({lvl:"bad",txt:sec.closed.why});
-  NEWS.forEach(n=>{ if(n.secs.includes(sec.id)) out.push({lvl:"bad",txt:`Verfügung (Stand ${n.date}): Fischereiverbot bis auf Widerruf – aktuellen Stand auf so.ch prüfen`}); });
-  if (sec.group==="none") out.push({lvl:"warn",txt:"Kein SO-Patentabschnitt"});
+  if(!isDetailed(state.canton))return out;
+  if(sec.kind==="schon")out.push({lvl:"bad",txt:"Schonstrecke – Fischen verboten"});
+  if(sec.closed&&inRange(d,sec.closed.from,sec.closed.to))out.push({lvl:"bad",txt:sec.closed.why});
+  NEWS.forEach(n=>{if((n.secs||[]).includes(sec.id))out.push({lvl:"bad",txt:`Verfügung vom ${n.date}: Fischereiverbot bis auf Widerruf`})});
+  if(sec.kind==="pacht")out.push({lvl:"warn",txt:"Pachtgewässer – das Patent gilt hier nicht"});
+  if(sec.kind==="privat")out.push({lvl:"warn",txt:"Privatgewässer – das Patent gilt hier nicht"});
   return out;
 }
-function countToday(sp, group){
-  const t=dayKey(new Date());
-  return state.log.filter(f=>f.day===t && f.kept && (group? TROUT_GROUP.includes(f.art) : f.art===sp)).reduce((a,f)=>a+(f.n||1),0);
-}
-function countYear(sp){
-  const y=new Date().getFullYear();
-  return state.log.filter(f=>f.day.startsWith(String(y)) && f.kept && f.art===sp && secById(f.sec)?.group!=="none").reduce((a,f)=>a+(f.n||1),0);
-}
-function check(sec, sp, len, d=new Date()){
-  const r=ruleFor(sec,sp), issues=[], infos=[];
-  const st=sectionStatus(sec,d).filter(x=>x.lvl==="bad");
-  st.forEach(x=>issues.push(x.txt));
-  if (r.prot) issues.push(r.note+" – schonend mit nasser Hand zurücksetzen");
-  if (r.schon && inRange(d,r.schon[0],r.schon[1])) issues.push(`${sp}: Schonzeit ${fmtR(r.schon)}`);
-  if (r.slot){
-    if (len==null || isNaN(len)) infos.push(`Erlaubt: ${fmtSlot(r.slot)} – Länge eingeben`);
-    else if (!r.slot.some(([a,b])=>len>=a && (b==null||len<=b))) issues.push(`${len} cm ist nicht erlaubt (erlaubt: ${fmtSlot(r.slot)}) – zurücksetzen`);
-  }
-  if (r.day){
-    const c=countToday(sp, r.dayGroup==="trout");
-    if (c>=r.day) issues.push(`Tageslimite erreicht (${c}/${r.day}${r.dayGroup==="trout"?" Bachforellen+Saiblinge":""})`);
-    else infos.push(`Heute behalten: ${c}/${r.day}${r.dayGroup==="trout"?" (Bachforellen+Saiblinge)":""}`);
-  }
-  if (r.year){
-    const c=countYear(sp);
-    if (c>=r.year) issues.push(`Jahreslimite erreicht (${c}/${r.year})`);
-    else infos.push(`Saison: ${c}/${r.year} Bachforellen`);
-  }
-  if (r.note && !r.prot) infos.push(r.note);
-  const needLen = !!r.slot && (len==null || isNaN(len)) && issues.length===0;
-  return {ok:issues.length===0 && !needLen, needLen, issues, infos};
+function countToday(sp,grp){const t=dayKey(new Date());return state.log.filter(f=>f.day===t&&f.kept&&(grp?TROUT_GROUP.includes(f.art):f.art===sp)).reduce((a,f)=>a+(f.n||1),0)}
+function countYear(sp){const y=String(new Date().getFullYear());return state.log.filter(f=>f.day.startsWith(y)&&f.kept&&f.art===sp&&(f.canton||"SO")==="SO"&&SECTIONS.some(s=>s.id===f.sec)).reduce((a,f)=>a+(f.n||1),0)}
+function check(sec,sp,len,d=new Date()){
+  const r=ruleFor(sec,sp),issues=[],infos=[];
+  secStatus(sec,d).forEach(x=>x.lvl==="bad"?issues.push(x.txt):infos.push(x.txt));
+  if(r.prot)issues.push(r.note+" – schonend mit nasser Hand zurücksetzen");
+  if(r.schon&&inRange(d,r.schon[0],r.schon[1]))issues.push(`${sp}: Schonzeit ${fmtR(r.schon)}`);
+  let needLen=false;
+  if(r.slot){if(len==null||isNaN(len)){needLen=true;infos.push(`Erlaubt: ${fmtSlot(r.slot)}`)}
+    else if(!r.slot.some(([a,b])=>len>=a&&(b==null||len<=b)))issues.push(`${len} cm ist nicht erlaubt – erlaubt: ${fmtSlot(r.slot)}`);
+    else infos.push(`Mass ok (${fmtSlot(r.slot)})`)}
+  if(r.day){const c=countToday(sp,r.dayGroup==="trout");if(c>=r.day)issues.push(`Tageslimite erreicht (${c}/${r.day})`);else infos.push(`Heute behalten: ${c}/${r.day}${r.dayGroup==="trout"?" Forellen+Saiblinge":""}`)}
+  if(r.year&&sec.kind==="patent"){const c=countYear(sp);if(c>=r.year)issues.push(`Jahreslimite erreicht (${c}/${r.year})`);else infos.push(`Saison: ${c}/${r.year} Bachforellen`)}
+  if(r.national){infos.push(r.weeks?`Schonzeit: mind. ${r.weeks} Wochen – Daten legt der Kanton fest`:"Schonzeit: kantonal prüfen");infos.push("Nur nationale Mindestvorgaben – der Kanton kann strenger sein")}
+  if(r.note&&!r.prot)infos.push(r.note);
+  needLen=needLen&&issues.length===0;
+  return{ok:issues.length===0&&!needLen,needLen,issues,infos};
 }
 
-/* ================= UI: GEWÄSSER ================= */
-function fillSecSelect(){
-  $("#selSec").innerHTML=SECTIONS.map(s=>`<option value="${s.id}">${esc(s.name)} – ${esc(s.desc)}</option>`).join("");
-  $("#selSec").value=state.sec;
+/* ================= STANDORT ================= */
+let watchId=null,lastIdent=null;
+function startGeo(){
+  if(!("geolocation" in navigator)){state.geoErr="Dieses Gerät unterstützt keine Standortbestimmung.";renderAll();return}
+  if(watchId!=null)return;
+  watchId=navigator.geolocation.watchPosition(onPos,e=>{state.geoErr=e.code===1?"Standortzugriff verweigert – in den Browser-Einstellungen erlauben.":"Standort gerade nicht verfügbar.";if(e.code===1)stopGeo();renderTop();renderHier()},{enableHighAccuracy:true,maximumAge:15000,timeout:30000});
 }
-function renderSec(){
-  const sec=secById(state.sec)||SECTIONS[0], now=new Date();
-  const st=sectionStatus(sec,now);
-  const open=!st.some(x=>x.lvl==="bad");
-  const rows=["Bachforelle","Saibling","Äsche","Hecht","Felchen","Barbe","Egli (Flussbarsch)"].map(sp=>{
-    const r=ruleFor(sec,sp);
-    if (sp==="Barbe" && sec.regime!=="BLSO") return "";
-    let mass=r.prot?"geschützt":(r.slot?fmtSlot(r.slot):"–");
-    let schon=r.prot?"ganzjährig":(r.schon?fmtR(r.schon):"–");
-    let lim=r.day?`${r.day}/Tag${r.year?`, ${r.year}/Jahr`:""}`:"–";
-    let now_=r.prot||(r.schon&&inRange(now,r.schon[0],r.schon[1]))?'<span class="pill p-bad">geschont</span>':'<span class="pill p-ok">offen</span>';
-    return `<tr><td><b>${esc(sp)}</b><br>${now_}</td><td>${mass}</td><td>${schon}</td><td>${lim}</td></tr>`;
-  }).join("");
-  $("#secInfo").innerHTML=`
-   <div class="card">
-     <h2>${esc(sec.name)} <span class="pill ${open?"p-ok":"p-bad"}">${open?"heute befischbar":"heute gesperrt"}</span></h2>
-     <div class="mut">${esc(sec.desc)}</div>
-     ${st.map(x=>`<div class="verdict v-${x.lvl==="bad"?"bad":"warn"}">${esc(x.txt)}</div>`).join("")}
-   </div>
-   <div class="card"><h2>Regeln hier</h2>
-     <table><tr><th>Art</th><th>Mass</th><th>Schonzeit</th><th>Limite</th></tr>${rows}</table>
-     <p class="mut small">Geschützt: ${esc((activeRules().protected||[]).join(", "))}.</p>
-   </div>
-   ${sec.notes.length?`<div class="card"><h2>Besonderheiten</h2><ul>${sec.notes.map(n=>`<li>${esc(n)}</li>`).join("")}</ul></div>`:""}
-   <div class="card"><h2>Überall gilt</h2><ul>
-     <li>Widerhaken verboten${sec.group==="aare"?"":"; Drillinge verboten"}</li>
-     <li>Max. 2 Ruten, je max. 2 Köder</li><li>Fischpässe und Umgehungsgerinne: Fangen verboten</li></ul></div>`;
+function stopGeo(){if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null}}
+function onPos(p){
+  const{latitude:lat,longitude:lon,accuracy:acc}=p.coords;
+  state.pos={lat,lon,acc,ts:Date.now()};state.geoErr=null;
+  identifyCanton(lat,lon);
+  updateHere();
+  if(map)updateMe();
 }
-function locate(){
-  const m=$("#locMsg");
-  if(!("geolocation" in navigator)){m.textContent="Standort wird von diesem Browser nicht unterstützt – bitte manuell wählen.";return}
-  m.textContent="Suche Standort …";
-  navigator.geolocation.getCurrentPosition(p=>{
-    const {latitude:la,longitude:lo,accuracy:acc}=p.coords;
-    const near=SECTIONS.map(s=>({s,d:distToLine(la,lo,s.pts)})).sort((a,b)=>a.d-b.d);
-    const cand=near.filter(x=>x.d<2500).slice(0,3);
-    if(!cand.length){m.textContent=`Kein Patentgewässer in der Nähe (nächstes: ${near[0].s.name}, ca. ${(near[0].d/1000).toFixed(1)} km). Genauigkeit ±${Math.round(acc)} m.`;$("#nearby").innerHTML="";return}
-    state.sec=cand[0].s.id;save();$("#selSec").value=state.sec;renderSec();renderFang();
-    m.textContent=`Erkannt: ${cand[0].s.name} (ca. ${Math.round(cand[0].d)} m). Genauigkeit ±${Math.round(acc)} m.${cand.length>1?" Stimmt nicht? Tippe einen anderen:":""}`;
-    $("#nearby").innerHTML=cand.slice(1).map(x=>`<div class="it"><button class="full" data-sec="${x.s.id}">${esc(x.s.name)} – ${esc(x.s.desc)} (${Math.round(x.d)} m)</button></div>`).join("");
-  },e=>{
-    m.textContent=e.code===1?"Standortzugriff verweigert. Erlaube ihn in den Browser-Einstellungen oder wähle den Abschnitt manuell.":"Standort nicht verfügbar – bitte manuell wählen.";
-  },{enableHighAccuracy:true,timeout:15000,maximumAge:60000});
+function updateHere(){
+  const p=state.pos;state.here=null;
+  if(!p||state.canton!=="SO"||!GEO.features.length){renderAll();return}
+  let best=null,bs=null;
+  for(const f of GEO.features){const d=distToLines(p.lat,p.lon,f.l);if(f.art==="Schon"){if(!bs||d<bs.d)bs={f,d}}else if(!best||d<best.d)best={f,d}}
+  let h;
+  if(bs&&bs.d<=40)h={kind:"schon",id:bs.f.id,d:bs.d};
+  else if(best&&best.d<=150)h={kind:kindOf(best.f.art),id:best.f.id,d:best.d,schonNear:bs&&bs.d<=150?bs:null};
+  else h={kind:"none",near:best};
+  state.here=h;
+  if(state.secAuto&&h.id&&h.id!==state.sec){state.sec=h.id;save()}
+  renderAll();
+}
+async function identifyCanton(lat,lon){
+  if(!state.cantonAuto||!navigator.onLine)return;
+  if(lastIdent&&Math.hypot((lat-lastIdent[0])*111e3,(lon-lastIdent[1])*75e3)<1500)return;
+  lastIdent=[lat,lon];
+  try{const u=`https://api3.geo.admin.ch/rest/services/api/MapServer/identify?geometry=${lon},${lat}&geometryType=esriGeometryPoint&layers=all:ch.swisstopo.swissboundaries3d-kanton-flaeche.fill&sr=4326&tolerance=0&returnGeometry=false&lang=de`;
+    const j=await fetch(u).then(r=>r.json());const a=j.results&&j.results[0]&&j.results[0].attributes;
+    if(a&&a.ak&&a.ak!==state.canton&&CANTONS.some(c=>c[0]===a.ak)){state.canton=a.ak;save();toast("Kanton erkannt: "+cname(a.ak));onCantonChanged()}
+  }catch(e){lastIdent=null}
 }
 
-/* ================= UI: FANG ================= */
+/* ================= RENDER: TOPBAR & HIER ================= */
+function hereSummary(){
+  const det=isDetailed(state.canton),sec=currentSec(),h=state.here;
+  if(!det)return{cls:"warn",t:cname(state.canton)+": nationale Mindestregeln",s:"Kantonale Details folgen – vor Ort prüfen"};
+  if(state.secAuto&&state.pos&&h&&h.kind==="none")return{cls:"none",t:"Kein SO-Fischereigewässer hier",s:h.near?`Nächstes: ${secById(h.near.f.id).name}, ${fmtM(h.near.d)}`:""};
+  const st=secStatus(sec);const bad=st.find(x=>x.lvl==="bad"),warn=st.find(x=>x.lvl==="warn");
+  const s=(state.secAuto&&h&&h.id===sec.id?`ca. ${fmtM(h.d)} entfernt`:(state.secAuto?"":"manuell gewählt"));
+  if(sec.kind==="schon")return{cls:"bad",t:sec.name+" – Fischen verboten",s:"Schonstrecke, vor Ort mit Tafeln markiert"};
+  if(bad)return{cls:"bad",t:sec.name+" – heute gesperrt",s:bad.txt};
+  if(warn)return{cls:"warn",t:sec.name,s:warn.txt};
+  if(h&&h.schonNear)return{cls:"warn",t:sec.name+" – offen",s:`Achtung: Schonstrecke ${h.schonNear.f.id} in ${fmtM(h.schonNear.d)}`};
+  return{cls:"ok",t:sec.name+" – heute offen",s};
+}
+function renderTop(){
+  $("#tbCanton").textContent=state.canton;
+  const x=hereSummary();
+  let t=x.t,s=x.s,cls=x.cls;
+  if(!state.pos&&(state.secAuto||state.cantonAuto)&&isDetailed(state.canton)){s=state.geoErr||"Standort wird gesucht …"}
+  $("#tbTxt").textContent=t;$("#tbSub").textContent=s;
+  $("#tbDot").className="dot "+(cls==="none"?"":cls);
+  $("#topbar").classList.toggle("bad",cls==="bad");
+}
+function rulesTableFor(sec){
+  const det=isDetailed(state.canton);
+  const list=det?["Bachforelle","Saibling","Äsche","Hecht","Felchen","Barbe","Egli (Flussbarsch)"]:["Bachforelle","Seeforelle","Saibling","Äsche","Hecht","Felchen","Egli (Flussbarsch)"];
+  const now=new Date();
+  return`<table><tr><th>Art</th><th>Mass</th><th>Schonzeit</th><th>Limite</th></tr>${list.map(sp=>{
+    const r=ruleFor(sec,sp);if(sp==="Barbe"&&!(det&&sec.regime==="BLSO"))return"";
+    const mass=r.prot?"geschützt":(r.slot?fmtSlot(r.slot):"–");
+    const sz=r.prot?"ganzjährig":(r.schon?fmtR(r.schon):(r.weeks?`mind. ${r.weeks} Wo.`:"–"));
+    const lim=r.day?`${r.day}/Tag${r.year&&sec.kind==="patent"?`<br>${r.year}/Jahr`:""}`:"–";
+    const open=!(r.prot||(r.schon&&inRange(now,r.schon[0],r.schon[1])));
+    const pill=r.national?"":`<br><span class="pill ${open?"p-ok":"p-bad"}">${open?"offen":"geschont"}</span>`;
+    return`<tr><td><b>${esc(sp)}</b>${pill}</td><td>${mass}</td><td>${sz}</td><td>${lim}</td></tr>`}).join("")}</table>`;
+}
+function renderHier(){
+  const det=isDetailed(state.canton),sec=currentSec(),x=hereSummary(),st=det?secStatus(sec):[];
+  const h=state.here;
+  let extra="";
+  if(det&&h&&h.schonNear&&h.kind!=="schon")extra+=`<li>Schonstrecke ${esc(h.schonNear.f.id)} in ca. ${fmtM(h.schonNear.d)}: ${esc(h.schonNear.f.t)}</li>`;
+  $("#hereHero").innerHTML=`<div class="hero ${x.cls}"><div class="t">${esc(x.t)}</div><div class="d">${esc(det?(sec.desc||""):"Für "+cname(state.canton)+" sind erst die nationalen Mindestvorgaben des Bundes hinterlegt.")}</div>
+    ${st.length||extra?`<ul>${st.map(s=>`<li>${esc(s.txt)}</li>`).join("")}${extra}</ul>`:""}
+    ${state.pos?`<div class="d" style="margin-top:8px">📍 Standort ±${Math.round(state.pos.acc)} m${h&&h.d!=null&&h.id?` · ${fmtM(h.d)} zur Gewässerlinie`:""}</div>`:""}</div>`;
+  const notes=det?(sec.notes||[]):[];
+  $("#hereRules").innerHTML=`<div class="card"><h2>${det?"Regeln hier":"Nationale Mindestvorgaben"}</h2>${rulesTableFor(sec)}
+     <p class="mut small">${det?"Geschützt: "+esc((R_SO().protected||[]).join(", "))+".":"Quelle: Verordnung zum Bundesgesetz über die Fischerei (VBGF). Dein Kanton kann strengere Masse, Schonzeiten, Fanglimiten und geschützte Arten haben – das gilt dann."}</p></div>
+    ${notes.length?`<div class="card"><h2>Besonderheiten</h2><ul>${notes.map(n=>`<li>${esc(n)}</li>`).join("")}</ul></div>`:""}
+    ${det?`<div class="card"><h2>Überall in SO</h2><ul><li>Widerhaken verboten</li><li>Drillinge verboten – ausser Aare A1–A6</li><li>Max. 2 Ruten, je max. 2 Köder; immer beaufsichtigen</li><li>Fischpässe und Umgehungsgerinne: Fangen verboten</li></ul></div>`:""}`;
+  $("#btnGeo").classList.toggle("hide",!!state.pos||watchId!=null);
+  $("#geoMsg").textContent=state.geoErr||"";
+  $("#selCanton").value=state.canton;$("#cbCantonAuto").checked=state.cantonAuto;
+  $("#secPick").classList.toggle("hide",!det);
+  if(det){const opts=SECTIONS.map(s=>`<option value="${s.id}">${esc(s.name)} – ${esc(s.desc)}</option>`);
+    if(!SECTIONS.some(s=>s.id===state.sec))opts.unshift(`<option value="${esc(state.sec)}">${esc(sec.name)}</option>`);
+    $("#selSec").innerHTML=opts.join("");$("#selSec").value=state.sec;$("#cbSecAuto").checked=state.secAuto}
+}
+
+/* ================= RENDER: FANG ================= */
 let tick=null;
+function ctxLabel(){const det=isDetailed(state.canton);return det?currentSec().name:cname(state.canton)+" (national)"}
 function renderSess(){
-  const s=state.sess, box=$("#sessBox"), sec=secById(state.sec);
-  clearInterval(tick);
-  if(!s){
-    box.innerHTML=`<p class="mut small">Starte hier und gleichzeitig in der Kantons-App («Start Fischen»).</p><button class="pri full" id="btnStart">▶ Start Fischen – ${esc(sec.name)}</button>`;
-    $("#btnStart").onclick=()=>{state.sess={sec:state.sec,start:Date.now()};save();renderSess()};
-  } else {
-    const ssec=secById(s.sec);
-    box.innerHTML=`<div class="mut small">${esc(ssec.name)} seit ${new Date(s.start).toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"})}</div><div class="big timer" id="tmr"></div><button class="bad full" id="btnStop">■ Stop Fischen</button>`;
-    const up=()=>{const m=Math.floor((Date.now()-s.start)/60000);$("#tmr").textContent=`${Math.floor(m/60)} h ${String(m%60).padStart(2,"0")} min`};up();tick=setInterval(up,15000);
-    $("#btnStop").onclick=()=>{
-      const mins=Math.max(1,Math.round((Date.now()-s.start)/60000));
-      const sessions=store.get("sessions",[]);sessions.push({sec:s.sec,start:s.start,mins});store.set("sessions",sessions);
-      state.sess=null;save();renderSess();renderStats();
-      $("#afterSave").innerHTML=`<div class="verdict v-ok">Angeldauer: ${Math.floor(mins/60)} h ${mins%60} min – jetzt auch in der Kantons-App «Stop Fischen» drücken.</div>`;
-    };
-  }
+  const s=state.sess,box=$("#sessBox");clearInterval(tick);
+  if(!s){box.innerHTML=`<p class="mut small" style="margin-top:0">Starte hier und gleichzeitig in der offiziellen App («Start Fischen»).</p><button class="pri full" id="btnStart">▶ Start Fischen – ${esc(ctxLabel())}</button>`;
+    $("#btnStart").onclick=()=>{state.sess={sec:state.sec,canton:state.canton,start:Date.now()};save();renderSess()};return}
+  box.innerHTML=`<div class="mut small">${esc(s.canton&&s.canton!=="SO"?cname(s.canton):secById(s.sec).name)} seit ${new Date(s.start).toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"})}</div><div class="big timer" id="tmr"></div><button class="bad full" id="btnStop">■ Stop Fischen</button>`;
+  const up=()=>{const m=Math.floor((Date.now()-s.start)/6e4);const el=$("#tmr");if(el)el.textContent=`${Math.floor(m/60)} h ${p2(m%60)} min`};up();tick=setInterval(up,15000);
+  $("#btnStop").onclick=()=>{const mins=Math.max(1,Math.round((Date.now()-s.start)/6e4));const ss=store.get("sessions",[]);ss.push({sec:s.sec,canton:s.canton||"SO",start:s.start,mins});store.set("sessions",ss);state.sess=null;save();renderSess();renderStats();
+    $("#afterSave").innerHTML=`<div class="verdict v-ok"><div class="big">Angeldauer ${Math.floor(mins/60)} h ${mins%60} min</div><div class="ln">Jetzt auch in der offiziellen App «Stop Fischen» drücken.</div></div>`};
 }
 function renderFang(){
-  const sec=secById(state.sec);
-  $("#fangSec").textContent=`Abschnitt: ${sec.name} – ${sec.desc} (im Tab «Gewässer» ändern)`;
+  const x=hereSummary();
+  $("#fangCtx").innerHTML=`<div class="hero ${x.cls}" style="padding:12px 14px"><div style="font-weight:700">${esc(x.t)}</div><div class="d">${esc(x.s||"")}</div></div>`;
   renderSess();liveCheck();
 }
+function setSpecies(sp){$("#fArt").value=sp;document.querySelectorAll("#spChips button").forEach(b=>b.classList.toggle("on",b.dataset.sp===sp));liveCheck()}
 function liveCheck(){
-  const sec=secById(state.sec), sp=$("#fArt").value, len=parseFloat($("#fLen").value);
-  const c=check(sec,sp,isNaN(len)?null:len);
-  $("#liveCheck").innerHTML=`<div class="verdict ${c.needLen?"v-warn":c.ok?"v-ok":"v-bad"}">${c.needLen?"Länge eingeben zum Prüfen":c.ok?"✓ Darf behalten werden":"✗ Nicht behalten"}${c.issues.map(i=>`<div class="small" style="font-weight:500">• ${esc(i)}</div>`).join("")}${c.infos.map(i=>`<div class="small" style="font-weight:400;opacity:.85">${esc(i)}</div>`).join("")}</div>`;
+  const sp=$("#fArt").value,len=parseFloat($("#fLen").value);
+  const c=check(currentSec(),sp,isNaN(len)?null:len);
+  const cls=c.needLen?"v-warn":c.ok?"v-ok":"v-bad",head=c.needLen?"Länge eingeben":c.ok?"✓ Darf behalten werden":"✗ Nicht behalten";
+  $("#liveCheck").innerHTML=`<div class="verdict ${cls}"><div class="big">${head}</div>${c.issues.map(i=>`<div class="ln">• ${esc(i)}</div>`).join("")}${c.infos.map(i=>`<div class="ln" style="opacity:.85">${esc(i)}</div>`).join("")}</div>`;
   return c;
 }
 function saveFang(){
-  const sec=secById(state.sec), sp=$("#fArt").value, lenV=parseFloat($("#fLen").value);
-  const len=isNaN(lenV)?null:lenV, n=Math.max(1,parseInt($("#fAnz").value)||1);
+  const sec=currentSec(),sp=$("#fArt").value,lv=parseFloat($("#fLen").value),len=isNaN(lv)?null:lv,n=Math.max(1,parseInt($("#fAnz").value)||1);
   const c=check(sec,sp,len);
-  if(c.needLen||(sp==="Bachforelle"&&len==null)){$("#afterSave").innerHTML=`<div class="verdict v-warn">Bitte zuerst die Länge eingeben – sonst kann das Mindestmass nicht geprüft werden.</div>`;return}
-  const doSave=(kept)=>{
-    const now=new Date();
-    const f={id:Date.now(),ts:now.getTime(),day:dayKey(now),sec:sec.id,art:sp,len,n,kept,note:$("#fNote").value.trim()};
-    state.log.unshift(f);
-    if(!save()){/* ignore */}
-    const ok=store.get("log",null)!==null;
+  if(c.needLen){$("#afterSave").innerHTML=`<div class="verdict v-warn"><div class="ln">Bitte zuerst die Länge eingeben – sonst kann das Mindestmass nicht geprüft werden.</div></div>`;$("#fLen").focus();return}
+  const doSave=kept=>{
+    const now=new Date(),p=state.pos;
+    const f={id:Date.now(),ts:now.getTime(),day:dayKey(now),canton:state.canton,sec:sec.id,art:sp,len,n,kept,note:$("#fNote").value.trim(),lat:p?+p.lat.toFixed(5):null,lon:p?+p.lon.toFixed(5):null};
+    state.log.unshift(f);const ok=save()!==false;
     const t=now.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
-    const txt=`${now.toLocaleDateString("de-CH")} ${t}\nGewässer: ${sec.id}\nArt: ${sp}${len!=null?`\nLänge: ${len} cm`:""}${n>1?`\nAnzahl: ${n}`:""}`;
-    $("#afterSave").innerHTML=`<div class="verdict ${kept?"v-ok":"v-warn"}">${kept?"Gespeichert als behaltener Fang.":"Gespeichert als zurückgesetzt."}${ok?"":" (Achtung: Speicher nicht verfügbar – exportiere die Daten!)"}</div>
-      ${kept?`<div class="mut small" style="margin-top:8px">Jetzt in der Kantons-App eintragen:</div><div class="copybox" id="cpTxt">${esc(txt)}</div><button class="full" id="btnCopy" style="margin-top:8px">Text kopieren</button>`:""}`;
-    const bc=$("#btnCopy"); if(bc) bc.onclick=async()=>{try{await navigator.clipboard.writeText(txt);bc.textContent="Kopiert ✓"}catch(e){bc.textContent="Kopieren nicht möglich – bitte abtippen"}};
-    $("#fLen").value="";$("#fAnz").value="1";$("#fNote").value="";liveCheck();renderStats();
+    const so=state.canton==="SO";
+    const txt=`${now.toLocaleDateString("de-CH")} ${t}\n${so?(sec.kind==="patent"?"Gewässer: "+sec.id:"Revier: "+sec.id):"Kanton: "+cname(state.canton)}\nArt: ${sp}${len!=null?`\nLänge: ${len} cm`:""}${n>1?`\nAnzahl: ${n}`:""}`;
+    $("#afterSave").innerHTML=`<div class="verdict ${kept?"v-ok":"v-warn"}"><div class="ln">${kept?"Gespeichert als behaltener Fang.":"Gespeichert als zurückgesetzt."}</div></div>
+      ${kept&&so?`<div class="mut small" style="margin-top:10px">Jetzt in der offiziellen App eintragen:</div><div class="copybox">${esc(txt)}</div><button class="full" id="btnCopy" style="margin-top:8px">Text kopieren</button>`:""}`;
+    const bc=$("#btnCopy");if(bc)bc.onclick=async()=>{try{await navigator.clipboard.writeText(txt);bc.textContent="Kopiert ✓"}catch(e){bc.textContent="Kopieren nicht möglich – bitte abtippen"}};
+    $("#fLen").value="";$("#fAnz").value="1";$("#fNote").value="";liveCheck();renderStats();if(map)drawCatches();toast(kept?"Fang gespeichert":"Als zurückgesetzt gespeichert");
   };
-  if(!c.ok){
-    ask(`<h2>Nicht behalten</h2><ul>${c.issues.map(i=>`<li>${esc(i)}</li>`).join("")}</ul><p class="mut small">Als «zurückgesetzt» speichern?</p>`,()=>doSave(false));
-  } else doSave(true);
+  if(!c.ok)ask(`<h2>Nicht behalten</h2><ul>${c.issues.map(i=>`<li>${esc(i)}</li>`).join("")}</ul><p class="mut small">Fisch schonend zurücksetzen. Als «zurückgesetzt» speichern?</p>`,()=>doSave(false));
+  else doSave(true);
 }
-function ask(html,yes){const d=$("#dlg");$("#dlgBody").innerHTML=html;$("#dlgYes").onclick=()=>{d.close();yes()};$("#dlgNo").onclick=()=>d.close();try{d.showModal()}catch(e){if(confirm)yes()}}
 
-/* ================= UI: STATISTIK ================= */
+/* ================= RENDER: STATISTIK ================= */
 function renderStats(){
-  const t=dayKey(new Date()), y=String(new Date().getFullYear());
-  const kept=state.log.filter(f=>f.kept), today=kept.filter(f=>f.day===t), season=kept.filter(f=>f.day.startsWith(y));
+  const t=dayKey(new Date()),y=String(new Date().getFullYear());
+  const kept=state.log.filter(f=>f.kept),today=kept.filter(f=>f.day===t),season=kept.filter(f=>f.day.startsWith(y));
   const sum=a=>a.reduce((s,f)=>s+(f.n||1),0);
-  const sessions=store.get("sessions",[]).filter(s=>new Date(s.start).getFullYear()==y);
-  const mins=sessions.reduce((a,s)=>a+s.mins,0);
-  const bf=c=>countToday("Bachforelle",true);
-  $("#statToday").innerHTML=`<div><b>${sum(today)}</b>Fische behalten</div><div><b>${bf()}/2</b>Forellen+Saiblinge</div>`;
+  const mins=store.get("sessions",[]).filter(s=>String(new Date(s.start).getFullYear())===y).reduce((a,s)=>a+s.mins,0);
+  $("#statToday").innerHTML=`<div><b>${sum(today)}</b>Fische behalten</div><div><b>${countToday("Bachforelle",true)}/2</b>Forellen + Saiblinge (SO)</div>`;
   $("#statYear").textContent=y;
-  const byArt={};season.forEach(f=>byArt[f.art]=(byArt[f.art]||0)+(f.n||1));
-  const top=Object.entries(byArt).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([a,n])=>`<div><b>${n}</b>${esc(a)}</div>`).join("");
-  $("#statSeason").innerHTML=`<div><b>${sum(season)}</b>Fische total</div><div><b>${countYear("Bachforelle")}/20</b>Bachforellen</div><div><b>${(mins/60).toFixed(1)} h</b>Angelzeit</div><div><b>${mins?(sum(season)/(mins/60)).toFixed(2):"–"}</b>Fische pro Stunde</div>${top}`;
-  $("#logList").innerHTML=state.log.length?state.log.slice(0,200).map(f=>`<div class="it"><div class="row" style="align-items:center"><div style="flex:3"><b>${esc(f.art)}</b>${f.len!=null?` · ${f.len} cm`:""}${f.n>1?` · ${f.n} Stk.`:""} <span class="pill ${f.kept?"p-ok":"p-mut"}">${f.kept?"behalten":"zurück"}</span><div class="mut small">${new Date(f.ts).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"})} · ${esc(f.sec)}${f.note?" · "+esc(f.note):""}</div></div><button style="flex:0 0 auto;min-height:40px;padding:8px 12px" data-del="${f.id}" aria-label="Löschen">✕</button></div></div>`).join(""):`<p class="mut">Noch keine Fänge erfasst.</p>`;
+  const by={};season.forEach(f=>by[f.art]=(by[f.art]||0)+(f.n||1));
+  $("#statSeason").innerHTML=`<div><b>${sum(season)}</b>Fische total</div><div><b>${countYear("Bachforelle")}/20</b>Bachforellen SO-Patent</div><div><b>${(mins/60).toFixed(1)} h</b>Angelzeit</div><div><b>${mins?(sum(season)/(mins/60)).toFixed(2):"–"}</b>Fische pro Stunde</div>${Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([a,n])=>`<div><b>${n}</b>${esc(a)}</div>`).join("")}`;
+  $("#logList").innerHTML=state.log.length?state.log.slice(0,300).map(f=>`<div class="it"><div class="row" style="align-items:center"><div style="flex:3"><b>${esc(f.art)}</b>${f.len!=null?` · ${f.len} cm`:""}${f.n>1?` · ${f.n} Stk.`:""} <span class="pill ${f.kept?"p-ok":"p-mut"}">${f.kept?"behalten":"zurück"}</span><div class="mut small">${new Date(f.ts).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"})} · ${esc((f.canton||"SO")==="SO"?f.sec:cname(f.canton))}${f.note?" · "+esc(f.note):""}</div></div><button style="flex:0 0 auto;min-height:40px;padding:6px 12px" data-del="${f.id}" aria-label="Löschen">✕</button></div></div>`).join(""):`<p class="mut">Noch keine Fänge erfasst.</p>`;
 }
-function toCSV(){
-  const h=["datum","zeit","abschnitt","art","laenge_cm","anzahl","behalten","notiz"];
-  const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;
-  return [h.join(";")].concat(state.log.map(f=>{const d=new Date(f.ts);return [d.toLocaleDateString("de-CH"),d.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"}),f.sec,f.art,f.len??"",f.n||1,f.kept?"ja":"nein",f.note].map(q).join(";")})).join("\n");
-}
-function exportCSV(){
-  const csv="﻿"+toCSV();
-  try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=`faenge_${dayKey(new Date())}.csv`;document.body.appendChild(a);a.click();a.remove();}
-  catch(e){}
-  ask(`<h2>Export</h2><p class="small">Falls kein Download startet: Text kopieren und z.B. in eine Notiz einfügen.</p><textarea rows="6" readonly>${esc(toCSV())}</textarea>`,()=>{});
-}
-function importCSV(file){
-  const r=new FileReader();
-  r.onload=()=>{
-    const lines=String(r.result).replace(/^﻿/,"").split(/\r?\n/).slice(1).filter(Boolean);
-    const parse=l=>l.split(";").map(x=>x.replace(/^"|"$/g,"").replace(/""/g,'"'));
-    let n=0;
-    lines.forEach(l=>{const [d,t,sec,art,len,anz,kept,note]=parse(l);const [dd,mm,yy]=d.split(".");const ts=new Date(`${yy}-${mm.padStart(2,"0")}-${dd.padStart(2,"0")}T${t||"12:00"}`).getTime();
-      if(isNaN(ts)||state.log.some(f=>f.ts===ts&&f.art===art))return;
-      state.log.push({id:ts+Math.random(),ts,day:dayKey(new Date(ts)),sec,art,len:len?parseFloat(len):null,n:parseInt(anz)||1,kept:kept==="ja",note});n++});
-    state.log.sort((a,b)=>b.ts-a.ts);save();renderStats();
-    ask(`<h2>Import</h2><p>${n} Fänge importiert.</p>`,()=>{});
-  };
-  r.readAsText(file);
+function toCSV(){const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;return[["datum","zeit","kanton","gewaesser","art","laenge_cm","anzahl","behalten","notiz","lat","lon"].join(";")].concat(state.log.map(f=>{const d=new Date(f.ts);return[d.toLocaleDateString("de-CH"),d.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"}),f.canton||"SO",f.sec,f.art,f.len??"",f.n||1,f.kept?"ja":"nein",f.note,f.lat??"",f.lon??""].map(q).join(";")})).join("\n")}
+function exportCSV(){const csv="﻿"+toCSV();try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=`faenge_${dayKey(new Date())}.csv`;document.body.appendChild(a);a.click();a.remove()}catch(e){}
+  ask(`<h2>Export</h2><p class="small">Falls kein Download startet: Text kopieren und z.B. in eine Notiz einfügen.</p><textarea rows="6" readonly>${esc(toCSV())}</textarea>`,null,false)}
+function importCSV(file){const r=new FileReader();r.onload=()=>{const lines=String(r.result).replace(/^﻿/,"").split(/\r?\n/);const head=(lines.shift()||"").split(";").map(x=>x.replace(/"/g,""));const ix=k=>head.indexOf(k);let n=0;
+  lines.filter(Boolean).forEach(l=>{const c=l.split(";").map(x=>x.replace(/^"|"$/g,"").replace(/""/g,'"'));const g=k=>ix(k)>=0?c[ix(k)]:"";const[dd,mm,yy]=g("datum").split(".");if(!yy)return;const ts=new Date(`${yy}-${p2(mm)}-${p2(dd)}T${g("zeit")||"12:00"}`).getTime();if(isNaN(ts)||state.log.some(f=>f.ts===ts&&f.art===g("art")))return;
+    state.log.push({id:ts+Math.random(),ts,day:dayKey(new Date(ts)),canton:g("kanton")||"SO",sec:g("gewaesser")||g("abschnitt"),art:g("art"),len:g("laenge_cm")?parseFloat(g("laenge_cm")):null,n:parseInt(g("anzahl"))||1,kept:g("behalten")==="ja",note:g("notiz"),lat:g("lat")?+g("lat"):null,lon:g("lon")?+g("lon"):null});n++});
+  state.log.sort((a,b)=>b.ts-a.ts);save();renderStats();ask(`<h2>Import</h2><p>${n} Fänge importiert.</p>`,null,false)};r.readAsText(file)}
+
+/* ================= RENDER: REGELN ================= */
+function renderRegeln(){
+  const det=isDetailed(state.canton),R=R_SO(),P=R.prices||{};
+  let h=`<div class="card"><h2>Aktuelle Hinweise</h2>${NEWS.length?NEWS.map(n=>`<p><span class="pill p-warn">${esc(n.date)}</span> ${esc(n.text)}</p>`).join(""):"<p class='mut'>Keine.</p>"}<p class="mut small">Verfügungen ändern sich – im Zweifel auf so.ch/fischerei prüfen.</p></div>`;
+  if(!det){const C=RULES.CH;
+    h=`<div class="card"><h2>${esc(cname(state.canton))}</h2><div class="verdict v-warn"><div class="ln">Für diesen Kanton sind erst die <b>nationalen Mindestvorgaben</b> hinterlegt. Kantonale Masse, Schonzeiten, Fanglimiten, Patentgewässer und Schongebiete können strenger sein und gehen vor. Prüfe die kantonale Fischereiverordnung bzw. die Fischerei-Broschüre deines Kantons.</div></div></div>
+    <div class="card"><h2>Nationale Mindestmasse</h2><table><tr><th>Art</th><th>Mindestmass</th><th>Schonzeit (mind.)</th></tr>${Object.keys(C.sizes).map(sp=>`<tr><td>${esc(sp)}</td><td>${C.sizes[sp]} cm</td><td>${C.weeks[sp]?esc(C.weeks[sp])+" Wochen":"–"}</td></tr>`).join("")}</table>
+    <p class="mut small">Bachforelle in grösseren stehenden Gewässern unter 800 m ü. M.: ${C.troutLake} cm. Krebse: Edelkrebs 12 cm, Dohlen- und Steinkrebs 9 cm, Schonzeit mind. 40 Wochen. Die Schonzeiten legt der Kanton auf die Laichzeit fest. Quelle: Verordnung zum Bundesgesetz über die Fischerei (VBGF).</p></div>`;
+  } else {
+    const tb=R.troutByGroup,ts=fmtR(R.troutSchon);
+    const row=(g,a,m,s)=>`<tr><td>${g}</td><td>${a}</td><td>${m}</td><td>${s}</td></tr>`;
+    h+=`<div class="card"><h2>Mindestmasse & Schonzeiten</h2><table><tr><th>Gewässer</th><th>Art</th><th>Mass</th><th>Schonzeit</th></tr>
+      ${R.protected.includes("Äsche")?row("Alle","Äsche","–","ganzjährig"):""}
+      ${row("Aare A1–A6","Bachforelle",fmtSlot(tb.aare),ts)}${row("Chastelbach, Lüssel, Lützel","Bachforelle",fmtSlot(tb.jura),ts)}${row("Dünnern","Bachforelle",fmtSlot(tb.duennern),ts)}${row("Emme, Emmekanal","Bachforelle",fmtSlot(tb.emme),ts)}${row("Pacht-/Privatgewässer","Bachforelle",fmtSlot(tb.default),ts)}
+      ${Object.entries(R.species).filter(([,v])=>v.slot).map(([k,v])=>row("Alle",esc(k),fmtSlot(v.slot),v.schon?fmtR(v.schon):"–")).join("")}
+      ${Object.entries(R.birs||{}).map(([k,v])=>row("Birs (BL/SO)",esc(k),fmtSlot(v.slot),v.schon?fmtR(v.schon):"–")).join("")}</table>
+      <p class="mut small">Fischereiverbot 01.10.–15.03. in Chastelbach, Dünnern, Emme, Emmekanal, Lüssel, Lützel sowie Pacht- und Privatgewässern; in der Birs 15.10.–Ende Februar.</p></div>
+    <div class="card"><h2>Fanglimiten</h2><ul><li>Bachforellen und Saiblinge: zusammen <b>${R.troutDay} pro Tag</b></li><li>Bachforellen: max. <b>${R.troutYear} pro Jahr</b> in Patentgewässern</li>${Object.entries(R.species).filter(([,v])=>v.day&&!v.dayGroup).map(([k,v])=>`<li>${esc(k)}: ${v.day} pro Tag</li>`).join("")}<li>Egli: keine Beschränkung</li><li>Nach 2 Bachforellen am Tag nur noch in der Aare (A1–A6) auf andere Arten weiterfischen</li></ul></div>
+    <div class="card"><h2>Geräte & Köder</h2><ul><li>Max. 2 Ruten gleichzeitig, je max. 2 Köder; immer beaufsichtigen</li><li><b>Widerhaken verboten</b> in allen Gewässern</li><li>Drillinge/Mehrfachhaken in Patent- und Pachtgewässern verboten – ausser Aare A1–A6</li><li>Hegene max. 5 Köder: Aare A1 sowie KW Wynau/Schwarzhäusern – KW Ruppoldingen</li><li>Mitangler: 1 Rute, 1 Köder</li><li>Lebende Köderfische verboten</li></ul></div>
+    <div class="card"><h2>Töten & Zurücksetzen</h2><ul><li>Fischen mit der Absicht, wieder freizulassen (Catch & Release), ist verboten</li><li>Behändigte Fische sofort töten – vor dem Lösen des Hakens: kräftiger Schlag auf den Kopf, dann entbluten</li><li>Geschützte oder untermassige Fische mit nasser Hand schonend zurücksetzen; Haken notfalls abschneiden</li><li>Markierte Fische der Fachstelle melden</li></ul></div>
+    <div class="card"><h2>Geschützte Arten</h2><p>${esc(R.protected.join(", "))} sowie Edel-, Dohlen- und Steinkrebs.</p></div>
+    <div class="card"><h2>Patentpreise</h2><table><tr><th></th><th>SO</th><th>ausserkant.</th><th>Jugend</th></tr><tr><td>Tag</td><td>${P.tag[0]}.–</td><td>${P.tag[1]}.–</td><td>${P.tag[2]}.–</td></tr><tr><td>Woche</td><td>${P.woche[0]}.–</td><td>${P.woche[1]}.–</td><td>${P.woche[2]}.–</td></tr><tr><td>Jahr</td><td>${P.jahr[0]}.–</td><td>${P.jahr[1]}.–</td><td>${P.jahr[2]}.–</td></tr></table>
+      <p class="mut small">Ab Saison ${P.hegeAb} kommen auf ein Jahrespatent <b>CHF ${P.hege}.– Hegeersatzabgabe</b> dazu. Befreit ist, wer selbst Hegearbeit leistet (Antrag bis 31. März ans AWJF) oder Mitglied in einem Verein mit Hegearbeit ist.</p></div>
+    <div class="card"><h2>Pflichten am Wasser</h2><ul><li>Amtlicher Ausweis mit Foto + Sachkundenachweis (SaNa) dabei</li><li>Offizielle Fangstatistik: vor Beginn «Start Fischen», jeden Fang <b>sofort</b> eintragen, beim Verlassen «Stop Fischen»</li></ul><p class="mut small">Diese App ersetzt die offizielle Fangstatistik nicht.</p></div>`;
+  }
+  $("#rulesBody").innerHTML=h;
+  $("#dataCard").innerHTML=`<h2>Daten & Aktualität</h2>
+    <p class="small">Regelstand: <b>${esc(DATA_META.updated)}</b> (v${DATA_META.version})${DATA_META.checked?" · geprüft "+new Date(DATA_META.checked).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"}):""}</p>
+    <p class="small">Gewässerdaten SO: ${GEO.official?`<b>offiziell</b>, geladen ${new Date(GEO.date).toLocaleDateString("de-CH")}`:"<b>noch nicht geladen</b> – grobe Ersatzlinien aktiv"}</p>
+    <button class="full" id="btnRefresh">Jetzt alles aktualisieren</button>
+    <p class="mut small" style="margin-top:12px">Quellen: Gewässer © Kanton Solothurn, AWJF (geo.so.ch, Open Data) · Karte © swisstopo · Kantonserkennung: geo.admin.ch · Regeln SO: «Auszug aus den Fischereivorschriften ab 01.03.2026» (AWJF) · National: VBGF. Ohne Gewähr – verbindlich sind die amtlichen Vorschriften.</p>`;
+  $("#btnRefresh").onclick=async e=>{const b=e.target;b.textContent="Aktualisiere …";const[a,g]=await Promise.all([fetchUpdates(true),refreshGeo(true)]);b.textContent=(a==="offline"&&g==="offline")?"Keine Verbindung":"Aktualisiert ✓";renderRegeln()};
 }
 
-/* ================= UI: INFO ================= */
-function fmtWhen(iso){ if(!iso) return "noch nie"; const d=new Date(iso); return d.toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"}); }
-function renderInfo(){
-  const chk=DATA_META.checked?`zuletzt online geprüft: ${fmtWhen(DATA_META.checked)}`:"noch nicht online geprüft";
-  $("#infoNews").innerHTML=`<h2>Aktuelle Hinweise</h2>${NEWS.map(n=>`<p><span class="pill p-warn">${n.date}</span> ${esc(n.text)}</p>`).join("")}
-   <p class="mut small">Regelstand: ${esc(DATA_META.updated)} · ${esc(chk)}</p>
-   <button id="btnCheck" style="margin-top:6px">Jetzt auf Aktualisierung prüfen</button>
-   <p class="mut small" style="margin-top:8px">Verfügungen ändern sich – im Zweifel auf so.ch/fischerei prüfen.</p>`;
-  const b=$("#btnCheck"); if(b) b.onclick=()=>{b.textContent="Prüfe …";fetchUpdates(true).then(r=>{b.textContent=r==="new"?"Aktualisiert ✓":r==="same"?"Bereits aktuell":"Keine Verbindung";setTimeout(()=>renderInfo(),r==="new"?0:1500)})};
-  $("#tblRules").innerHTML=`<table><tr><th>Gewässer</th><th>Art</th><th>Mass</th><th>Schonzeit</th></tr>
-   <tr><td>Alle</td><td>Äsche</td><td>–</td><td>ganzjährig</td></tr>
-   <tr><td>Aare A1–A6</td><td>Bachforelle</td><td>ab 38 cm</td><td>01.10.–15.03.</td></tr>
-   <tr><td>Chastelbach, Lüssel, Lützel</td><td>Bachforelle</td><td>ab 30 cm</td><td>01.10.–15.03.</td></tr>
-   <tr><td>Dünnern</td><td>Bachforelle</td><td>32–42 cm und ab 55 cm</td><td>01.10.–15.03.</td></tr>
-   <tr><td>Emme, Emmekanal</td><td>Bachforelle</td><td>35–45 cm</td><td>01.10.–15.03.</td></tr>
-   <tr><td>Pacht-/Privatgew.</td><td>Bachforelle</td><td>ab 26 cm</td><td>01.10.–15.03.</td></tr>
-   <tr><td>Alle</td><td>Felchen</td><td>ab 25 cm</td><td>01.11.–31.12.</td></tr>
-   <tr><td>Alle</td><td>Hecht</td><td>ab 45 cm</td><td>01.03.–30.04.</td></tr>
-   <tr><td>Birs (BL/SO)</td><td>Forelle</td><td>ab 26 cm</td><td>15.10.–Ende Feb.</td></tr>
-   <tr><td>Birs (BL/SO)</td><td>Äsche</td><td>ab 35 cm</td><td>01.02.–30.04.</td></tr>
-   <tr><td>Birs (BL/SO)</td><td>Barbe</td><td>ab 35 cm</td><td>01.05.–15.06.</td></tr></table>
-   <p class="mut small">Fischereiverbot 01.10.–15.03. in Chastelbach, Dünnern, Emme, Emmekanal, Lüssel, Lützel sowie Pacht- und Privatgewässern. In der Birs 15.10.–Ende Februar.</p>`;
+/* ================= KARTE ================= */
+let map=null,gLayer=null,meMarker=null,meCircle=null,catchLayer=null,follow=false;
+function styleFor(f){
+  const k=kindOf(f.art);
+  if(k==="schon")return{color:"#d62828",weight:7,opacity:.95};
+  if(k==="pacht")return{color:"#f08c00",weight:3,opacity:.85};
+  if(k==="privat")return{color:"#7d8b88",weight:3,opacity:.8,dashArray:"6 6"};
+  const sec=secById(f.id),bad=secStatus(sec).some(x=>x.lvl==="bad");
+  return{color:bad?"#e03131":"#12b886",weight:6,opacity:.95,dashArray:bad?"10 8":null};
+}
+function popupFor(f){
+  const sec=secById(f.id),st=secStatus(sec),k=sec.kind;
+  const status=k==="schon"?`<span class="pill p-bad">Fischen verboten</span>`:st.some(x=>x.lvl==="bad")?`<span class="pill p-bad">heute gesperrt</span>`:k==="patent"?`<span class="pill p-ok">heute offen</span>`:`<span class="pill p-warn">nicht mit Patent</span>`;
+  const r=k==="patent"||k==="pacht"||k==="privat"?soRule(sec,"Bachforelle"):null;
+  return`<h3>${esc(sec.name)}</h3>${status}<div style="margin-top:6px">${esc(f.t)}</div>
+    ${st.length?`<ul style="margin:6px 0 0;padding-left:18px">${st.map(s=>`<li>${esc(s.txt)}</li>`).join("")}</ul>`:""}
+    ${r?`<div style="margin-top:6px"><b>Bachforelle:</b> ${fmtSlot(r.slot)}, Schonzeit ${fmtR(r.schon)}</div>`:""}
+    ${k==="patent"||k==="pacht"||k==="privat"?`<button data-pick="${esc(f.id)}">Regeln für diesen Abschnitt</button>`:""}`;
+}
+function drawGeo(){
+  if(!map)return;if(gLayer)gLayer.remove();gLayer=L.layerGroup().addTo(map);
+  if(state.canton!=="SO"){return}
+  const order={privat:0,pacht:1,patent:2,schon:3};
+  [...GEO.features].sort((a,b)=>order[kindOf(a.art)]-order[kindOf(b.art)]).forEach(f=>{
+    const latlngs=f.l.map(l=>l.map(([lo,la])=>[la,lo]));
+    const pl=L.polyline(latlngs,styleFor(f)).bindPopup(()=>popupFor(f));pl.addTo(gLayer);
+    const k=kindOf(f.art);
+    if(k==="patent"||k==="schon"){const longest=f.l.reduce((a,l)=>l.length>a.length?l:a,f.l[0]);const m=longest[Math.floor(longest.length/2)];
+      L.marker([m[1],m[0]],{interactive:false,icon:L.divIcon({className:"",html:`<span class="mylbl ${k==="schon"?"s":""}">${esc(f.id)}</span>`,iconSize:null})}).addTo(gLayer)}
+  });
+}
+function drawCatches(){if(!map)return;catchLayer.clearLayers();state.log.filter(f=>f.lat!=null&&f.kept).forEach(f=>L.circleMarker([f.lat,f.lon],{radius:6,color:"#fff",weight:2,fillColor:"#1971c2",fillOpacity:1}).bindPopup(`<b>${esc(f.art)}</b>${f.len!=null?" · "+f.len+" cm":""}<br>${new Date(f.ts).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"})}`).addTo(catchLayer))}
+function updateMe(){
+  const p=state.pos;if(!map||!p)return;const ll=[p.lat,p.lon];
+  if(!meMarker){meCircle=L.circle(ll,{radius:p.acc,color:"#1c7ed6",weight:1,fillOpacity:.12,interactive:false}).addTo(map);meMarker=L.circleMarker(ll,{radius:8,color:"#fff",weight:3,fillColor:"#1c7ed6",fillOpacity:1}).addTo(map)}
+  else{meMarker.setLatLng(ll);meCircle.setLatLng(ll).setRadius(p.acc)}
+  if(follow)map.setView(ll,Math.max(map.getZoom(),15));
+}
+function initMap(){
+  const msg=$("#mapMsg");
+  if(!window.L){msg.className="";msg.innerHTML=`<div class="card">Die Karte braucht beim ersten Öffnen eine Internetverbindung. Danach funktionieren Standort und Abschnittserkennung auch offline.</div>`;
+    if(!initMap.waiting){initMap.waiting=true;window.addEventListener("load",()=>{if($("#v-karte").classList.contains("on")){msg.className="hide";initMap()}})}return}
+  msg.className="hide";
+  if(map){setTimeout(()=>map.invalidateSize(),50);return}
+  map=L.map("map",{preferCanvas:true,renderer:L.canvas({tolerance:12}),zoomControl:false,maxBounds:[[45.6,5.7],[48.0,10.7]],minZoom:7});
+  L.control.zoom({position:"topright"}).addTo(map);
+  const topo=L.tileLayer("https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg",{maxNativeZoom:18,maxZoom:19,attribution:'© <a href="https://www.swisstopo.admin.ch">swisstopo</a> · Gewässer © Kanton SO'}).addTo(map);
+  const luft=L.tileLayer("https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swissimage/default/current/3857/{z}/{x}/{y}.jpeg",{maxNativeZoom:19,maxZoom:19,attribution:"© swisstopo"});
+  catchLayer=L.layerGroup().addTo(map);
+  L.control.layers({"Landeskarte":topo,"Luftbild":luft},{"Meine Fänge":catchLayer},{position:"topright"}).addTo(map);
+  const Lg=L.control({position:"bottomleft"});Lg.onAdd=()=>{const d=L.DomUtil.create("div","lg");d.innerHTML=state.canton==="SO"?`<div><i style="background:#12b886"></i>Patent – heute offen</div><div><i style="background:#e03131"></i>Patent – heute gesperrt</div><div><i style="background:#d62828;height:6px"></i>Schonstrecke (verboten)</div><div><i style="background:#f08c00"></i>Pacht (nicht mit Patent)</div><div><i style="background:#7d8b88"></i>Privat</div>`:`Gewässerdaten bisher nur für SO`;return d};Lg.addTo(map);map._legend=Lg;
+  const Me=L.control({position:"bottomright"});Me.onAdd=()=>{const b=L.DomUtil.create("button","mebtn");b.innerHTML="📍";b.title="Zu meinem Standort";L.DomEvent.on(b,"click",e=>{L.DomEvent.stop(e);follow=true;if(state.pos)map.setView([state.pos.lat,state.pos.lon],16);else{startGeo();toast("Standort wird gesucht …")}});return b};Me.addTo(map);
+  map.on("dragstart",()=>{follow=false});
+  map.on("popupopen",e=>{const b=e.popup.getElement().querySelector("[data-pick]");if(b)b.onclick=()=>{state.sec=b.dataset.pick;state.secAuto=false;save();map.closePopup();toast("Abschnitt gewählt – automatische Wahl aus");renderAll();show("hier")}});
+  if(state.pos)map.setView([state.pos.lat,state.pos.lon],14);else map.setView([47.30,7.75],10);
+  drawGeo();drawCatches();updateMe();
+  setTimeout(()=>map.invalidateSize(),60);
+}
+function onGeoChanged(){if(map)drawGeo();if(state.pos)updateHere();else renderAll()}
+function onCantonChanged(){
+  if(map){drawGeo();if(map._legend){map._legend.remove();map._legend.addTo(map)}}
+  updateHere();
 }
 
-/* ================= AUTO-UPDATE DER REGELN ================= */
-function mergeRules(src){ if(src&&typeof src==="object"){ Object.keys(src).forEach(c=>{ RULES[c]=src[c]; }); } }
+/* ================= UPDATES (Regeln/Hinweise) ================= */
 function applyData(j){
-  if(!j||typeof j.version!=="number") return false;
+  if(!j||typeof j.version!=="number")return false;
   const cached=store.get("data",null);
-  if(cached && cached.version>=j.version) return false; // nichts Neueres
-  if(Array.isArray(j.news)) NEWS=j.news;
-  if(j.rules) mergeRules(j.rules);
-  DATA_META={version:j.version, updated:j.updated||DATA_META.updated, checked:new Date().toISOString()};
+  if(cached&&cached.version>=j.version)return false;
+  if(j.version<=DATA_META.version&&!cached)return false;
+  if(Array.isArray(j.news))NEWS=j.news;
+  if(j.rules)Object.keys(j.rules).forEach(c=>{RULES[c]=j.rules[c]});
+  DATA_META={version:j.version,updated:j.updated||DATA_META.updated,checked:new Date().toISOString()};
   store.set("data",{version:j.version,updated:j.updated,news:NEWS,rules:j.rules||null});
   return true;
 }
-async function fetchUpdates(force){
-  // Nur sinnvoll, wenn die App von einer Web-Adresse läuft (nicht als lokale Datei).
-  if(!location.protocol.startsWith("http")) return "offline";
-  try{
-    const r=await fetch("./data/updates.json?ts="+Date.now(),{cache:"no-store"});
-    if(!r.ok) throw 0;
-    const j=await r.json();
-    DATA_META.checked=new Date().toISOString();
-    const changed=applyData(j);
-    store.set("data_checked",DATA_META.checked);
-    if(changed){ renderSec(); if($("#v-info").classList.contains("on")) renderInfo(); }
-    return changed?"new":"same";
-  }catch(e){ return "offline"; }
+async function fetchUpdates(){
+  if(!location.protocol.startsWith("http")||!navigator.onLine)return"offline";
+  try{const j=await fetch("./data/updates.json?ts="+Date.now(),{cache:"no-store"}).then(r=>{if(!r.ok)throw 0;return r.json()});
+    DATA_META.checked=new Date().toISOString();store.set("data_checked",DATA_META.checked);
+    const ch=applyData(j);if(ch){renderAll();if(map)drawGeo()}return ch?"new":"same"}catch(e){return"offline"}
 }
-function loadCachedData(){
-  const c=store.get("data",null); if(c){ DATA_META={version:c.version,updated:c.updated,checked:store.get("data_checked",null)}; if(c.news) NEWS=c.news; if(c.rules) mergeRules(c.rules); }
-}
+function loadCached(){const c=store.get("data",null);if(c&&c.version>=DATA_META.version){DATA_META={version:c.version,updated:c.updated,checked:store.get("data_checked",null)};if(c.news)NEWS=c.news;if(c.rules)Object.keys(c.rules).forEach(k=>{RULES[k]=c.rules[k]})}else DATA_META.checked=store.get("data_checked",null)}
 
-/* ================= KANTON ================= */
-function renderCanton(){
-  const sel=$("#selCanton");
-  sel.innerHTML=CANTONS.map(c=>`<option value="${c.code}"${c.code===state.canton?" selected":""}>${esc(c.name)}${c.status==="ready"?"":" – in Vorbereitung"}</option>`).join("");
-  const cur=CANTONS.find(c=>c.code===state.canton)||CANTONS[0];
-  const ready=cur.status==="ready";
-  $("#cardLocate").classList.toggle("hide",!ready);
-  $("#selSec").closest(".card").querySelector("label").style.display=ready?"":"none";
-  $("#selSec").style.display=ready?"":"none";
-  if(ready){ $("#cantonMsg").textContent="Regeln geprüft, Stand 01.03.2026."; }
-  else {
-    $("#cantonMsg").innerHTML=`<b>${esc(cur.name)}</b> ist noch nicht hinterlegt. Ich ergänze die Kantone rundenweise aus den offiziellen Vorschriften. Bis dahin gelten für diesen Kanton die Angaben hier <b>nicht</b> – nutze die amtliche Quelle.`;
-    $("#secInfo").innerHTML="";
-  }
-  return ready;
+/* ================= NAVIGATION & INIT ================= */
+function renderAll(){renderTop();renderHier();if($("#v-fang").classList.contains("on"))renderFang();if($("#v-regeln").classList.contains("on"))renderRegeln()}
+function show(v){
+  document.querySelectorAll("section.view").forEach(s=>s.classList.toggle("on",s.id==="v-"+v));
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
+  if(v!=="karte")window.scrollTo(0,0);
+  if(v==="karte")initMap();if(v==="fang")renderFang();if(v==="stat")renderStats();if(v==="regeln")renderRegeln();if(v==="hier")renderHier();
 }
-
-/* ================= INIT ================= */
-function show(v){document.querySelectorAll("section.view").forEach(s=>s.classList.toggle("on",s.id==="v-"+v));document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));window.scrollTo(0,0);if(v==="fang")renderFang();if(v==="stat")renderStats()}
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>show(b.dataset.v));
-loadCachedData();
+$("#tbStatus").onclick=()=>show("hier");
+$("#tbCanton").onclick=()=>{show("hier");setTimeout(()=>$("#selCanton").focus(),100)};
+$("#selCanton").innerHTML=CANTONS.map(([c,n])=>`<option value="${c}">${esc(n)}${isDetailed(c)?"":" – national"}</option>`).join("");
+$("#selCanton").onchange=e=>{state.canton=e.target.value;state.cantonAuto=false;save();toast("Kanton manuell gewählt – automatische Erkennung aus");onCantonChanged()};
+$("#cbCantonAuto").onchange=e=>{state.cantonAuto=e.target.checked;save();if(state.cantonAuto&&state.pos){lastIdent=null;identifyCanton(state.pos.lat,state.pos.lon)}};
+$("#selSec").onchange=e=>{state.sec=e.target.value;state.secAuto=false;save();renderAll()};
+$("#cbSecAuto").onchange=e=>{state.secAuto=e.target.checked;save();updateHere()};
+$("#btnGeo").onclick=()=>{state.geoErr=null;startGeo();renderHier()};
+$("#spChips").innerHTML=QUICK.map(s=>`<button type="button" data-sp="${esc(s)}">${esc(s.replace(" (Flussbarsch)",""))}</button>`).join("");
+$("#spChips").onclick=e=>{const b=e.target.closest("[data-sp]");if(b)setSpecies(b.dataset.sp)};
 $("#fArt").innerHTML=SPECIES.map(s=>`<option>${esc(s)}</option>`).join("");
-fillSecSelect();renderCanton();renderSec();renderInfo();renderStats();renderFang();
-fetchUpdates(false);
-window.addEventListener("online",()=>fetchUpdates(false));
-$("#selCanton").onchange=e=>{state.canton=e.target.value;save();const ok=renderCanton();if(ok)renderSec()};
-$("#selSec").onchange=e=>{state.sec=e.target.value;save();renderSec();renderFang()};
-$("#btnLocate").onclick=locate;
-$("#nearby").onclick=e=>{const id=e.target.closest("[data-sec]")?.dataset.sec;if(id){state.sec=id;save();$("#selSec").value=id;renderSec();renderFang();$("#nearby").innerHTML=""}};
-$("#fArt").onchange=liveCheck;$("#fLen").oninput=liveCheck;
+$("#fArt").onchange=e=>setSpecies(e.target.value);
+$("#fLen").oninput=liveCheck;
+document.querySelectorAll(".lenrow [data-d]").forEach(b=>b.onclick=()=>{const v=parseFloat($("#fLen").value)||0;$("#fLen").value=Math.max(0,v+parseFloat(b.dataset.d));liveCheck()});
 $("#btnSave").onclick=saveFang;
-$("#logList").onclick=e=>{const id=e.target.closest("[data-del]")?.dataset.del;if(id)ask("<h2>Fang löschen?</h2>",()=>{state.log=state.log.filter(f=>String(f.id)!==id);save();renderStats()})};
-$("#btnExport").onclick=exportCSV;
-$("#btnImport").onclick=()=>$("#fileImport").click();
+$("#logList").onclick=e=>{const id=e.target.closest("[data-del]")?.dataset.del;if(id)ask("<h2>Fang löschen?</h2>",()=>{state.log=state.log.filter(f=>String(f.id)!==id);save();renderStats();if(map)drawCatches()})};
+$("#btnExport").onclick=exportCSV;$("#btnImport").onclick=()=>$("#fileImport").click();
 $("#fileImport").onchange=e=>{if(e.target.files[0])importCSV(e.target.files[0])};
-if(location.protocol.startsWith("http")&&"serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{})}
+document.addEventListener("visibilitychange",()=>{if(document.hidden)stopGeo();else if(state.pos||state.secAuto||state.cantonAuto)startGeo()});
+window.addEventListener("online",()=>{fetchUpdates();refreshGeo()});
+
+loadCached();
+setSpecies("Bachforelle");
+renderAll();renderStats();
+startGeo();
+fetchUpdates();refreshGeo();
+if(location.protocol.startsWith("http")&&"serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
 </body>
 </html>

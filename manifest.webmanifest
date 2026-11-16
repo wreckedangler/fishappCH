@@ -1,10 +1,13 @@
 {
-  "name": "Fischer-Begleiter SO",
-  "short_name": "Fischen SO",
+  "name": "Fischer-Begleiter",
+  "short_name": "Fischen",
+  "description": "Regeln, Karte und Fangbuch fürs Fischen in der Schweiz",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#0b1f18",
-  "theme_color": "#0f3d2e",
+  "orientation": "portrait",
+  "background_color": "#0a1c16",
+  "theme_color": "#0a1c16",
   "lang": "de-CH",
   "icons": [
     { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }

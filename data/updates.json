@@ -1,16 +1,17 @@
 {
-  "version": 2,
-  "updated": "2026-03-01",
-  "_hinweis": "Lebende Regel-Datei. Die App laedt sie bei jedem Start (sobald online). Fuer Aenderungen: version um 1 erhoehen, updated setzen, Werte in rules/news anpassen. slot = Laengenbereiche [min,max] (null = offen nach oben). schon = [[MM,TT],[MM,TT]]. secs-Codes: A1..A6, E, EK, D, LS, LT, CH, B.",
+  "version": 3,
+  "updated": "2026-11-16",
+  "_hinweis": "Lebende Regel-Datei. Die App laedt sie bei jedem Start (sobald online). Fuer Aenderungen: version um 1 erhoehen, updated setzen, Werte anpassen. slot = Laengenbereiche [min,max] (null = offen). schon = [[MM,TT],[MM,TT]]. news.secs = Abschnitts-/Reviercodes (A1..A6, E, EK, D, LS, LT, CH, B, S1..S8, Reviernummern). rules.CH = nationale Mindestvorgaben (VBGF) fuer Kantone ohne Detaildaten. Ein Kanton mit \"detailed\": true wird voll unterstuetzt.",
   "news": [
     {
       "date": "28.08.2026",
-      "text": "Fischereiverbot wegen Trockenheit teilweise aufgehoben. Weiterhin gesperrt (bis auf Widerruf): Patentstrecken der Duennern, Luessel, Luetzel und des Chastelbachs.",
+      "text": "Fischereiverbot wegen Trockenheit teilweise aufgehoben. Weiterhin gesperrt (bis auf Widerruf): Patentstrecken der Dünnern, Lüssel, Lützel und des Chastelbachs.",
       "secs": ["D", "LS", "LT", "CH"]
     }
   ],
   "rules": {
     "SO": {
+      "detailed": true,
       "updated": "2026-03-01",
       "protected": ["Äsche", "Aal", "Nase", "Lachs", "Strömer", "Bachneunauge", "Bitterling"],
       "troutByGroup": {
@@ -33,7 +34,14 @@
         "Bachforelle": { "slot": [[26, null]], "schon": [[10, 15], [2, 29]], "day": 4 },
         "Äsche": { "slot": [[35, null]], "schon": [[2, 1], [4, 30]], "day": 4 },
         "Barbe": { "slot": [[35, null]], "schon": [[5, 1], [6, 15]] }
-      }
+      },
+      "prices": { "tag": [20, 30, 15], "woche": [80, 120, 30], "jahr": [140, 210, 50], "gast": 50, "hege": 48, "hegeAb": 2027 }
+    },
+    "CH": {
+      "updated": "VBGF",
+      "sizes": { "Bachforelle": 22, "Seeforelle": 22, "Saibling": 22, "Felchen": 25, "Äsche": 28, "Hecht": 45, "Egli (Flussbarsch)": 15 },
+      "weeks": { "Bachforelle": "16 (Fliessgewässer) bzw. 12 (Seen)", "Seeforelle": "16 (Fliessgewässer) bzw. 12 (Seen)", "Saibling": "8", "Felchen": "6", "Äsche": "10", "Hecht": "8" },
+      "troutLake": 35
     }
   }
 }

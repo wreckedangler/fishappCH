@@ -87,10 +87,10 @@
   ]
 },
 "TG": {
-  "updated": "2023-01-01",
+  "updated": "2026-01-01",
   "src": [
     ["Fischereiverordnung Thurgau (RB 923.11), Stand 1.1.2023", "https://www.rechtsbuch.tg.ch/api/de/versions/2593/pdf_file_with_annexes"],
-    ["Bestimmungen Sportfischerei Bodensee-Obersee 2024 (TG)", "https://jfv.tg.ch/public/upload/assets/158511/Bestimmungen_Sportfischerei_Bodensee-Obersee_2024.pdf?fp=1"],
+    ["Bestimmungen Sportfischerei Bodensee-Obersee 2026 (TG), Stand Dezember 2025", "https://jfv.tg.ch/public/upload/assets/183282/Bestimmungen%20Sportfischerei%20Bodensee%20Obersee%202026.pdf?fp=1"],
     ["Vereinbarung TG/SG über die Grenzgewässer", "https://www.lexfind.ch/tol/24463/de"]
   ],
   "w": [
@@ -102,7 +102,7 @@
   ],
   "sp": {
     "Forelle": [
-      {"w": ["obersee"], "slot": [[50, null]], "schon": [[11, 1], [1, 10]]},
+      {"w": ["obersee"], "slot": [[60, null]], "schon": [[11, 1], [1, 10]], "t": "Seit 1.1.2026: Mindestmass 60 cm (IBKF)"},
       {"w": ["untersee"], "t": "Eigene Unterseefischereiordnung (CH/Baden-Württemberg) beachten"},
       {"w": ["grenz"], "slot": [[25, null]], "schon": [[10, 1], [3, 15]]},
       {"slot": [[25, null]], "schon": [[10, 1], [2, 29]]}
@@ -149,7 +149,7 @@
     ["Ausführungsbestimmungen Walensee (2010)", "https://www.lexfind.ch/tol/15960/de"],
     ["Ausführungsbestimmungen Zürichsee und Obersee, ab 1.1.2026", "https://www.notes.zh.ch/appl/zhlex_r.nsf/WebView/68E4A5E47CF28E5BC1258DA70021F932/$File/923.721_13.7.07_132.pdf"],
     ["Ausführungsbestimmungen Linthkanal, Stand 1.1.2025", "https://www.lexfind.ch/tolv/249148/de"],
-    ["Bestimmungen Sportfischerei Bodensee-Obersee 2024", "https://jfv.tg.ch/public/upload/assets/158511/Bestimmungen_Sportfischerei_Bodensee-Obersee_2024.pdf?fp=1"]
+    ["Bestimmungen Sportfischerei Bodensee-Obersee 2026, Stand Dezember 2025", "https://jfv.tg.ch/public/upload/assets/183282/Bestimmungen%20Sportfischerei%20Bodensee%20Obersee%202026.pdf?fp=1"]
   ],
   "w": [
     ["alpenrhein", "Alpenrhein"],
@@ -162,14 +162,14 @@
   "sp": {
     "Bachforelle": [
       {"w": ["alpenrhein"], "slot": [[25, null]], "schon": [[10, 1], [1, 31]]},
-      {"w": ["bodensee"], "slot": [[50, null]], "schon": [[11, 1], [1, 10]]},
+      {"w": ["bodensee"], "slot": [[60, null]], "schon": [[11, 1], [1, 10]], "t": "Seit 1.1.2026: Mindestmass 60 cm (IBKF)"},
       {"w": ["zuerichsee", "walensee"], "slot": [[40, null]], "schon": [[10, 1], [12, 25]]},
       {"w": ["linth"], "slot": [[32, null]], "schon": [[10, 1], [1, 31]]},
       {"slot": [[25, null]], "schon": [[10, 1], [2, 29]]}
     ],
     "Seeforelle": [
       {"w": ["alpenrhein"], "slot": [[60, null]], "schon": [[10, 1], [1, 31]], "t": "Ab 60 cm zusätzlich geschont 15.7.–30.9."},
-      {"w": ["bodensee"], "slot": [[50, null]], "schon": [[11, 1], [1, 10]]},
+      {"w": ["bodensee"], "slot": [[60, null]], "schon": [[11, 1], [1, 10]], "t": "Seit 1.1.2026: Mindestmass 60 cm (IBKF)"},
       {"w": ["zuerichsee", "walensee"], "slot": [[40, null]], "schon": [[10, 1], [12, 25]]},
       {"w": ["linth"], "slot": [[32, null]], "schon": [[10, 1], [1, 31]]},
       {"slot": [[60, null]], "schon": [[10, 1], [2, 29]]}

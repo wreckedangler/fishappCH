@@ -32,8 +32,8 @@
       {"w": ["noir"], "slot": [[26, 32], [45, null]]},
       {"w": ["broye"], "slot": [[45, null]]},
       {"w": ["gruyere"], "slot": [[45, null]], "schon": [[10, 6], [1, 15]], "schon2": [[3, 15], [5, 31]], "t": "Forellen nur 16.1.–14.3. und 1.6.–erster Sonntag im Oktober"},
-      {"w": ["neuch"], "slot": [[40, null]], "schon": [[10, 26], [1, 17]], "t": "2026: Fang 18.1.–25.10."},
-      {"w": ["morat"], "slot": [[45, null]], "schon": [[10, 26], [1, 17]], "t": "2026: Fang 18.1.–25.10."}
+      {"w": ["neuch"], "slot": [[40, null]], "schon": [[10, 26], [1, 17]], "t": "2026: Fang 18.1.–25.10.; 2027: Fang 17.1.–24.10."},
+      {"w": ["morat"], "slot": [[45, null]], "schon": [[10, 26], [1, 17]], "t": "2026: Fang 18.1.–25.10.; 2027: Fang 17.1.–24.10."}
     ],
     "Äsche": [
       {"w": ["sarine"], "slot": [[38, null]], "schon": [[10, 6], [5, 31]], "t": "Äschen nur 1.6.–erster Sonntag im Oktober"},
@@ -44,7 +44,8 @@
       {"w": ["broye"], "slot": [[45, null]], "schon": [[3, 15], [4, 15]]},
       {"w": ["gruyere"], "slot": [[60, null]], "schon": [[3, 15], [5, 31]]},
       {"w": ["noir", "lussy"], "slot": [[60, null]], "schon": [[4, 1], [5, 31]]},
-      {"w": ["neuch", "morat"], "slot": [[45, null]], "schon": [[3, 15], [4, 15]]}
+      {"w": ["neuch"], "slot": [[45, null]], "schon": [[4, 1], [4, 20]]},
+      {"w": ["morat"], "slot": [[45, null]], "schon": [[3, 15], [4, 15]]}
     ],
     "Zander": [
       {"w": ["gruyere"], "slot": [[40, null]], "schon": [[3, 15], [5, 31]]},
@@ -52,7 +53,7 @@
     ],
     "Egli (Flussbarsch)": [
       {"w": ["broye"], "schon": [[3, 15], [5, 15]]},
-      {"w": ["neuch", "morat"], "slot": [[15, null]], "schon": [[4, 15], [5, 31]]}
+      {"w": ["neuch", "morat"], "keep": true, "schon": [[4, 15], [5, 31]], "t": "Kein Mindestmass; jeder Egli muss behalten werden"}
     ],
     "Felchen": [{"w": ["morat"], "slot": [[30, null]], "schon": [[10, 15], [12, 31]]}],
     "Karpfen": [{"w": ["broye", "gruyere"], "slot": [[40, null]]}],
@@ -82,7 +83,7 @@
 "NE": {
   "updated": "2026-01-01",
   "src": [
-    ["Arrêté concernant la pêche dans les eaux de l'État en 2026 (Neuchâtel)", "https://ne.ch/legislation-jurisprudence/pubfo/ArrRegCE/Documents/2025/FO46_04_2025_11_12_DDTE_403_ACE_Peche_2026.pdf"],
+    ["Arrêté concernant la pêche dans les eaux de l'État en 2026 (Neuchâtel)", "https://www.ne.ch/sites/default/files/migration/legislation-jurisprudence/pubfo/ArrRegCE/Documents/2025/FO46_04_2025_11_12_DDTE_403_ACE_Peche_2026.pdf"],
     ["Règlement d'exécution concordat lac de Neuchâtel 2025–2027", "https://bdlf.fr.ch/frontend/change_document_file_dictionaries/10755/download_pdf_file?locale=fr"]
   ],
   "w": [
@@ -102,7 +103,7 @@
       {"w": ["areuse"], "slot": [[25, 32], [45, null]], "schon": [[10, 1], [2, 29]]},
       {"w": ["doubs1", "doubs2"], "slot": [[30, 35], [55, null]], "schon": [[10, 1], [2, 29]]},
       {"w": ["thielle"], "slot": [[45, null]], "schon": [[9, 1], [1, 31]]},
-      {"w": ["neuch"], "slot": [[40, null]], "schon": [[10, 26], [1, 17]], "t": "2026: Fang 18.1.–25.10."}
+      {"w": ["neuch"], "slot": [[40, null]], "schon": [[10, 26], [1, 17]], "t": "2026: Fang 18.1.–25.10.; 2027: Fang 17.1.–24.10."}
     ],
     "Äsche": [
       {"w": ["areuse"], "slot": [[30, null]], "schon": [[10, 1], [5, 10]], "t": "Äsche ab zweitem Sonntag im Mai"},
@@ -114,12 +115,12 @@
       {"w": ["doubs1"], "t": "Kein Mindestmass in Kategorie 1"},
       {"w": ["thielle", "vthielle"], "slot": [[45, null]], "schon": [[3, 1], [4, 30]]},
       {"w": ["tailleres"], "slot": [[45, null]], "schon": [[3, 1], [6, 15]]},
-      {"w": ["neuch"], "slot": [[45, null]], "schon": [[3, 15], [4, 15]]}
+      {"w": ["neuch"], "slot": [[45, null]], "schon": [[4, 1], [4, 20]]}
     ],
     "Zander": [{"w": ["doubs2"], "slot": [[40, null]], "schon": [[3, 1], [6, 15]]}],
     "Egli (Flussbarsch)": [
       {"w": ["thielle", "vthielle", "tailleres"], "slot": [[15, null]]},
-      {"w": ["neuch"], "slot": [[15, null]], "schon": [[4, 15], [5, 31]]}
+      {"w": ["neuch"], "keep": true, "schon": [[4, 15], [5, 31]], "t": "Kein Mindestmass; jeder Egli muss behalten werden"}
     ],
     "Wels": [{"w": ["neuch"], "slot": [[50, null]], "schon": [[5, 15], [6, 15]]}],
     "Saibling": [{"w": ["neuch"], "prot": true, "t": "Seesaibling im Neuenburgersee verboten"}]
@@ -167,8 +168,8 @@
       {"w": ["versoix"], "slot": [[30, null]]},
       {"w": ["orbe"], "slot": [[24, 32]]},
       {"w": ["leman"], "keep": true, "schon": [[10, 5], [1, 17]], "t": "Léman: jede Forelle muss behalten werden; Schonzeit jährlich festgelegt (ca. Oktober bis Mitte Januar)"},
-      {"w": ["neuch"], "slot": [[40, null]], "schon": [[10, 26], [1, 17]], "t": "2026: Fang 18.1.–25.10."},
-      {"w": ["morat"], "slot": [[45, null]], "schon": [[10, 26], [1, 17]], "t": "2026: Fang 18.1.–25.10."},
+      {"w": ["neuch"], "slot": [[40, null]], "schon": [[10, 26], [1, 17]], "t": "2026: Fang 18.1.–25.10.; 2027: Fang 17.1.–24.10."},
+      {"w": ["morat"], "slot": [[45, null]], "schon": [[10, 26], [1, 17]], "t": "2026: Fang 18.1.–25.10.; 2027: Fang 17.1.–24.10."},
       {"w": ["joux"], "slot": [[45, null]], "schon": [[10, 15], [1, 15]]},
       {"slot": [[24, null]]}
     ],
@@ -183,14 +184,15 @@
     ],
     "Hecht": [
       {"w": ["leman"], "slot": [[50, null]], "schon": [[3, 20], [4, 20]]},
-      {"w": ["neuch", "morat"], "slot": [[45, null]], "schon": [[3, 15], [4, 15]]},
+      {"w": ["neuch"], "slot": [[45, null]], "schon": [[4, 1], [4, 20]]},
+      {"w": ["morat"], "slot": [[45, null]], "schon": [[3, 15], [4, 15]]},
       {"w": ["bret"], "slot": [[45, null]], "schon": [[3, 15], [4, 15]]},
       {"schon": [[3, 15], [4, 15]], "t": "Kein Mindestmass"}
     ],
     "Zander": [{"schon": [[3, 15], [4, 15]]}],
     "Egli (Flussbarsch)": [
       {"w": ["leman"], "keep": true, "schon": [[5, 1], [5, 25]], "t": "Léman: jeder Egli muss behalten werden"},
-      {"w": ["neuch", "morat"], "slot": [[15, null]], "schon": [[4, 15], [5, 31]]},
+      {"w": ["neuch", "morat"], "keep": true, "schon": [[4, 15], [5, 31]], "t": "Kein Mindestmass; jeder Egli muss behalten werden"},
       {"keep": true, "schon": [[5, 1], [5, 31]], "t": "Jeder Egli muss behalten werden"}
     ],
     "Karpfen": [{"slot": [[25, null]]}],

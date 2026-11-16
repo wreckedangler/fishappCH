@@ -38,10 +38,20 @@ Seite in Chrome (Android) bzw. Safari (iOS) öffnen → Menü →
 | Daten | Quelle | Aktualisierung |
 |---|---|---|
 | Gewässer, Schonstrecken SO | Kanton Solothurn, AWJF – `ch.so.awjf.gewaesser.patentgewaesser` (geo.so.ch, Open Data) | live vom Kanton, automatisch wöchentlich |
-| Fischereigewässer ZH, TG, BE, VS, FR, AG, GL, SH, VD | Geodienste der Kantone (WFS / ArcGIS / WMS), siehe `XSRC` in `index.html` | live vom Kanton beim Öffnen der Karte |
+| Reviere und Gewässernamen AG, ZH | AGIS-GeoPackages und GIS-ZH-Fischereireviere (WFS) | Amtliche Geometrien je Kartenausschnitt aus `data/sections` |
+| Fischereizonen SG, GR | Fischereigeodienste der beiden Kantone (WFS) | Amtliche Geometrien je Kartenausschnitt aus `data/sections` |
+| Fischereigewässer TG, BE, VS, FR, GL, SH, VD und Fischereikarte AI | WFS / ArcGIS, in AI WMS und GetFeatureInfo | Live beim Öffnen des Kartenausschnitts |
 | Kantonserkennung, Gewässernamen (alle Kantone) | swisstopo / geo.admin.ch (swissBOUNDARIES3D, swissTLM3D Gewässernetz) | live |
 | Karte | swisstopo WMTS | live, Kacheln werden zwischengespeichert |
 | Regeln, Preise, Verfügungen | `data/updates.json` in diesem Repo | App lädt bei jedem Start; Inhalt wird regelmässig gegen die kantonalen Quellen geprüft |
+
+### Gewässerabschnitte aktualisieren
+
+`python tools/build_zone_index.py` lädt die amtlichen Ausgangsdaten für SG und GR.
+`python tools/build_map_sections.py` erstellt daraus und aus den Originaldaten
+von AGIS und GIS-ZH die Mobilkarte. Der zweite Schritt benötigt Shapely ab 2.1
+und pyproj. `node --test tools/map-sections.test.cjs` prüft unter anderem
+benannte Abschnitte, überlagerte Schutzflächen und die Auswahl einzelner Zuflüsse.
 
 ### Regeln ändern
 

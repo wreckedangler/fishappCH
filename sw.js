@@ -1,27 +1,38 @@
 // Fischer-Begleiter Service Worker
-const APP = "fb-app-v36";      // eigene Dateien: Netz zuerst, sonst Cache
+const APP = "fb-app-v37";      // eigene Dateien: Netz zuerst, sonst Cache
 const LIB = "fb-lib-v1";      // Kartenbibliothek: Cache zuerst
 const TILES = "fb-tiles-v1";  // Kartenkacheln: Cache zuerst, begrenzt
 const MAX_TILES = 600;
 const IMG = "fb-img-v1";     // Fischfotos (Wikimedia): Cache zuerst
+const SECTIONS = "fb-sections-v1"; // Abschnittsdateien mit Inhalts-Hash
 
-const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./data/updates.json", "./vendor/leaflet/leaflet.js", "./vendor/leaflet/leaflet.css", "./vendor/leaflet/images/layers-2x.png", "./vendor/leaflet/images/layers.png", "./vendor/leaflet/images/marker-icon-2x.png", "./vendor/leaflet/images/marker-icon.png", "./vendor/leaflet/images/marker-shadow.png"];
+const FILES = ["./", "./index.html", "./map-sections.js", "./data/sections/index.json", "./manifest.webmanifest", "./icon.svg", "./data/updates.json", "./vendor/leaflet/leaflet.js", "./vendor/leaflet/leaflet.css", "./vendor/leaflet/images/layers-2x.png", "./vendor/leaflet/images/layers.png", "./vendor/leaflet/images/marker-icon-2x.png", "./vendor/leaflet/images/marker-icon.png", "./vendor/leaflet/images/marker-shadow.png"];
 
 self.addEventListener("install", e => e.waitUntil(caches.open(APP).then(c => c.addAll(FILES.map(path=>new Request(path,{cache:"reload"})))).then(() => self.skipWaiting())));
 self.addEventListener("activate", e => e.waitUntil(
-  caches.keys().then(keys => Promise.all(keys.filter(k => ![APP, LIB, TILES, IMG].includes(k)).map(k => caches.delete(k)))).then(() => self.clients.claim())
+  caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith("fb-")&&![APP, LIB, TILES, IMG, SECTIONS].includes(k)).map(k => caches.delete(k)))).then(() => self.clients.claim())
 ));
 
 async function trim(name, max) {
   const c = await caches.open(name); const keys = await c.keys();
   for (let i = 0; i < keys.length - max; i++) await c.delete(keys[i]);
 }
+const nextTrim=new Map();
 async function cacheFirst(req, name, limit) {
   const c = await caches.open(name);
   const hit = await c.match(req);
   if (hit) return hit;
   const res = await fetch(req);
-  if (res.ok || res.type === "opaque") { c.put(req, res.clone()); if (limit) trim(name, limit); }
+  if (res.ok || res.type === "opaque") {
+    try {
+      await c.put(req,res.clone());
+      if(limit){
+        const count=(nextTrim.get(name)||0)+1;
+        nextTrim.set(name,count%20);
+        if(count===1)await trim(name,limit);
+      }
+    } catch { /* A full or disabled offline cache must still return the map. */ }
+  }
   return res;
 }
 async function networkFirst(req) {
@@ -43,7 +54,7 @@ self.addEventListener("fetch", e => {
   const url = new URL(req.url);
   if (url.origin === location.origin) {
     if (url.pathname.endsWith("/data/updates.json")) return e.respondWith(networkFirst(req));
-    if (/\/data\/zones-(SG|GR)\.json$/.test(url.pathname)) return e.respondWith(cacheFirst(req, APP));
+    if (/\/data\/sections\/[\w-]+-[0-9a-f]{10}\.json$/.test(url.pathname)) return e.respondWith(cacheFirst(req, SECTIONS, 160));
     const shell = req.mode === "navigate" ? new URL("./index.html",self.registration.scope).href : req;
     return e.respondWith(caches.open(APP).then(async cache=>(await cache.match(shell)) || fetch(req)));
   }

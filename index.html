@@ -525,7 +525,7 @@ function secById(id){
     if(k==="schon")return{id,kind:k,name:"Schonstrecke "+id,desc:f.t,group:"schon",regime:"SO",notes:["Strecke vor Ort mit Tafeln markiert"]};
     if(k==="pacht")return{id,kind:k,name:"Pachtrevier "+id,desc:f.t,group:"pacht",regime:"SO",closed:STREAM_CLOSED,notes:["Mit dem Patent nicht befischbar – nur mit Bewilligung des Pächters (meist Fischereiverein)."]};
     if(k==="privat")return{id,kind:k,name:"Privatgewässer "+id,desc:f.t,group:"pacht",regime:"SO",closed:STREAM_CLOSED,notes:["Nur mit Erlaubnis des Eigentümers."]};}
-  return Object.assign({kind:"patent"},SECTIONS[1]);
+  return {id,kind:"other",name:id||"Unbekanntes Gewässer",desc:"Fischereiberechtigung unbekannt",notes:[]};
 }
 const R_SO=()=>RULES.SO;
 function isProt(sp){return(R_SO().protected||[]).includes(sp)}
@@ -605,7 +605,7 @@ function check(sec,sp,len,d=new Date()){
   if(r.national){infos.push(r.weeks?`Schonzeit: mind. ${r.weeks} Wochen – Daten legt der Kanton fest`:"Schonzeit: kantonal prüfen");infos.push("Nur nationale Mindestvorgaben – der Kanton kann strenger sein")}
   if(r.note&&!r.prot)infos.push(r.note);
   needLen=needLen&&issues.length===0;
-  return{review:!!(r.chk||r.national||r.pickW||unknownWater()),ok:issues.length===0&&!needLen,needLen,issues,infos};
+  return{review:!!(r.chk||r.national||r.pickW||unknownWater()||!isSO()||sec.kind!=="patent"),ok:issues.length===0&&!needLen,needLen,issues,infos};
 }
 
 /* ================= STANDORT ================= */
@@ -662,7 +662,7 @@ function hereSummary(){
     if(!sec.id)return{cls:"warn",t:cname(state.canton)+": Gewässer wählen",s:"Masse und Schonzeiten hängen vom Gewässer ab"};
     const bad=secStatus(sec).find(x=>x.lvl==="bad");
     if(bad)return{cls:"bad",t:sec.name+" – heute gesperrt",s:bad.txt};
-    return{cls:"ok",t:sec.name,s:`Kantonale Regeln ${state.canton}, Stand ${fmtD(R.updated)} – Schonzeiten pro Art beachten`}}
+    return{cls:"warn",t:sec.name,s:`Berechtigung prüfen · Kantonale Regeln ${state.canton}, Stand ${fmtD(R.updated)} – Schonzeiten pro Art beachten`}}
   if(!det)return{cls:"warn",t:cname(state.canton)+": nationale Mindestregeln",s:"Keine kantonalen Daten geladen – vor Ort prüfen"};
   if(state.secAuto&&state.pos&&h&&h.kind==="none")return{cls:"none",t:"Kein SO-Fischereigewässer hier",s:h.near?`Nächstes: ${secById(h.near.f.id).name}, ${fmtM(h.near.d)}`:""};
   const st=secStatus(sec);const bad=st.find(x=>x.lvl==="bad"),warn=st.find(x=>x.lvl==="warn");
@@ -670,6 +670,7 @@ function hereSummary(){
   if(sec.kind==="schon")return{cls:"bad",t:sec.name+" – Fischen verboten",s:"Schonstrecke, vor Ort mit Tafeln markiert"};
   if(bad)return{cls:"bad",t:sec.name+" – heute gesperrt",s:bad.txt};
   if(warn)return{cls:"warn",t:sec.name,s:warn.txt};
+  if(sec.kind!=="patent")return{cls:"warn",t:sec.name,s:"Fischereiberechtigung prüfen"};
   if(h&&h.schonNear)return{cls:"warn",t:sec.name+" – offen",s:`Achtung: Schonstrecke ${h.schonNear.f.id} in ${fmtM(h.schonNear.d)}`};
   return{cls:"ok",t:sec.name+" – heute offen",s};
 }
@@ -861,11 +862,11 @@ function liveCheck(){
   const c=check(currentSec(),sp,isNaN(len)?null:len);
   const review=c.review&&!c.issues.length;
   const missing=unknownWater()||(isCM()&&!currentSec().id);
-  const cls=missing||c.needLen||review?"v-warn":c.ok?"v-ok":"v-bad",head=missing?"Gewässer wählen":review?"Amtliche Regel prüfen":c.needLen?"Länge eingeben":c.ok?"Darf behalten werden":"Nicht behalten";
+  const cls=missing||c.needLen||review?"v-warn":c.ok?"v-ok":"v-bad",head=missing?"Gewässer wählen":review?"Amtliche Regel prüfen":c.needLen?"Länge eingeben":c.ok?"Hinterlegte Fangregeln erfüllt":"Nicht behalten";
   const sources=review?(RULES[state.canton]?.src||[]).filter(([,url])=>/^https?:/.test(url)):[];
   $("#liveCheck").innerHTML=`<div class="verdict ${cls}"><div class="big">${head}</div>${c.issues.map(i=>`<div class="ln">${esc(i)}</div>`).join("")}${c.infos.map(i=>`<div class="ln sec">${esc(i)}</div>`).join("")}${sources.map(([label,url])=>`<div><a href="${esc(url)}" target="_blank" rel="noopener">${esc(label)}</a></div>`).join("")}</div>`;
   $("#speciesInfo").innerHTML=FISH[sp]?'<button type="button" id="btnFishInfo">Artenratgeber</button>':"";
-  const bi=$("#btnFishInfo");if(bi)bi.onclick=()=>{artOpen=sp;artFilter="alle";$("#artQ").value="";show("arten");setTimeout(()=>{const d=document.querySelector(`#artList details[open]`);if(d)d.scrollIntoView({block:"start"})},50)};
+  const bi=$("#btnFishInfo");if(bi)bi.onclick=()=>{artOpen=sp;artFilter="alle";$("#artQ").value="";show("arten");setTimeout(()=>{const d=Array.from($("#artList").children).find(row=>row.dataset.sp===sp);if(d){d.open=true;d.scrollIntoView({block:"start"})}},50)};
   return c;
 }
 function accessPhoto(action,key,blob){
@@ -1913,16 +1914,39 @@ function artStatus(sp){
   if(r.prot)return["p-bad","geschützt"];
   if(r.pickW)return["p-mut","je nach Gewässer"];
   if((r.schon&&inRange(now,r.schon[0],r.schon[1]))||(r.schon2&&inRange(now,r.schon2[0],r.schon2[1])))return["p-bad","Schonzeit"];
-  if(r.chk)return["p-mut","prüfen"];
-  return["p-ok",r.slot?fmtSlot(r.slot):"offen"];
+  if(r.chk||r.national||unknownWater()||(!isSO()&&!r.cm)||currentSec().kind==="other")return["p-mut","prüfen"];
+  return["p-ok",r.slot?fmtSlot(r.slot):"Keine Schonzeit hinterlegt"];
 }
+// Keep fish cards and images mounted during geolocation/status refreshes.
+function refreshArtenStatus(){
+  const el=$("#artList");
+  if(!el||!el.children.length)return;
+  const ctx=isSO()?currentSec().name:isCM()?(currentSec().id?currentSec().name:cname(state.canton)):cname(state.canton)+" (national)";
+  const caption="Status heute für: "+ctx;
+  if($("#artCtx").textContent!==caption)$("#artCtx").textContent=caption;
+  el.querySelectorAll("details.fish[data-sp]").forEach(d=>{
+    const pill=d.querySelector("summary .pill");
+    if(!pill)return;
+    const [cls,label]=artStatus(d.dataset.sp);
+    if(pill.className!=="pill "+cls)pill.className="pill "+cls;
+    if(pill.textContent!==label)pill.textContent=label;
+  });
+}
+let renderedFishListKey=null;
 function renderArten(){
   const q=($("#artQ").value||"").trim().toLowerCase();
-  $("#artTags").innerHTML=FTAGS.map(([k,l])=>`<button type="button" data-tag="${k}" aria-pressed="${k===artFilter}" class="${k===artFilter?"on":""}">${l}</button>`).join("");
+  if($("#artTags").dataset.filter!==artFilter){
+    $("#artTags").dataset.filter=artFilter;
+    $("#artTags").innerHTML=FTAGS.map(([k,l])=>`<button type="button" data-tag="${k}" aria-pressed="${k===artFilter}" class="${k===artFilter?"on":""}">${l}</button>`).join("");
+  }
   const list=Object.entries(FISH).filter(([n,f])=>(artFilter==="alle"||f.tags.includes(artFilter))&&(!q||(n+" "+f.lat+" "+f.wo).toLowerCase().includes(q)));
   const ctx=isSO()?currentSec().name:isCM()?(currentSec().id?currentSec().name:cname(state.canton)):cname(state.canton)+" (national)";
-  $("#artCtx").textContent="Status heute für: "+ctx;
-  $("#artList").innerHTML=list.length?list.map(([n,f])=>{const[pc,pt]=artStatus(n);const im=FIMG[n];return`<details class="fish"${artOpen===n?" open":""} data-sp="${esc(n)}"><summary>${im?`<img class="fthumb" src="${esc(im[0])}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">`:""}<span class="fname"><b>${esc(n)}</b><br><i class="mut small">${esc(f.lat)}</i></span><span class="pill ${pc}">${esc(pt)}</span></summary>
+  const caption="Status heute für: "+ctx;
+  if($("#artCtx").textContent!==caption)$("#artCtx").textContent=caption;
+  const key=JSON.stringify(list.map(([n])=>n));
+  if(key===renderedFishListKey){refreshArtenStatus();return}
+  renderedFishListKey=key;
+  $("#artList").innerHTML=list.length?list.map(([n,f])=>{const [pc,pt]=artStatus(n);const im=FIMG[n];return`<details class="fish"${artOpen===n?" open":""} data-sp="${esc(n)}"><summary>${im?`<img class="fthumb" src="${esc(im[0])}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">`:""}<span class="fname"><b>${esc(n)}</b><br><i class="mut small">${esc(f.lat)}</i></span><span class="pill ${pc}">${esc(pt)}</span></summary>
     <div class="fb">${im?`<figure class="fpic"><img src="${esc(im[0])}" alt="${esc(n)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"><figcaption>Foto: ${esc(im[2])} · <a href="${esc(im[1])}" target="_blank" rel="noopener">${esc(im[3])}</a>, Wikimedia Commons</figcaption></figure>`:""}<p><b>Erkennen</b>${esc(f.erk)} Übliche Grösse ${esc(f.size)}.</p><p><b>Vorkommen</b>${esc(f.wo)}</p>
     ${f.koeder?`<p><b>Köder</b>${esc(f.koeder)}</p>`:""}
     <p><b>Wo im Jahresverlauf?</b>${esc(f.saison)}</p>
@@ -1939,6 +1963,7 @@ function styleFor(f){
   if(k==="schon")return{color:"#7a0019",weight:9,opacity:1};
   if(k==="pacht")return{color:"#f08c00",weight:3,opacity:.85};
   if(k==="privat")return{color:"#7d8b88",weight:3,opacity:.8,dashArray:"6 6"};
+  if(k!=="patent")return{color:"#7d8b88",weight:3,opacity:.85};
   const sec=secById(f.id),bad=secStatus(sec).some(x=>x.lvl==="bad");
   return{color:bad?"#ff6b6b":"#12b886",weight:6,opacity:.95,dashArray:bad?"2 10":null,lineCap:"round"};
 }
@@ -1975,7 +2000,7 @@ const ZHW=n=>b=>`https://maps.zh.ch/wfs/OGDZHWFS?Service=WFS&Version=1.1.0&Reque
 const ZHM=p=>({id:"R"+p.reviernummer,art:"Pacht",name:p.fischrevier||"Revier "+p.reviernummer,t:p.bemerk_beding||"",x:[p.tageskarten_max?"Tageskarten: "+p.tageskarten_max:"","Fischen nur mit Karte des Pächters."].filter(Boolean)});
 const TGW=n=>()=>`https://ows.geo.tg.ch/geofy_access_proxy/fischereiverbote?Service=WFS&Version=2.0.0&Request=GetFeature&outputFormat=geojson&srsName=EPSG:4326&typeNames=ms:${n}`;
 const XSRC={
- ZH:{bbox:true,minZoom:13,attr:"Fischereireviere © Kanton Zürich",layers:[{url:ZHW("gewaessernetz_l"),map:ZHM},{url:ZHW("stillgewaesser_f"),map:ZHM}]},
+ ZH:{bbox:true,minZoom:11,attr:"Fischereireviere © Kanton Zürich",layers:[{url:ZHW("gewaessernetz_l"),map:ZHM},{url:ZHW("stillgewaesser_f"),map:ZHM}]},
  TG:{attr:"Fischerei-Geodaten © Kanton Thurgau",layers:[
   {url:TGW("schongebiete"),map:p=>({id:"S"+p.objectid,art:"Schon",name:p.gebietsname||"Schongebiet",t:p.gebietsbeschreibung||"",x:[p.gueltig_von?`Gilt vom ${p.gueltig_von} bis ${p.gueltig_bis}`:"",p.fischereiregelung||""].filter(Boolean)})},
   {url:TGW("fischenzen"),map:p=>({id:"F"+p.objectid,art:"Privat",name:"Fischenz "+(p.gebietsname||""),t:p.gebietsbeschreibung||"",x:[p.fischereiregelung||""].filter(Boolean)})},
@@ -1987,8 +2012,6 @@ const BEB="https://www.geoservice.apps.be.ch/geoservice3/rest/services/a42geo/of
 const BEP=p=>({id:"L"+p.PACHT_CODE,art:"Pacht",name:p.PACHT_NAME||"Pachtgewässer",t:"",x:["Fischen nur mit Bewilligung des Pächters."],url:xUrl(p.URL,"geofiles.be.ch")});
 const VSB="https://services1.arcgis.com/rMlsWo8szOzlrpCq/arcgis/rest/services/Peche/FeatureServer/";
 const FRB="https://map.geo.fr.ch/arcgis/rest/services/PortailCarto/Theme_faune_chasse_peche/MapServer/";
-const AGW=n=>b=>`https://wms.geo.ag.ch/public/${n}/wms?service=WMS&version=1.1.1&request=GetMap&layers=${n}&styles=&srs=EPSG:4326&bbox=${b.w},${b.s},${b.e},${b.n}&width=256&height=256&format=${encodeURIComponent("application/json;type=geojson")}`;
-const AGR=p=>({id:"R"+p.fnr+"_"+(p.trnr||0),art:"Pacht",name:("Revier "+p.fnr+" "+(p.reviername||"")).trim(),t:"",x:[p.verein?"Pächter: "+p.verein:"","Fischen nur mit Fischereikarte für dieses Revier."].filter(Boolean)});
 Object.assign(XSRC,{
  BE:{attr:"Angelfischerei © Kanton Bern",layers:[
   {url:AQ(BEB,17187),map:p=>({id:"P"+p.GEW_CODE,art:"Patent",name:p.PATFLNT_NAME_DE||"Patentgewässer",t:p.PATFLBT_BESCHR_DE||"",url:xUrl(p.URL_DE,"geofiles.be.ch")})},
@@ -1996,28 +2019,26 @@ Object.assign(XSRC,{
   {url:AQ(BEB,17184),map:BEP},{url:AQ(BEB,17185),map:BEP},
   {url:AQ(BEB,17189),map:p=>({id:"S"+p.SG_CODE,art:"Schon",name:"Schongebiet "+String(p.SCHONNT_NAME_DE||"").trim()+" "+(p.SG_CODE||""),t:p.SCHONBT_BESCHR_DE||"",url:xUrl(p.URL,"geofiles.be.ch")})}]},
  VS:{attr:"Fischereikarte © Kanton Wallis",layers:[
-  {url:AQ(VSB,2,0.0001),map:p=>{const c=p.COULEUR,s=c===3||c===10;return{id:"R"+p.OBJECTID,art:s?"Schon":"Patent",name:p.NOM||"Fliessgewässer",t:p.TEXT_DE||"",cw:[2,5,7].includes(c)?"berg":"rhone",
+  {url:AQ(VSB,2,0.0001),map:p=>{const c=p.COULEUR,s=c===3||c===10;return{id:"R"+p.OBJECTID,art:s?"Schon":[0,1,2,4,5,7,8,9].includes(c)?"Patent":"Unbekannt",name:p.NOM||"Fliessgewässer",t:p.TEXT_DE||"",cw:[2,5,7].includes(c)?"berg":"rhone",
     x:[{0:"Fluss der Ebene",1:"Rhône",2:"Bergfluss",3:"Reservat – Fischen verboten",4:"Kanal",5:"Obere Rhône",7:"Bergfluss mit Teilreservat – Sonderregeln beachten",8:"Kanal mit Teilreservat – Sonderregeln beachten",9:"Fluss der Ebene mit Teilreservat – Sonderregeln beachten",10:"Vorläufig für die Fischerei gesperrt"}[c]].filter(Boolean)}}},
-  {url:AQ(VSB,3,0.0001),map:p=>{const c=p.TYPE;return{id:"L"+p.OBJECTID,art:c===8?"Schon":c===11?"Pacht":"Patent",name:p.NOM||"See",t:p.TEXT_DE||"",cw:c===0||c===7?"bergsee":"",
+  {url:AQ(VSB,3,0.0001),map:p=>{const c=p.TYPE;return{id:"L"+p.OBJECTID,art:c===8?"Schon":c===11?"Pacht":[0,7,9,10].includes(c)?"Patent":"Unbekannt",name:p.NOM||"See",t:p.TEXT_DE||"",cw:c===0||c===7?"bergsee":"",
     x:[{0:"Bergsee",7:"Bergsee mit Teilreservat – Sonderregeln beachten",8:"Reservat – Fischen verboten",9:"See der Ebene",10:"Tümpel (Gouille)",11:"Verpachteter See"}[c]].filter(Boolean)}}}]},
  FR:{attr:"Pêche à permis © Etat de Fribourg",layers:[
   {url:AQ(FRB,22),map:p=>{const v=String(p.TYPE_VALEUR||""),o=/^Ouvert/.test(v);return{id:"C"+p.OBJECTID,art:o?"Patent":"Schon",name:p.NOM||"Fliessgewässer",t:"",x:[o?"Für die Patentfischerei offen":/temporaire/.test(v)?"Zeitweiliges Schongebiet (réserve temporaire) – Zeiten gemäss kantonaler Verordnung":"Schongebiet – Fischen verboten (réserve totale)"]}}},
-  {url:AQ(FRB,23),map:p=>({id:"L"+p.OBJECTID,art:"Patent",name:p.NOM||"See",t:"",x:[/Concordat/.test(p.PECHE_VALEUR||"")?"Interkantonales Konkordat – eigene Regeln":"Für die Patentfischerei offen"]})},
+  {url:AQ(FRB,23),map:p=>({id:"L"+p.OBJECTID,art:"Unbekannt",name:p.NOM||"See",t:"",x:[p.PECHE_VALEUR||"Berechtigung gemäss kantonaler Regelung prüfen."]})},
   {url:AQ(FRB,29),map:p=>({id:"A"+p.OBJECTID,art:"Pacht",name:"Pachtlos "+(p.NOM||""),t:"",x:["Verpachtetes Gewässer – nicht mit dem Patent befischbar."]})}]},
- AG:{bbox:true,minZoom:14,attr:"Fischereireviere © Kanton Aargau (AGIS)",layers:[
-  {url:AGW("ch_ag_geo_aw_fish"),map:AGR},{url:AGW("ch_ag_geo_aw_fisp"),map:AGR},
-  {url:AGW("ch_ag_geo_aw_fschonp"),map:(p,x)=>({id:"S"+(x.id||p.bnum+"_"+p.fnr),art:"Schon",name:"Schongebiet (Revier "+p.fnr+")",t:"",x:["Schongebiet nach kantonaler Fischereiverordnung."]})}]}
+
 });
 const VDB="https://www.ogc.vd.ch/public/rest/services/OGC/wmsVD/MapServer/";
 const GLZ={"1mai_30sept":"1. Mai bis 30. September","1apr_30sept":"1. April bis 30. September","15mai_30sept":"15. Mai bis 30. September","1mai_31dez":"1. Mai bis 31. Dezember","1apr_31dez":"1. April bis 31. Dezember"};
 Object.assign(XSRC,{
  GL:{attr:"Fischereigewässer © Kanton Glarus",layers:[{url:()=>"https://wfs.geo.gl.ch/?service=WFS&version=1.1.0&request=GetFeature&typeName=ch.gl.inlandwaters.fischereigewaesser&outputFormat=geojson&srsName=EPSG:4326",
-  map:p=>{const z=p.fangzeiten;return{id:"G"+p.t_ili_tid,art:z==="verbot"?"Schon":"Patent",name:p.gewaesser_name||"Gewässer",t:"",x:[z==="verbot"?"Fangverbot":GLZ[z]?"Fangzeit: "+GLZ[z]:""].filter(Boolean)}}}]},
+  map:p=>{const z=p.fangzeiten;return{id:"G"+p.t_ili_tid,art:z==="verbot"?"Schon":GLZ[z]?"Patent":"Unbekannt",name:p.gewaesser_name||"Gewässer",t:"",x:[z==="verbot"?"Fangverbot":GLZ[z]?"Fangzeit: "+GLZ[z]:""].filter(Boolean)}}}]},
  SH:{attr:"Fischereireviere © Kanton Schaffhausen",layers:[{url:()=>"https://wfs.geo.sh.ch/wfs?service=WFS&version=1.1.0&request=GetFeature&typeName=sh.administrative_einteilungen.fischereireviere&outputFormat=application/json&srsName=EPSG:4326",
   map:p=>{const v=/verbot/i.test(p.name||"");return{id:"R"+p.uuid,art:v?"Schon":"Revier",name:p.name||"Fischereirevier",t:p.bemerkung&&p.bemerkung!=="null"?p.bemerkung:"",x:[v?"Fischereiverbot":"Fischereirevier am Rhein – Berechtigung gemäss kantonaler Regelung."]}}}]},
  VD:{attr:"Carte de pêche © Etat de Vaud",layers:[
-  {url:AQ(VDB,193),map:p=>({id:"C"+p.OBJECTID,art:"Patent",name:p.NOM||"Fliessgewässer",t:p.NOMBV||"",x:["Fischgewässer gemäss kantonaler Fischereikarte"]})},
-  {url:AQ(VDB,196),map:p=>({id:"E"+p.OBJECTID,art:"Patent",name:p.NOM||"See oder Weiher",t:"",x:["Kleiner See oder Weiher gemäss kantonaler Fischereikarte"]})},
+  {url:AQ(VDB,193),map:p=>({id:"C"+p.OBJECTID,art:"Unbekannt",name:p.NOM||"Fliessgewässer",t:p.NOMBV||"",x:["Fischgewässer gemäss kantonaler Fischereikarte"]})},
+  {url:AQ(VDB,196),map:p=>({id:"E"+p.OBJECTID,art:"Unbekannt",name:p.NOM||"See oder Weiher",t:"",x:["Kleiner See oder Weiher gemäss kantonaler Fischereikarte"]})},
   {url:AQ(VDB,197),map:p=>({id:"F"+p.OBJECTID,art:"Frei",name:"Freie Strecke "+(p.NOMPARCOURSLIBRE||""),t:p.DEFINITION||"",x:["Parcours libre: Fischen ohne Patent nach kantonaler Regelung."]})},
   {url:AQ(VDB,194),map:p=>({id:"S"+p.OBJECTID,art:"Schon",name:"Schongebiet "+(p.NOMRIVIERE||"")+(p.NORESERVE?" (Nr. "+p.NORESERVE+")":""),t:p.DEFINITION||"",x:["Réserve de pêche – Fischen verboten"]})}]}
 });
@@ -2043,13 +2064,14 @@ async function loadXc(c){
   else{if(G.all||map.getZoom()<9)return}
   G.busy=true;updateHint();
   try{const res=await Promise.all(src.layers.map(l=>fetch(l.url(b)).then(r=>{if(!r.ok)throw 0;return r.json()}).then(j=>[l,j])));
-    res.forEach(([l,j])=>xAdd(c,j,l.map));if(b)G.boxes.push(b);else G.all=true}catch(e){G.fail=Date.now()}
+    if(res.some(([,j])=>!j||j.type!=="FeatureCollection"||!Array.isArray(j.features)))throw new Error("Invalid WFS GeoJSON response");
+    res.forEach(([l,j])=>xAdd(c,j,l.map));G.fail=0;if(b)G.boxes.push(b);else G.all=true}catch(e){console.warn("Fischerei-Geodaten",c,e);G.fail=Date.now()}
   G.busy=false;drawX();updateHint();if(mapSel)renderSheet();
   if(src.bbox)setTimeout(()=>{if(xInView().includes(c))loadXc(c)},50);
 }
 function styleX(f){const k=kindOf(f.art);
   if(k==="schon")return{color:"#a8261c",weight:3,opacity:1,fillOpacity:.22};
-  if(k==="privat")return{color:"#7d8b88",weight:3,opacity:.9,dashArray:"6 6",fillOpacity:.2};
+  if(k==="privat"||k==="other")return{color:"#7d8b88",weight:3,opacity:.9,dashArray:"6 6",fillOpacity:.2};
   if(k==="frei"||k==="patent")return{color:"#12b886",weight:4,opacity:.95,fillOpacity:.25};
   return{color:"#f08c00",weight:4,opacity:.9,fillOpacity:.2}}
 function drawX(){
@@ -2062,7 +2084,7 @@ function inRing(x,y,r){let c=false;for(let i=0,j=r.length-1;i<r.length;j=i++){if
 function xDist(lat,lon,f){if(f.poly&&f.l.some(r=>inRing(lon,lat,r)))return 0;return distToLines(lat,lon,f.l)}
 function xNearest(lat,lon,tol){let best=null;
   for(const c of Object.keys(XGEO))for(const f of Object.values(XGEO[c].feats)){const d=xDist(lat,lon,f)-(f.art==="Schon"?3:0);if(d<=tol&&(!best||d<best.d))best={f,d,c}}return best}
-function xPill(f){const k=kindOf(f.art);return k==="schon"?`<span class="pill p-bad">Schongebiet</span>`:k==="privat"?`<span class="pill p-warn">Privates Fischereirecht</span>`:k==="frei"?`<span class="pill p-ok">Freiangelrecht</span>`:k==="patent"?`<span class="pill p-ok">Patentgewässer</span>`:k==="revier"?`<span class="pill p-mut">Fischereirevier</span>`:`<span class="pill p-warn">Pachtgewässer</span>`}
+function xPill(f){const k=kindOf(f.art);return k==="schon"?`<span class="pill p-bad">Schongebiet</span>`:k==="privat"?`<span class="pill p-warn">Privates Fischereirecht</span>`:k==="frei"?`<span class="pill p-ok">Freiangelrecht</span>`:k==="patent"?`<span class="pill p-ok">Patentgewässer</span>`:k==="revier"?`<span class="pill p-mut">Fischereirevier</span>`:k==="pacht"?`<span class="pill p-warn">Pachtgewässer</span>`:`<span class="pill p-warn">Berechtigung unbekannt</span>`}
 /* ---- Karte: Auswahl per Antippen, Bestätigen im Blatt unten ---- */
 let mapSel=null,selLayer=null;
 async function identifyJSON(url){
@@ -2116,7 +2138,12 @@ function updateHint(){
   let t=hintMsg;
   if(!t){const v=xInView();
     if(v.some(c=>xg(c).busy))t="Gewässerzonen werden geladen …";
-    else{const z=v.filter(c=>XSRC[c].bbox&&map.getZoom()<XSRC[c].minZoom);if(z.length)t="Für die Reviere in "+z.map(cname).join(" und ")+" näher heranzoomen"}}
+    else{
+      const failed=v.filter(c=>xg(c).fail&&Date.now()-xg(c).fail<30000);
+      const z=v.filter(c=>XSRC[c].bbox&&map.getZoom()<XSRC[c].minZoom);
+      if(failed.length)t="Revierdaten für "+failed.map(cname).join(" und ")+" konnten nicht geladen werden. Bitte später erneut versuchen.";
+      else if(z.length)t="Für die Reviere in "+z.map(cname).join(" und ")+" näher heranzoomen";
+    }}
   el.textContent=t;el.classList.toggle("on",!!t);
 }
 const XICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
@@ -2136,7 +2163,7 @@ function renderSheet(){
       ${f.t?`<div class="sh-d cl">${esc(f.t)}</div>`:""}
       ${bad?`<div class="sh-d sh-warn">${esc(bad.txt)}</div>`:""}
       ${r&&r.slot?`<div class="sh-d">Bachforelle ${fmtSlot(r.slot)} · Schonzeit ${fmtR(r.schon)}</div>`:""}
-      ${k==="schon"?"":`<div class="sh-a">${chosen?`<button type="button" class="pri" data-sh="rules">Regeln ansehen</button>`:`<button type="button" class="pri" data-sh="ok">Hier fischen</button><button type="button" data-sh="rules2">Regeln</button>`}</div>`}`;
+      ${k==="schon"?"":`<div class="sh-a">${chosen?`<button type="button" class="pri" data-sh="rules">Regeln ansehen</button>`:`<button type="button" class="pri" data-sh="ok">Gewässer wählen</button><button type="button" data-sh="rules2">Regeln</button>`}</div>`}`;
   } else if(mapSel&&mapSel.t==="x"){
     const c=mapSel.code,f=XGEO[c].feats[mapSel.id],k=kindOf(f.art);
     const chosen=state.canton===c&&(state.xsel||{})[c]===f.name;
@@ -2144,12 +2171,12 @@ function renderSheet(){
       ${f.t?`<div class="sh-d cl">${esc(f.t)}</div>`:""}
       ${(f.x||[]).filter(t=>t!==f.t).slice(0,2).map(t=>`<div class="sh-d">${esc(t)}</div>`).join("")}
       ${f.url?`<div class="sh-d"><a href="${esc(f.url)}" target="_blank" rel="noopener">Merkblatt des Kantons (PDF)</a></div>`:""}
-      ${k==="schon"?"":`<div class="sh-a">${chosen?`<button type="button" class="pri" data-sh="rules">Regeln ansehen</button>`:`<button type="button" class="pri" data-sh="okx">Hier fischen</button>`}</div>`}`;
+      ${k==="schon"?"":`<div class="sh-a">${chosen?`<button type="button" class="pri" data-sh="rules">Regeln ansehen</button>`:`<button type="button" class="pri" data-sh="okx">Gewässer wählen</button>`}</div>`}`;
   } else if(mapSel&&mapSel.t==="w"){
     const c=mapSel.code,w=mapSel.water,chosen=state.canton===c&&(state.xsel||{})[c]===w.name;
     h=head(w.name||(w.lake?"See ohne Namen":"Bach ohne Namen"),`<span class="pill p-mut">${w.lake?"See":"Fliessgewässer"}</span>`+chip(c))+`
-      <div class="sh-d">${hasCM(c)?"Für dieses Gewässer sind keine Zonen eingezeichnet. Es gelten die kantonalen Regeln.":"Für diesen Kanton sind nur die nationalen Mindestvorgaben geladen."}</div>
-      <div class="sh-a">${chosen?`<button type="button" class="pri" data-sh="rules">Regeln ansehen</button>`:`<button type="button" class="pri" data-sh="okw">Hier fischen</button>`}</div>`;
+      <div class="sh-d">${hasCM(c)?"Fischereiberechtigung an dieser Stelle unbekannt. Revier, Bewilligung und lokale Vorschriften prüfen.":"Für diesen Kanton sind nur die nationalen Mindestvorgaben geladen."}</div>
+      <div class="sh-a">${chosen?`<button type="button" class="pri" data-sh="rules">Regeln ansehen</button>`:`<button type="button" class="pri" data-sh="okw">Gewässer wählen</button>`}</div>`;
   }
   if(h){el.innerHTML=h;el.classList.add("on")}else el.classList.remove("on");
   requestAnimationFrame(()=>$("#v-karte").style.setProperty("--sheet",h?(el.offsetHeight+12)+"px":"0px"));
@@ -2291,6 +2318,18 @@ function initMap(){
   const luft=L.tileLayer("https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swissimage/default/current/3857/{z}/{x}/{y}.jpeg",{maxNativeZoom:19,maxZoom:19,attribution:'© <a href="https://www.swisstopo.admin.ch">swisstopo</a>'});
   catchLayer=L.layerGroup().addTo(map);
   (store.get("base","luft")==="topo"?topo:luft).addTo(map);
+  const agPane=map.createPane("agReviere");
+  agPane.style.zIndex=350;agPane.style.pointerEvents="none";
+  const [west,south,east,north]=XBOX.AG;
+  for(const name of ["ch_ag_geo_aw_fish","ch_ag_geo_aw_fisp","ch_ag_geo_aw_fschonp"]){
+    const layer=L.tileLayer.wms(`https://wms.geo.ag.ch/public/${name}/wms`,{
+      layers:name,format:"image/png",transparent:true,version:"1.1.1",
+      pane:"agReviere",bounds:[[south,west],[north,east]],minZoom:9,maxZoom:19,
+      attribution:"Fischereireviere © Kanton Aargau (AGIS)"
+    });
+    layer.on("tileerror",()=>flashHint("Ein Teil der Aargauer Revierkarte konnte nicht geladen werden.",5000));
+    layer.addTo(map);
+  }
   const Bs=L.control({position:"topleft"});Bs.onAdd=()=>{const d=L.DomUtil.create("div","mseg");L.DomEvent.disableClickPropagation(d);
     const draw=()=>{const cur=map.hasLayer(topo)?"topo":"luft";d.innerHTML=`<button type="button" data-b="luft" class="${cur==="luft"?"on":""}">Luftbild</button><button type="button" data-b="topo" class="${cur==="topo"?"on":""}">Karte</button>`};draw();
     d.onclick=e=>{const b=e.target.closest("[data-b]");if(!b)return;const t=b.dataset.b==="topo";map.removeLayer(t?luft:topo);(t?topo:luft).addTo(map);store.set("base",t?"topo":"luft");draw()};return d};Bs.addTo(map);
@@ -2348,7 +2387,7 @@ async function fetchUpdates(){
 function loadCached(){const c=store.get("data",null);if(c&&c.version>=DATA_META.version){DATA_META={version:c.version,updated:c.updated,checked:store.get("data_checked",null)};if(c.news)NEWS=c.news;if(c.rules)Object.keys(c.rules).forEach(k=>{RULES[k]=c.rules[k]})}else DATA_META.checked=store.get("data_checked",null)}
 
 /* ================= NAVIGATION & INIT ================= */
-function renderAll(){if(shoreView&&(unknownWater()||shoreView.key!==state.canton+"/"+currentSec().id||secStatus(currentSec()).some(s=>s.lvl==="bad")))clearShore();renderTop();renderHier();if(map&&$("#v-karte").classList.contains("on")){if(mapSel&&mapSel.t==="sec")renderSheet();drawSel()}if($("#v-arten").classList.contains("on"))renderArten();if($("#v-fang").classList.contains("on"))renderFang();if($("#v-regeln").classList.contains("on"))renderRegeln()}
+function renderAll(){if(shoreView&&(unknownWater()||shoreView.key!==state.canton+"/"+currentSec().id||secStatus(currentSec()).some(s=>s.lvl==="bad")))clearShore();renderTop();renderHier();if(map&&$("#v-karte").classList.contains("on")){if(mapSel&&mapSel.t==="sec")renderSheet();drawSel()}if($("#v-arten").classList.contains("on"))refreshArtenStatus();if($("#v-fang").classList.contains("on"))renderFang();if($("#v-regeln").classList.contains("on"))renderRegeln()}
 function route(){const key=location.hash.slice(1);return key==="fangbuch"?"stat":["fang","karte","arten","regeln"].includes(key)?key:"hier"}
 function show(v,restore=false){
   if(v!=="karte")clearShore();

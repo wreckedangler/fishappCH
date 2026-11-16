@@ -885,7 +885,8 @@ const wNorm=x=>String(x).toLowerCase().replace(/[^a-zäöüéèàâêîôûç]/g
 function matchW(c,w){
   const R=RULES[c];if(!R||!R.w||!w)return{cand:[],sug:""};
   const ns=w.names.map(wNorm).filter(n=>n.length>=3);
-  const cand=R.w.filter(([id,l])=>{const ln=wNorm(l);return ns.some(n=>ln.includes(n))}).map(x=>x[0]);
+  let cand=R.w.filter(([id,l])=>{const ln=wNorm(l);return ns.some(n=>ln.includes(n))}).map(x=>x[0]);
+  const st=R.w.filter(([id,l])=>cand.includes(id)&&ns.some(n=>wNorm(l).startsWith(n))).map(x=>x[0]);if(st.length)cand=st;
   if(cand.length)return{cand,sug:cand.length===1?cand[0]:""};
   const re=w.lake?/übrige[^,]*(stehend|seen)|bergseen|kleinseen|alpenseen|kleine seen/i:/übrige[^,]*fliess|^fliessgewässer$|^flüsse|^bergflüsse|übrige flüsse|übrige bäche/i;
   const g=R.w.filter(([id,l])=>re.test(l));

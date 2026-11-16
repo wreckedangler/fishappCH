@@ -118,6 +118,8 @@ details summary{cursor:pointer;color:var(--acc);margin-top:14px;font-size:14.5px
 #soCounts summary{margin:0}
 .big{font-size:30px;font-weight:700}.timer{font-variant-numeric:tabular-nums}
 .hide{display:none!important}
+.book-photo{flex:0 0 108px;padding:0;position:relative;overflow:hidden;background:var(--sf2);color:var(--mut);font-size:13px;line-height:1.3;aspect-ratio:4/3}
+.book-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .photo-field{min-width:0;margin:16px 0 0;padding:12px;border:1px solid var(--line);border-radius:var(--rc);background:var(--sf2)}
 .photo-field legend{padding:0 5px;color:var(--mut);font-size:13px;font-weight:600}
 .photo-field .row button{flex:1 1 130px}
@@ -884,6 +886,28 @@ $("#bookPeriod").onclick=e=>{
   bookPeriod=button.dataset.period;bookLimit=30;renderStats();
 };
 $("#moreCatches").onclick=()=>{bookLimit+=30;renderStats()};
+const previewUrls=new Set();
+async function loadBookPhoto(button){
+  try{
+    const blob=await accessPhoto("get",button.dataset.photo);
+    if(!button.isConnected)return;
+    if(!blob)throw new Error();
+    const url=URL.createObjectURL(blob);
+    previewUrls.add(url);
+    const image=new Image();
+    image.alt="";image.src=url;
+    button.replaceChildren(image);
+  }catch(e){
+    if(button.isConnected)button.textContent="Foto ansehen";
+  }
+}
+const bookPhotoObserver="IntersectionObserver" in window?new IntersectionObserver(entries=>{
+  for(const entry of entries){
+    if(!entry.isIntersecting)continue;
+    bookPhotoObserver.unobserve(entry.target);
+    loadBookPhoto(entry.target);
+  }
+},{rootMargin:"240px"}):null;
 function renderStats(){
   const now=new Date(),today=dayKey(now),year=today.slice(0,4);
   const inPeriod=day=>bookPeriod==="all"||(bookPeriod==="today"?day===today:day.startsWith(year));
@@ -916,7 +940,13 @@ function renderStats(){
   const troutToday=state.log.filter(f=>(f.canton||"SO")==="SO"&&f.kept&&f.day===today&&TROUT_GROUP.includes(f.art)).reduce((sum,f)=>sum+(f.n||1),0);
   $("#bookLimits").textContent="Heute: "+troutToday+"/2 Forellen und Saiblinge · Dieses Jahr: "+countYear("Bachforelle")+"/20 Bachforellen im Patentgewässer";
   $("#moreCatches").hidden=catches.length<=bookLimit;
-  $("#logList").innerHTML=catches.length?catches.slice(0,bookLimit).map(f=>`<div class="it"><div class="row" style="align-items:center"><div style="flex:3"><b>${esc(f.art)}</b>${f.len!=null?` · ${f.len} cm`:""}${f.n>1?` · ${f.n} Stk.`:""} <span class="pill ${f.kept?"p-ok":"p-mut"}">${f.kept?"behalten":"zurück"}</span><div class="mut small">${new Date(f.ts).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"})} · ${esc((f.canton||"SO")==="SO"?f.sec:cname(f.canton)+(cwLabel(f.canton,f.sec)?" · "+cwLabel(f.canton,f.sec):""))}${f.note?" · "+esc(f.note):""}</div></div>${f.photoKey?`<button type="button" data-photo="${esc(f.photoKey)}">Foto ansehen</button>`:`<button type="button" data-add-photo="${esc(f.id)}">Foto hinzufügen</button>`}<button class="del" data-del="${f.id}">Löschen</button></div></div>`).join(""):`<p class="mut">Keine Fangeinträge in diesem Zeitraum.</p>`;
+  bookPhotoObserver?.disconnect();
+  for(const url of previewUrls)URL.revokeObjectURL(url);
+  previewUrls.clear();
+  $("#logList").innerHTML=catches.length?catches.slice(0,bookLimit).map(f=>`<div class="it"><div class="row" style="align-items:center"><div style="flex:3"><b>${esc(f.art)}</b>${f.len!=null?` · ${f.len} cm`:""}${f.n>1?` · ${f.n} Stk.`:""} <span class="pill ${f.kept?"p-ok":"p-mut"}">${f.kept?"behalten":"zurück"}</span><div class="mut small">${new Date(f.ts).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"})} · ${esc((f.canton||"SO")==="SO"?f.sec:cname(f.canton)+(cwLabel(f.canton,f.sec)?" · "+cwLabel(f.canton,f.sec):""))}${f.note?" · "+esc(f.note):""}</div></div>${f.photoKey?`<button type="button" class="book-photo" data-photo="${esc(f.photoKey)}" aria-label="Fangfoto vergrössern: ${esc(f.art)}">Foto laden …</button>`:`<button type="button" data-add-photo="${esc(f.id)}">Foto hinzufügen</button>`}<button class="del" data-del="${f.id}">Löschen</button></div></div>`).join(""):`<p class="mut">Keine Fangeinträge in diesem Zeitraum.</p>`;
+  for(const button of $("#logList").querySelectorAll("[data-photo]")){
+    if(bookPhotoObserver)bookPhotoObserver.observe(button);else loadBookPhoto(button);
+  }
 }
 function toCSV(){const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;return[["datum","zeit","kanton","gewaesser","art","laenge_cm","anzahl","behalten","notiz","lat","lon"].join(";")].concat(state.log.map(f=>{const d=new Date(f.ts);return[d.toLocaleDateString("de-CH"),d.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"}),f.canton||"SO",f.sec,f.art,f.len??"",f.n||1,f.kept?"ja":"nein",f.note,f.lat??"",f.lon??""].map(q).join(";")})).join("\n")}
 function exportCSV(){const csv="﻿"+toCSV();try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=`faenge_${dayKey(new Date())}.csv`;document.body.appendChild(a);a.click();a.remove()}catch(e){}

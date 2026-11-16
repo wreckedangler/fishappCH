@@ -355,11 +355,18 @@ function onPos(p){
 function updateHere(){
   const p=state.pos;state.here=null;
   if(!p||state.canton!=="SO"||!GEO.features.length){renderAll();return}
-  let best=null,bs=null;
-  for(const f of GEO.features){const d=distToLines(p.lat,p.lon,f.l);if(f.art==="Schon"){if(!bs||d<bs.d)bs={f,d}}else if(!best||d<best.d)best={f,d}}
+  let best=null,bs=null;const near={};
+  for(const f of GEO.features){const d=distToLines(p.lat,p.lon,f.l);if(f.art==="Schon"){if(!bs||d<bs.d)bs={f,d}}else{if(!near[f.id]||d<near[f.id].d)near[f.id]={f,d};if(!best||d<best.d)best={f,d}}}
+  // Eigene Wahl merken, solange man in der Nähe bleibt
+  const pin=state.pin;
+  if(pin&&Math.hypot((p.lat-pin.lat)*111e3,(p.lon-pin.lon)*75e3)<150&&near[pin.id]&&near[pin.id].d<=150)best=near[pin.id];
+  else if(pin){state.pin=null}
   let h;
   if(bs&&bs.d<=40)h={kind:"schon",id:bs.f.id,d:bs.d};
-  else if(best&&best.d<=150)h={kind:kindOf(best.f.art),id:best.f.id,d:best.d,schonNear:bs&&bs.d<=150?bs:null};
+  else if(best&&best.d<=150){
+    const alts=Object.values(near).filter(x=>x.f.id!==best.f.id&&x.d<=150&&x.d<=Math.max(best.d,30)+50).sort((a,b)=>a.d-b.d).slice(0,3);
+    h={kind:kindOf(best.f.art),id:best.f.id,d:best.d,alts,pinned:!!state.pin,schonNear:bs&&bs.d<=150?bs:null};
+  }
   else h={kind:"none",near:best};
   state.here=h;
   if(state.secAuto&&h.id&&h.id!==state.sec){state.sec=h.id;save()}
@@ -393,6 +400,7 @@ function renderTop(){
   const x=hereSummary();
   let t=x.t,s=x.s,cls=x.cls;
   if(!state.pos&&(state.secAuto||state.cantonAuto)&&isDetailed(state.canton)){s=state.geoErr||"Standort wird gesucht …"}
+  const h=state.here;if(cls!=="bad"&&h&&h.alts&&h.alts.length&&!h.pinned&&state.secAuto)s="Mehrere Gewässer nah – tippen zum Wählen";
   $("#tbTxt").textContent=t;$("#tbSub").textContent=s;
   $("#tbDot").className="dot "+(cls==="none"?"":cls);
   $("#topbar").classList.toggle("bad",cls==="bad");
@@ -413,11 +421,12 @@ function rulesTableFor(sec){
 function renderHier(){
   const det=isDetailed(state.canton),sec=currentSec(),x=hereSummary(),st=det?secStatus(sec):[];
   const h=state.here;
-  let extra="";
+  let extra="",altHtml="";
   if(det&&h&&h.schonNear&&h.kind!=="schon")extra+=`<li>Schonstrecke ${esc(h.schonNear.f.id)} in ca. ${fmtM(h.schonNear.d)}: ${esc(h.schonNear.f.t)}</li>`;
+  if(det&&state.secAuto&&h&&h.alts&&h.alts.length)altHtml=`<div class="d" style="margin-top:10px">${h.pinned?"Von dir gewählt. ":""}Mehrere Gewässer nah beieinander – an welchem fischst du?</div><div class="chips" style="margin-top:8px">${h.alts.map(a=>`<button type="button" data-alt="${esc(a.f.id)}">${esc(secById(a.f.id).name)} · ${fmtM(a.d)}</button>`).join("")}</div>`;
   $("#hereHero").innerHTML=`<div class="hero ${x.cls}"><div class="t">${esc(x.t)}</div><div class="d">${esc(det?(sec.desc||""):"Für "+cname(state.canton)+" sind erst die nationalen Mindestvorgaben des Bundes hinterlegt.")}</div>
     ${st.length||extra?`<ul>${st.map(s=>`<li>${esc(s.txt)}</li>`).join("")}${extra}</ul>`:""}
-    ${state.pos?`<div class="d" style="margin-top:8px">📍 Standort ±${Math.round(state.pos.acc)} m${h&&h.d!=null&&h.id?` · ${fmtM(h.d)} zur Gewässerlinie`:""}</div>`:""}</div>`;
+    ${state.pos?`<div class="d" style="margin-top:8px">📍 Standort ±${Math.round(state.pos.acc)} m${h&&h.d!=null&&h.id?` · ${fmtM(h.d)} zur Gewässerlinie`:""}</div>`:""}${altHtml}</div>`;
   const notes=det?(sec.notes||[]):[];
   $("#hereRules").innerHTML=`<div class="card"><h2>${det?"Regeln hier":"Nationale Mindestvorgaben"}</h2>${rulesTableFor(sec)}
      <p class="mut small">${det?"Geschützt: "+esc((R_SO().protected||[]).join(", "))+".":"Quelle: Verordnung zum Bundesgesetz über die Fischerei (VBGF). Dein Kanton kann strengere Masse, Schonzeiten, Fanglimiten und geschützte Arten haben – das gilt dann."}</p></div>
@@ -625,6 +634,7 @@ function show(v){
 }
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>show(b.dataset.v));
 $("#tbStatus").onclick=()=>show("hier");
+$("#hereHero").onclick=e=>{const b=e.target.closest("[data-alt]");if(!b||!state.pos)return;state.pin={id:b.dataset.alt,lat:state.pos.lat,lon:state.pos.lon};state.sec=b.dataset.alt;save();updateHere();toast(secById(b.dataset.alt).name+" gewählt")};
 $("#tbCanton").onclick=()=>{show("hier");setTimeout(()=>$("#selCanton").focus(),100)};
 $("#selCanton").innerHTML=CANTONS.map(([c,n])=>`<option value="${c}">${esc(n)}${isDetailed(c)?"":" – national"}</option>`).join("");
 $("#selCanton").onchange=e=>{state.canton=e.target.value;state.cantonAuto=false;save();toast("Kanton manuell gewählt – automatische Erkennung aus");onCantonChanged()};

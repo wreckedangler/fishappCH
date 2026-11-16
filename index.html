@@ -108,6 +108,7 @@ details summary{cursor:pointer;color:var(--acc);margin-top:14px;font-size:14.5px
 .stat b{display:block;font-size:24px;line-height:1.2;font-weight:650;color:var(--tx);margin-bottom:2px}
 .big{font-size:30px;font-weight:700}.timer{font-variant-numeric:tabular-nums}
 .hide{display:none!important}
+.catch-photo{display:block;max-width:100%;max-height:55vh;margin:10px auto;object-fit:contain}
 .copybox{white-space:pre-wrap;background:var(--sf2);border:1px solid var(--line);border-radius:var(--rc);padding:12px;font-size:15px;margin-top:8px}
 .del{flex:0 0 auto!important;min-height:36px;padding:4px 10px;font-size:13px;font-weight:550;color:var(--mut)}
 /* Navigation */
@@ -235,6 +236,12 @@ dialog::backdrop{background:rgba(10,20,24,.55)}
       <label for="fNote">Notiz (Köder, Wetter …)</label>
       <input id="fNote" type="text" placeholder="z.B. Spinner, trüb">
     </details>
+    <label for="fPhoto">Fangfoto (optional)</label>
+    <input id="fPhoto" type="file" accept="image/*" capture="environment">
+    <div id="photoDraft" class="hide">
+      <img id="photoPreview" class="catch-photo" alt="Vorschau des Fangfotos">
+      <button type="button" id="removePhoto">Foto entfernen</button>
+    </div>
     <button class="pri full" id="btnSave" style="margin-top:14px">Fang speichern</button>
     <div id="afterSave"></div>
   </div>
@@ -248,7 +255,7 @@ dialog::backdrop{background:rgba(10,20,24,.55)}
   <div class="card"><h2>Alle Fänge</h2><div id="logList" class="list"></div></div>
   <div class="card">
     <h2>Daten sichern</h2>
-    <p class="mut small">Deine Fänge liegen nur auf diesem Handy. Sichere sie ab und zu.</p>
+    <p class="mut small">Deine Fänge liegen nur auf diesem Handy. Der CSV-Export sichert die Fangdaten ohne Fotos.</p>
     <div class="row"><button id="btnExport">Exportieren (CSV)</button><button id="btnImport">Importieren</button></div>
     <input type="file" id="fileImport" accept=".csv,text/csv" class="hide">
   </div>
@@ -619,14 +626,91 @@ function liveCheck(){
   const bi=$("#btnFishInfo");if(bi)bi.onclick=()=>{artOpen=sp;artFilter="alle";$("#artQ").value="";show("arten");setTimeout(()=>{const d=document.querySelector(`#artList details[open]`);if(d)d.scrollIntoView({block:"start"})},50)};
   return c;
 }
+function accessPhoto(action,key,blob){
+  return new Promise((resolve,reject)=>{
+    const open=indexedDB.open("fb-catch-photos",1);
+    open.onupgradeneeded=()=>open.result.createObjectStore("photos");
+    open.onerror=()=>reject(open.error);
+    open.onsuccess=()=>{
+      const db=open.result,tx=db.transaction("photos",action==="get"?"readonly":"readwrite");
+      const photos=tx.objectStore("photos");
+      const request=action==="put"?photos.put(blob,key):action==="delete"?photos.delete(key):photos.get(key);
+      tx.oncomplete=()=>{db.close();resolve(request.result)};
+      tx.onabort=()=>{db.close();reject(tx.error)};
+    };
+  });
+}
+let draftPhoto=null,photoRevision=0;
+function resetPhoto(){
+  photoRevision++;
+  if(draftPhoto)URL.revokeObjectURL(draftPhoto.url);
+  draftPhoto=null;
+  $("#fPhoto").value="";
+  $("#photoPreview").removeAttribute("src");
+  $("#photoDraft").classList.add("hide");
+  $("#btnSave").disabled=false;
+}
+async function preparePhoto(file){
+  if(!file)return;
+  const revision=++photoRevision,url=URL.createObjectURL(file);
+  $("#btnSave").disabled=true;
+  try{
+    const img=new Image();img.src=url;await img.decode();
+    const scale=Math.min(1,1600/Math.max(img.width,img.height));
+    const canvas=document.createElement("canvas");
+    canvas.width=Math.max(1,Math.round(img.width*scale));
+    canvas.height=Math.max(1,Math.round(img.height*scale));
+    canvas.getContext("2d").drawImage(img,0,0,canvas.width,canvas.height);
+    const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/jpeg",0.82));
+    if(!blob)throw new Error();
+    if(revision!==photoRevision)return;
+    if(draftPhoto)URL.revokeObjectURL(draftPhoto.url);
+    draftPhoto={blob,url:URL.createObjectURL(blob)};
+    $("#photoPreview").src=draftPhoto.url;
+    $("#photoDraft").classList.remove("hide");
+  }catch(e){
+    if(revision===photoRevision){resetPhoto();toast("Foto konnte nicht geöffnet werden. Bitte erneut auswählen.")}
+  }finally{
+    URL.revokeObjectURL(url);
+    if(revision===photoRevision)$("#btnSave").disabled=false;
+  }
+}
+async function showCatchPhoto(key){
+  try{
+    const blob=await accessPhoto("get",key);
+    if(!blob)throw new Error();
+    const url=URL.createObjectURL(blob);
+    ask('<img class="catch-photo" alt="Fangfoto" src="'+url+'">',null,false);
+    $("#dlg").addEventListener("close",()=>URL.revokeObjectURL(url),{once:true});
+  }catch(e){toast("Fangfoto konnte nicht geöffnet werden.")}
+}
 function saveFang(){
   const sec=currentSec(),sp=$("#fArt").value,lv=parseFloat($("#fLen").value),len=isNaN(lv)?null:lv,n=Math.max(1,parseInt($("#fAnz").value)||1);
   const c=check(sec,sp,len);
   if(c.needLen){$("#afterSave").innerHTML=`<div class="verdict v-warn"><div class="ln">Bitte zuerst die Länge eingeben – sonst kann das Mindestmass nicht geprüft werden.</div></div>`;$("#fLen").focus();return}
-  const doSave=kept=>{
+  const doSave=async kept=>{
     const now=new Date(),p=state.pos;
     const f={id:Date.now(),ts:now.getTime(),day:dayKey(now),canton:state.canton,sec:sec.id,art:sp,len,n,kept,note:$("#fNote").value.trim(),lat:p?+p.lat.toFixed(5):null,lon:p?+p.lon.toFixed(5):null};
-    state.log.unshift(f);const ok=save()!==false;
+    const photo=draftPhoto;
+    $("#btnSave").disabled=$("#fPhoto").disabled=$("#removePhoto").disabled=true;
+    try{
+      if(photo){
+        f.photoKey=crypto.randomUUID();
+        await accessPhoto("put",f.photoKey,photo.blob);
+      }
+      const log=[f,...state.log];
+      if(!store.set("log",log)){
+        if(photo)await accessPhoto("delete",f.photoKey);
+        throw new Error();
+      }
+      state.log=log;
+    }catch(e){
+      $("#afterSave").textContent="Fang konnte nicht gespeichert werden. Bitte Gerätespeicher prüfen und erneut versuchen.";
+      return;
+    }finally{
+      $("#btnSave").disabled=$("#fPhoto").disabled=$("#removePhoto").disabled=false;
+    }
+    resetPhoto();
     const t=now.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
     const so=state.canton==="SO";
     const txt=`${now.toLocaleDateString("de-CH")} ${t}\n${so?(sec.kind==="patent"?"Gewässer: "+sec.id:"Revier: "+sec.id):"Kanton: "+cname(state.canton)+(sec.kind==="cw"&&sec.id?"\nGewässer: "+sec.name:"")}\nArt: ${sp}${len!=null?`\nLänge: ${len} cm`:""}${n>1?`\nAnzahl: ${n}`:""}`;
@@ -649,7 +733,7 @@ function renderStats(){
   $("#statYear").textContent=y;
   const by={};season.forEach(f=>by[f.art]=(by[f.art]||0)+(f.n||1));
   $("#statSeason").innerHTML=`<div><b>${sum(season)}</b>Fische total</div><div><b>${countYear("Bachforelle")}/20</b>Bachforellen SO-Patent</div><div><b>${(mins/60).toFixed(1)} h</b>Angelzeit</div><div><b>${mins?(sum(season)/(mins/60)).toFixed(2):"–"}</b>Fische pro Stunde</div>${Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([a,n])=>`<div><b>${n}</b>${esc(a)}</div>`).join("")}`;
-  $("#logList").innerHTML=state.log.length?state.log.slice(0,300).map(f=>`<div class="it"><div class="row" style="align-items:center"><div style="flex:3"><b>${esc(f.art)}</b>${f.len!=null?` · ${f.len} cm`:""}${f.n>1?` · ${f.n} Stk.`:""} <span class="pill ${f.kept?"p-ok":"p-mut"}">${f.kept?"behalten":"zurück"}</span><div class="mut small">${new Date(f.ts).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"})} · ${esc((f.canton||"SO")==="SO"?f.sec:cname(f.canton)+(cwLabel(f.canton,f.sec)?" · "+cwLabel(f.canton,f.sec):""))}${f.note?" · "+esc(f.note):""}</div></div><button class="del" data-del="${f.id}">Löschen</button></div></div>`).join(""):`<p class="mut">Noch keine Fänge erfasst.</p>`;
+  $("#logList").innerHTML=state.log.length?state.log.slice(0,300).map(f=>`<div class="it"><div class="row" style="align-items:center"><div style="flex:3"><b>${esc(f.art)}</b>${f.len!=null?` · ${f.len} cm`:""}${f.n>1?` · ${f.n} Stk.`:""} <span class="pill ${f.kept?"p-ok":"p-mut"}">${f.kept?"behalten":"zurück"}</span><div class="mut small">${new Date(f.ts).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"})} · ${esc((f.canton||"SO")==="SO"?f.sec:cname(f.canton)+(cwLabel(f.canton,f.sec)?" · "+cwLabel(f.canton,f.sec):""))}${f.note?" · "+esc(f.note):""}</div></div>${f.photoKey?`<button type="button" data-photo="${esc(f.photoKey)}">Foto ansehen</button>`:""}<button class="del" data-del="${f.id}">Löschen</button></div></div>`).join(""):`<p class="mut">Noch keine Fänge erfasst.</p>`;
 }
 function toCSV(){const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;return[["datum","zeit","kanton","gewaesser","art","laenge_cm","anzahl","behalten","notiz","lat","lon"].join(";")].concat(state.log.map(f=>{const d=new Date(f.ts);return[d.toLocaleDateString("de-CH"),d.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"}),f.canton||"SO",f.sec,f.art,f.len??"",f.n||1,f.kept?"ja":"nein",f.note,f.lat??"",f.lon??""].map(q).join(";")})).join("\n")}
 function exportCSV(){const csv="﻿"+toCSV();try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=`faenge_${dayKey(new Date())}.csv`;document.body.appendChild(a);a.click();a.remove()}catch(e){}
@@ -1183,11 +1267,26 @@ $("#fArt").onchange=e=>setSpecies(e.target.value);
 $("#fLen").oninput=liveCheck;
 document.querySelectorAll(".lenrow [data-d]").forEach(b=>b.onclick=()=>{const v=parseFloat($("#fLen").value)||0;$("#fLen").value=Math.max(0,v+parseFloat(b.dataset.d));liveCheck()});
 $("#btnSave").onclick=saveFang;
+$("#fPhoto").onchange=e=>preparePhoto(e.target.files[0]);
+$("#removePhoto").onclick=resetPhoto;
 $("#artQ").oninput=renderArten;
 $("#artTags").onclick=e=>{const b=e.target.closest("[data-tag]");if(b){artFilter=b.dataset.tag;renderArten()}};
 $("#artList").addEventListener("toggle",e=>{const d=e.target;if(d.open)artOpen=d.dataset.sp;else if(artOpen===d.dataset.sp)artOpen=null},true);
 $("#artList").onclick=e=>{const b=e.target.closest("[data-catch]");if(!b)return;const sp=b.dataset.catch;if(FISH[sp]&&FISH[sp].koeder){show("fang");setSpecies(sp)}else show("regeln")};
-$("#logList").onclick=e=>{const id=e.target.closest("[data-del]")?.dataset.del;if(id)ask("<h2>Fang löschen?</h2>",()=>{state.log=state.log.filter(f=>String(f.id)!==id);save();renderStats();if(map)drawCatches()})};
+$("#logList").onclick=e=>{
+  const photo=e.target.closest("[data-photo]");
+  if(photo){showCatchPhoto(photo.dataset.photo);return}
+  const id=e.target.closest("[data-del]")?.dataset.del;
+  if(id)ask("<h2>Fang löschen?</h2>",async()=>{
+    const entry=state.log.find(f=>String(f.id)===id);
+    const log=state.log.filter(f=>String(f.id)!==id);
+    if(!store.set("log",log)){toast("Fang konnte nicht gelöscht werden.");return}
+    state.log=log;renderStats();if(map)drawCatches();
+    if(entry?.photoKey){
+      try{await accessPhoto("delete",entry.photoKey)}catch(e){toast("Fotodatei konnte nicht gelöscht werden.")}
+    }
+  });
+};
 $("#btnExport").onclick=exportCSV;$("#btnImport").onclick=()=>$("#fileImport").click();
 $("#fileImport").onchange=e=>{if(e.target.files[0])importCSV(e.target.files[0])};
 document.addEventListener("visibilitychange",()=>{if(document.hidden)stopGeo();else if(state.pos||state.secAuto||state.cantonAuto)startGeo()});

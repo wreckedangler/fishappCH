@@ -226,6 +226,28 @@ button:disabled{opacity:.55;cursor:wait}
 .entry-menu{flex:0 0 auto}.entry-menu summary{margin:0;padding:10px}
 #sessBox:has(#btnStop){display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 #sessBox #btnStop{width:auto;margin-left:auto}#sessBox .timer{font-size:18px}
+#waterDialog[open]{display:flex;flex-direction:column;max-height:84dvh}
+#waterDialog label{margin:8px 0 3px}
+#waterList{overflow:auto;min-height:0;margin-top:10px;overscroll-behavior:contain}
+#waterList button{display:block;text-align:left;width:100%;margin:4px 0}
+#waterList h3{font-size:14px;color:var(--mut)}
+.water-current{display:flex;gap:10px;justify-content:space-between;align-items:center;text-align:left;margin-top:10px}
+.water-current span,#btnFishInfo{color:var(--acc)}
+#btnFishInfo{border:0;background:transparent;text-decoration:underline;font-size:14px;padding:4px 0;min-height:44px}
+#afterSave button{margin-top:8px}
+#dlg.photo-view[open]{display:flex;flex-direction:column-reverse}
+#dlg.photo-view .row{justify-content:flex-end;margin:0!important}
+#dlg.photo-view #dlgYes{flex:0 0 auto}
+#dlg.photo-view img{max-height:65dvh}
+@media(max-width:720px){
+ #hereAct [data-act=manual]{flex:1 0 100%}
+ #v-fang{padding-bottom:75px}
+ .save-bar{position:fixed;z-index:990;bottom:calc(var(--nav) + env(safe-area-inset-bottom));left:0;right:0;background:var(--sf);padding:6px 12px;border-top:1px solid var(--line)}
+ html:has(#v-fang.on){scroll-padding-bottom:calc(var(--nav) + 80px + env(safe-area-inset-bottom))}
+ #logList .book-photo{flex:1 0 100%;height:clamp(160px,47vw,235px);aspect-ratio:auto}
+ #logList .book-photo img{object-fit:contain}
+ #logList .entry-menu{margin-left:auto}
+}
 </style>
 </head>
 <body>
@@ -276,7 +298,7 @@ button:disabled{opacity:.55;cursor:wait}
     <h2>Fang erfassen</h2>
     <div class="chips" id="spChips"></div>
     <label for="fArt">Fischart</label>
-    <select id="fArt"></select>
+    <select id="fArt"></select><div id="speciesInfo"></div>
     <label for="fLen">Länge in cm (Kopfspitze bis Schwanzende)</label>
     <div class="lenrow"><button type="button" data-d="-1" aria-label="Länge um 1 cm verringern">−</button><input id="fLen" type="number" inputmode="decimal" step="0.5" min="0" placeholder="cm"><button type="button" data-d="1" aria-label="Länge um 1 cm erhöhen">+</button></div>
     <div id="liveCheck"></div>
@@ -298,7 +320,7 @@ button:disabled{opacity:.55;cursor:wait}
       <button type="button" id="removePhoto">Foto entfernen</button>
     </div>
     </fieldset>
-    <button class="pri full" id="btnSave" style="margin-top:14px">Fang speichern</button>
+    <div class="save-bar"><button class="pri full" id="btnSave">Fang speichern</button></div>
     <div id="afterSave" role="status"></div>
   </div>
   <div class="card"><div id="sessBox"></div></div>
@@ -366,6 +388,12 @@ button:disabled{opacity:.55;cursor:wait}
   <div class="picker-head"><h2 id="pickerTitle"></h2><button type="button" id="pickerClose">Schliessen</button></div>
   <input type="search" id="pickerSearch" aria-label="Auswahl durchsuchen" placeholder="Suchen …">
   <div id="pickerList"></div>
+</dialog>
+<dialog id="waterDialog" aria-labelledby="waterTitle">
+  <div class="picker-head"><h2 id="waterTitle">Gewässer wählen</h2><button type="button" id="waterClose">Schliessen</button></div>
+  <label for="waterCanton">Kanton</label><select id="waterCanton"></select>
+  <label for="waterQuery">Gewässer suchen</label><input type="search" id="waterQuery" placeholder="Name oder Abschnitt">
+  <div id="waterList"></div>
 </dialog>
 <dialog id="dlg"><div id="dlgBody"></div><div class="row" style="margin-top:12px"><button id="dlgNo">Abbrechen</button><button class="pri" id="dlgYes">OK</button></div></dialog>
 
@@ -738,7 +766,7 @@ function renderHier(){
   $("#btnGeo").classList.toggle("hide",!!state.pos||watchId!=null);
   $("#geoMsg").textContent=state.geoErr||"";
   fillCantons();$("#selCanton").value=state.canton;$("#cbCantonAuto").checked=isAuto();
-  $("#hereAct").innerHTML=`<button type="button" data-act="map">Auf Karte wählen</button>${isAuto()?"":`<button type="button" data-act="auto">Per Standort</button>`}`;
+  $("#hereAct").innerHTML=`<button type="button" class="pri full" data-act="manual">Gewässer manuell wählen</button><button type="button" data-act="map">Auf Karte wählen</button>${isAuto()?"":`<button type="button" data-act="auto">Per Standort</button>`}`;
   $("#secPick").classList.toggle("hide",!det);
   if(det){const opts=SECTIONS.map(s=>`<option value="${s.id}">${esc(s.name)} – ${esc(s.desc)}</option>`);
     if(!SECTIONS.some(s=>s.id===state.sec))opts.unshift(`<option value="${esc(state.sec)}">${esc(sec.name)}</option>`);
@@ -759,10 +787,53 @@ function renderSess(){
   $("#btnStop").onclick=()=>{const mins=Math.max(1,Math.round((Date.now()-s.start)/6e4));const ss=store.get("sessions",[]);ss.push({sec:s.sec,canton:s.canton||"SO",start:s.start,mins});store.set("sessions",ss);state.sess=null;save();renderSess();renderStats();
     $("#afterSave").innerHTML=`<div class="verdict v-ok"><div class="big">Angeldauer ${Math.floor(mins/60)} h ${mins%60} min</div><div class="ln">Jetzt auch in der offiziellen App «Stop Fischen» drücken.</div></div>`};
 }
+function waterLabel(c,id){
+  if(c==="SO")return SECTIONS.find(s=>s.id===id)?.name||(GEO.features.some(f=>f.id===id)?secById(id).name:id);
+  return cwLabel(c,id)||cname(c);
+}
+function renderWaterList(){
+  const c=$("#waterCanton").value,query=$("#waterQuery").value.trim().toLocaleLowerCase();
+  const recent=store.get("recentWaters",[]).concat(state.log.map(f=>({c:f.canton||"SO",id:f.sec})));
+  const ids=[...new Set(recent.filter(w=>w.c===c).map(w=>w.id))];
+  let options;
+  if(c==="SO"){
+    options=SECTIONS.map(s=>[s.id,s.name+" – "+s.desc]);
+    for(const id of ids.concat(state.sec)){
+      if(!options.some(w=>w[0]===id)&&GEO.features.some(f=>f.id===id))options.push([id,waterLabel(c,id)]);
+    }
+  }else options=hasCM(c)?RULES[c].w:[["",cname(c)+" · nationale Regeln"]];
+  const list=$("#waterList");list.replaceChildren();
+  const matches=options.filter(([id,label])=>(id+" "+label).toLocaleLowerCase().includes(query));
+  const used=ids.map(id=>matches.find(w=>w[0]===id)).filter(Boolean).slice(0,3);
+  for(const [heading,rows] of [["Zuletzt verwendet",used],["Weitere Gewässer",matches.filter(w=>!used.includes(w))]]){
+    if(!rows.length)continue;
+    if(used.length){const h=document.createElement("h3");h.textContent=heading;list.append(h)}
+    for(const [id,label] of rows){
+      const b=document.createElement("button");b.type="button";b.textContent=label;
+      b.onclick=()=>{
+        state.canton=c;state.cantonAuto=false;state.secAuto=false;state.pin=null;
+        if(c==="SO")state.sec=id;else{state.cw[c]=id;delete state.xsel[c]}
+        store.set("recentWaters",[{c,id},...store.get("recentWaters",[]).filter(w=>w.c!==c||w.id!==id)].slice(0,12));
+        save();$("#waterDialog").close();onCantonChanged();toast(waterLabel(c,id)+" gewählt");
+      };
+      list.append(b);
+    }
+  }
+  if(!matches.length)list.textContent="Keine passenden Gewässer";
+  list.scrollTop=0;
+}
+function openWater(){
+  const canton=$("#waterCanton");canton.replaceChildren(...CANTONS.map(([code,name])=>new Option(name,code)));
+  canton.value=state.canton;$("#waterQuery").value="";renderWaterList();$("#waterDialog").showModal();$("#waterClose").focus();
+}
+$("#waterCanton").onchange=()=>{$("#waterQuery").value="";renderWaterList()};
+$("#waterQuery").oninput=renderWaterList;
+$("#waterClose").onclick=()=>$("#waterDialog").close();
+$("#fangCtx").onclick=openWater;
 function renderFang(){
   recentSpecies();
-  const x=hereSummary();
-  $("#fangCtx").innerHTML=`<div class="hero sm ${x.cls}"><div class="t">${esc(x.t)}</div><div class="d">${esc(x.s||"")}</div></div>`;
+  const missing=unknownWater()||(isCM()&&!currentSec().id);
+  $("#fangCtx").innerHTML=`<button type="button" class="full water-current">Gewässer: ${esc(missing?"Bitte wählen":ctxLabel())}<span>Ändern</span></button>`;
   renderSess();liveCheck();
 }
 function setSpecies(sp){$("#fArt").value=sp;syncPickers($("#v-fang"));document.querySelectorAll("#spChips button").forEach(b=>{b.classList.toggle("on",b.dataset.sp===sp);b.setAttribute("aria-pressed",String(b.dataset.sp===sp))});liveCheck()}
@@ -773,7 +844,8 @@ function liveCheck(){
   const missing=unknownWater()||(isCM()&&!currentSec().id);
   const cls=missing||c.needLen||review?"v-warn":c.ok?"v-ok":"v-bad",head=missing?"Gewässer wählen":review?"Amtliche Regel prüfen":c.needLen?"Länge eingeben":c.ok?"Darf behalten werden":"Nicht behalten";
   const sources=review?(RULES[state.canton]?.src||[]).filter(([,url])=>/^https?:/.test(url)):[];
-  $("#liveCheck").innerHTML=`<div class="verdict ${cls}"><div class="big">${head}</div>${c.issues.map(i=>`<div class="ln">${esc(i)}</div>`).join("")}${c.infos.map(i=>`<div class="ln sec">${esc(i)}</div>`).join("")}${sources.map(([label,url])=>`<div><a href="${esc(url)}" target="_blank" rel="noopener">${esc(label)}</a></div>`).join("")}</div>${FISH[sp]?`<button type="button" class="full" id="btnFishInfo" style="margin-top:8px;min-height:40px">${esc(sp.replace(" (Flussbarsch)",""))}: Vorkommen, Köder, Tipp</button>`:""}`;
+  $("#liveCheck").innerHTML=`<div class="verdict ${cls}"><div class="big">${head}</div>${c.issues.map(i=>`<div class="ln">${esc(i)}</div>`).join("")}${c.infos.map(i=>`<div class="ln sec">${esc(i)}</div>`).join("")}${sources.map(([label,url])=>`<div><a href="${esc(url)}" target="_blank" rel="noopener">${esc(label)}</a></div>`).join("")}</div>`;
+  $("#speciesInfo").innerHTML=FISH[sp]?'<button type="button" id="btnFishInfo">Artenratgeber</button>':"";
   const bi=$("#btnFishInfo");if(bi)bi.onclick=()=>{artOpen=sp;artFilter="alle";$("#artQ").value="";show("arten");setTimeout(()=>{const d=document.querySelector(`#artList details[open]`);if(d)d.scrollIntoView({block:"start"})},50)};
   return c;
 }
@@ -860,14 +932,17 @@ async function showCatchPhoto(key){
     const blob=await accessPhoto("get",key);
     if(!blob)throw new Error();
     const url=URL.createObjectURL(blob);
+    const dlg=$("#dlg");dlg.classList.add("photo-view");
+    $("#dlgYes").textContent="Schliessen";
     ask('<img class="catch-photo" alt="Fangfoto" src="'+url+'">',null,false);
-    $("#dlg").addEventListener("close",()=>URL.revokeObjectURL(url),{once:true});
+    dlg.onclick=e=>{const r=dlg.getBoundingClientRect();if(e.target===dlg&&(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom))dlg.close()};
+    dlg.addEventListener("close",()=>{dlg.onclick=null;dlg.classList.remove("photo-view");$("#dlgYes").textContent="OK";URL.revokeObjectURL(url)},{once:true});
   }catch(e){toast("Fangfoto konnte nicht geöffnet werden.")}
 }
 function saveFang(){
   const sec=currentSec(),sp=$("#fArt").value,lv=parseFloat($("#fLen").value),len=isNaN(lv)?null:lv,n=Math.max(1,parseInt($("#fAnz").value)||1);
   const c=check(sec,sp,len);
-  if(unknownWater()||(isCM()&&!sec.id)||ruleFor(sec,sp).pickW){show("hier");$("#manCard").open=true;toast("Bitte zuerst das Gewässer wählen.");return}
+  if(unknownWater()||(isCM()&&!sec.id)||ruleFor(sec,sp).pickW){openWater();return}
   if(c.needLen){$("#afterSave").innerHTML=`<div class="verdict v-warn"><div class="ln">Bitte zuerst die Länge eingeben – sonst kann das Mindestmass nicht geprüft werden.</div></div>`;$("#fLen").focus();return}
   const doSave=async kept=>{
     const now=new Date(),p=state.pos;
@@ -897,6 +972,15 @@ function saveFang(){
     const txt=`${now.toLocaleDateString("de-CH")} ${t}\n${so?(sec.kind==="patent"?"Gewässer: "+sec.id:"Revier: "+sec.id):"Kanton: "+cname(state.canton)+(sec.kind==="cw"&&sec.id?"\nGewässer: "+sec.name:"")}\nArt: ${sp}${len!=null?`\nLänge: ${len} cm`:""}${n>1?`\nAnzahl: ${n}`:""}`;
     $("#afterSave").innerHTML=`<div class="verdict ${kept?"v-ok":"v-warn"}"><div class="ln">${kept?"Gespeichert als behaltener Fang.":"Gespeichert als zurückgesetzt."}</div></div>
       ${kept&&so?`<div class="mut small" style="margin-top:10px">Jetzt in der offiziellen App eintragen:</div><div class="copybox">${esc(txt)}</div><button class="full" id="btnCopy" style="margin-top:8px">Text kopieren</button>`:""}`;
+    const view=document.createElement("button");view.type="button";view.className="full";
+    view.textContent=f.photoKey?"Fang mit Foto ansehen":"Fang ansehen";
+    view.onclick=()=>{
+      show("stat");
+      const row=document.getElementById("catch-"+f.id);
+      if(row){row.scrollIntoView({block:"center"});row.focus({preventScroll:true})}
+    };
+    $("#afterSave").querySelector(".verdict").append(view);
+    $("#afterSave").scrollIntoView({block:"center"});view.focus({preventScroll:true});
     const bc=$("#btnCopy");if(bc)bc.onclick=async()=>{try{await navigator.clipboard.writeText(txt);bc.textContent="Kopiert"}catch(e){bc.textContent="Kopieren nicht möglich – bitte abtippen"}};
     $("#fLen").value="";$("#fAnz").value="1";$("#fNote").value="";liveCheck();renderStats();if(map)drawCatches();toast(kept?"Fang gespeichert":"Als zurückgesetzt gespeichert");
   };
@@ -970,7 +1054,7 @@ function renderStats(){
   bookPhotoObserver?.disconnect();
   for(const url of previewUrls)URL.revokeObjectURL(url);
   previewUrls.clear();
-  $("#logList").innerHTML=catches.length?catches.slice(0,bookLimit).map(f=>`<div class="it"><div class="row" style="align-items:center"><div style="flex:3"><b>${esc(f.art)}</b>${f.len!=null?` · ${f.len} cm`:""}${f.n>1?` · ${f.n} Stk.`:""} <span class="pill ${f.kept?"p-ok":"p-mut"}">${f.kept?"behalten":"zurück"}</span><div class="mut small">${new Date(f.ts).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"})} · ${esc((f.canton||"SO")==="SO"?f.sec:cname(f.canton)+(cwLabel(f.canton,f.sec)?" · "+cwLabel(f.canton,f.sec):""))}${f.note?" · "+esc(f.note):""}</div></div>${f.photoKey?`<button type="button" class="book-photo" data-photo="${esc(f.photoKey)}" aria-label="Fangfoto vergrössern: ${esc(f.art)}">Foto laden …</button>`:`<button type="button" data-add-photo="${esc(f.id)}">Foto hinzufügen</button>`}<button type="button" data-edit="${f.id}">Bearbeiten</button><details class="entry-menu"><summary>Mehr</summary><button class="del" data-del="${f.id}">Löschen</button></details></div></div>`).join(""):`<p class="mut">Keine Fangeinträge in diesem Zeitraum.</p>`;
+  $("#logList").innerHTML=catches.length?catches.slice(0,bookLimit).map(f=>`<div class="it" id="catch-${f.id}" tabindex="-1"><div class="row" style="align-items:center"><div style="flex:3"><b>${esc(f.art)}</b>${f.len!=null?` · ${f.len} cm`:""}${f.n>1?` · ${f.n} Stk.`:""} <span class="pill ${f.kept?"p-ok":"p-mut"}">${f.kept?"behalten":"zurück"}</span><div class="mut small">${new Date(f.ts).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"})} · ${esc((f.canton||"SO")==="SO"?waterLabel("SO",f.sec):cname(f.canton)+(cwLabel(f.canton,f.sec)?" · "+cwLabel(f.canton,f.sec):""))}${f.note?" · "+esc(f.note):""}</div></div>${f.photoKey?`<button type="button" class="book-photo" data-photo="${esc(f.photoKey)}" aria-label="Fangfoto vergrössern: ${esc(f.art)}">Foto laden …</button>`:`<button type="button" data-add-photo="${esc(f.id)}">Foto hinzufügen</button>`}<details class="entry-menu"><summary>Mehr</summary><button type="button" data-edit="${f.id}">Bearbeiten</button><button class="del" data-del="${f.id}">Löschen</button></details></div></div>`).join(""):`<p class="mut">Keine Fangeinträge in diesem Zeitraum.</p>`;
   for(const button of $("#logList").querySelectorAll("[data-photo]")){
     if(bookPhotoObserver)bookPhotoObserver.observe(button);else loadBookPhoto(button);
   }
@@ -1548,7 +1632,7 @@ $("#hereHero").onchange=e=>{if(e.target.id!=="heroCW")return;
   state.cw=Object.assign({},state.cw,{[state.canton]:e.target.value});save();renderAll();if(e.target.value)toast(cwLabel(state.canton,e.target.value)+" gewählt")};
 $("#selCanton").onchange=e=>{state.canton=e.target.value;state.cantonAuto=false;save();toast("Kanton manuell gewählt – automatische Erkennung aus");onCantonChanged()};
 $("#cbCantonAuto").onchange=e=>{setAuto(e.target.checked);toast(e.target.checked?"Standort bestimmt Kanton und Gewässer":"Automatik aus – du wählst selbst")};
-$("#hereAct").onclick=e=>{const b=e.target.closest("[data-act]");if(!b)return;if(b.dataset.act==="map")show("karte");else{setAuto(true);toast("Standort bestimmt Kanton und Gewässer")}};
+$("#hereAct").onclick=e=>{const b=e.target.closest("[data-act]");if(!b)return;if(b.dataset.act==="manual"){openWater();return}if(b.dataset.act==="map")show("karte");else{setAuto(true);toast("Standort bestimmt Kanton und Gewässer")}};
 $("#selSec").onchange=e=>{state.sec=e.target.value;state.secAuto=false;state.cantonAuto=false;save();renderAll()};
 $("#btnGeo").onclick=()=>{state.geoErr=null;startGeo();renderHier()};
 function recentSpecies(){const recent=[...new Set(state.log.map(f=>f.art))].filter(sp=>SPECIES.includes(sp)).slice(0,3);$("#spChips").innerHTML=recent.map(s=>`<button type="button" data-sp="${esc(s)}">${esc(s.replace(" (Flussbarsch)",""))}</button>`).join("")}

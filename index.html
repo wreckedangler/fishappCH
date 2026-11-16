@@ -28,7 +28,13 @@ a{color:var(--acc)}
 /* Kopfzeile */
 #topbar{position:fixed;top:0;left:0;right:0;z-index:1000;padding-top:env(safe-area-inset-top);background:var(--sf);border-bottom:1px solid var(--line)}
 #topbar .in{height:var(--tb);display:flex;align-items:center;gap:9px;padding:0 12px;max-width:720px;margin:0 auto}
-#topbar .brand{flex:none;width:38px;height:38px;border-radius:8px}
+#tbHome{display:grid;place-items:center;flex:none;width:48px;height:52px;margin-inline-start:-4px;padding:0;border:0;background:transparent;color:var(--acc)}
+#tbHome svg{display:block;pointer-events:none}
+#tbHome .shield-focus{fill:none;stroke:none}
+#tbHome:focus-visible{outline:0}
+#tbHome:focus-visible .shield-focus{stroke:currentColor;stroke-width:90;stroke-linejoin:round}
+#topbar.bad #tbHome{color:#fff}
+@media(forced-colors:active){#topbar #tbHome{color:ButtonText}}
 #tbCanton{flex:0 0 auto;min-height:38px;min-width:46px;padding:6px 10px;border-radius:var(--rc);background:var(--sf);border:1px solid var(--line);color:var(--tx);font-weight:650;font-size:14px;letter-spacing:.02em}
 #tbStatus{flex:1;min-width:0;display:flex;align-items:center;gap:10px;cursor:pointer}
 #tbStatus .dot{flex:0 0 10px;height:10px;border-radius:50%;background:var(--mut)}
@@ -307,7 +313,18 @@ button:disabled{opacity:.55;cursor:wait}
 <body>
 
 <div id="topbar"><div class="in">
-  <img class="brand" src="assets/apple-touch-icon.png" width="38" height="38" alt="Fischer-Begleiter">
+  <button type="button" id="tbHome" data-v="hier" aria-label="Fischer-Begleiter – zur Startansicht">
+    <svg width="40" height="52" viewBox="207 60 864 1150" aria-hidden="true" focusable="false">
+      <defs>
+        <path id="shieldEdge" d="M640 112 C532 194 396 242 259 236 C246 333 246 432 254 530
+          C260 670 306 807 389 920 C459 1012 546 1089 639 1158 C731 1087 823 1013 890 916
+          C985 781 1019 614 1026 452 C1031 380 1028 307 1018 236 C881 245 749 191 640 112 Z"/>
+        <clipPath id="shieldClip"><use href="#shieldEdge"/></clipPath>
+      </defs>
+      <use class="shield-focus" href="#shieldEdge"/>
+      <image href="assets/app-192.png" width="1280" height="1280" clip-path="url(#shieldClip)"/>
+    </svg>
+  </button>
   <button id="tbCanton" aria-label="Kanton wählen">SO</button>
   <button type="button" id="tbStatus" aria-label="Status am aktuellen Ort">
     <span class="dot" id="tbDot"></span>
@@ -2889,7 +2906,7 @@ function show(v,restore=false){
   if(v!=="karte")window.scrollTo(0,0);
   if(v==="karte")initMap();if(v==="fang")renderFang();if(v==="stat")renderStats();if(v==="regeln")renderRegeln();if(v==="hier")renderHier();if(v==="arten")renderArten();
 }
-document.querySelectorAll("nav button,.seg button").forEach(b=>b.onclick=()=>show(b.dataset.v));
+document.querySelectorAll("button[data-v]").forEach(b=>b.onclick=()=>show(b.dataset.v));
 $("#tbStatus").onclick=()=>show("hier");
 $("#hereHero").onclick=e=>{const b=e.target.closest("[data-alt]");if(!b||!state.pos)return;state.pin={id:b.dataset.alt,lat:state.pos.lat,lon:state.pos.lon};state.sec=b.dataset.alt;save();updateHere();toast(secById(b.dataset.alt).name+" gewählt")};
 $("#tbCanton").onclick=()=>{show("hier");$("#manCard").open=true;setTimeout(()=>{$("#manCard").scrollIntoView({block:"center"});$("#selCantonTrigger").focus()},100)};

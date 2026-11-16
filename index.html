@@ -474,7 +474,7 @@ function stopGeo(){if(watchId!=null){navigator.geolocation.clearWatch(watchId);w
 function onPos(p){
   const{latitude:lat,longitude:lon,accuracy:acc}=p.coords;
   state.pos={lat,lon,acc,ts:Date.now()};state.geoErr=null;
-  identifyCanton(lat,lon);
+  identifyCanton(lat,lon);nearWater(lat,lon);
   updateHere();
   if(map)updateMe();
 }
@@ -872,7 +872,33 @@ function drawSel(){
   if(mapSel&&mapSel.t==="canton")parts.push(L.circleMarker([mapSel.lat,mapSel.lon],{radius:7,color:"#fff",weight:3,fillColor:"#12222a",fillOpacity:1,interactive:false}));
   if(parts.length)selLayer=L.layerGroup(parts).addTo(map);
 }
-function cwSelect(c){const R=RULES[c],cur=cwOf(c);return`<label for="shCW">An welchem Gewässer fischst du?</label><select id="shCW"><option value="">– Gewässer wählen –</option>${R.w.map(([id,l])=>`<option value="${esc(id)}"${id===cur?" selected":""}>${esc(l)}</option>`).join("")}</select>`}
+async function waterAt(lat,lon,tolm){
+  const d=tolm/111320,dx=d/Math.cos(lat*Math.PI/180),ext=[lon-dx*10,lat-d*10,lon+dx*10,lat+d*10].join(",");
+  const u=`https://api3.geo.admin.ch/rest/services/api/MapServer/identify?geometry=${lon},${lat}&geometryType=esriGeometryPoint&layers=all:ch.swisstopo.swisstlm3d-gewaessernetz&sr=4326&tolerance=10&mapExtent=${ext}&imageDisplay=200,200,96&returnGeometry=false&lang=de&limit=10`;
+  const j=await fetch(u).then(r=>r.json());const rs=(j.results||[]).map(x=>x.attributes||x.properties||{});
+  if(!rs.length)return null;
+  const pick=rs.find(a=>a.objektart===101&&a.name)||rs.find(a=>a.name)||rs[0];
+  const names=String(pick.name||"").split("|").map(x=>x.trim()).filter(Boolean);
+  return{name:names[0]||"",names,lake:pick.objektart===101};
+}
+const wNorm=x=>String(x).toLowerCase().replace(/[^a-zäöüéèàâêîôûç]/g,"");
+function matchW(c,w){
+  const R=RULES[c];if(!R||!R.w||!w)return{cand:[],sug:""};
+  const ns=w.names.map(wNorm).filter(n=>n.length>=3);
+  const cand=R.w.filter(([id,l])=>{const ln=wNorm(l);return ns.some(n=>ln.includes(n))}).map(x=>x[0]);
+  if(cand.length)return{cand,sug:cand.length===1?cand[0]:""};
+  const re=w.lake?/übrige[^,]*(stehend|seen)|bergseen|kleinseen|alpenseen|kleine seen/i:/übrige[^,]*fliess|^fliessgewässer$|^flüsse|^bergflüsse|übrige flüsse|übrige bäche/i;
+  const g=R.w.filter(([id,l])=>re.test(l));
+  return{cand:[],sug:g.length===1?g[0][0]:""};
+}
+let nearW=null,lastNear=null;
+async function nearWater(lat,lon){
+  if(!navigator.onLine||isSO())return;
+  if(lastNear&&Math.hypot((lat-lastNear[0])*111e3,(lon-lastNear[1])*75e3)<80)return;
+  lastNear=[lat,lon];
+  try{nearW=await waterAt(lat,lon,120);if(map&&!mapSel)renderSheet()}catch(e){lastNear=null}
+}
+function cwSelect(c,pre,first){const R={w:[...RULES[c].w].sort((a,b)=>(first||[]).includes(b[0])-(first||[]).includes(a[0]))},cur=pre||cwOf(c);return`<label for="shCW">An welchem Gewässer fischst du?</label><select id="shCW"><option value="">– Gewässer wählen –</option>${R.w.map(([id,l])=>`<option value="${esc(id)}"${id===cur?" selected":""}>${esc(l)}</option>`).join("")}</select>`}
 function renderSheet(){
   const el=$("#mapSheet");if(!el||!map)return;
   if(document.activeElement&&document.activeElement.id==="shCW")return;
@@ -890,18 +916,20 @@ function renderSheet(){
       ${k==="schon"?"":chosen?`<div class="sh-ok">Gewählt</div><div class="row"><button type="button" class="pri" data-sh="rules">Regeln ansehen</button><button type="button" data-sh="auto">Wieder per Standort</button></div>`:`<button type="button" class="pri full" data-sh="ok">Dieses Gewässer wählen</button>`}`;
   } else if(mapSel&&mapSel.t==="canton"){
     const c=mapSel.code;
-    if(mapSel.loading)h=`<div class="sh-h"><div class="sh-t">Kanton wird ermittelt …</div>${close}</div>`;
+    if(mapSel.loading)h=`<div class="sh-h"><div class="sh-t">Gewässer wird ermittelt …</div>${close}</div>`;
     else if(!c)h=`<div class="sh-h"><div class="sh-t">Kein Kanton gefunden</div>${close}</div><div class="sh-d">Dieser Punkt liegt ausserhalb der Schweiz oder die Abfrage ist fehlgeschlagen.</div>`;
     else if(c==="SO"&&isDetailed("SO"))h=`<div class="sh-h"><div class="sh-t">Solothurn</div>${close}</div><div class="sh-d">${state.canton==="SO"?"An dieser Stelle liegt kein Fischereigewässer. Tippe auf eine farbige Linie, um einen Abschnitt zu wählen.":"Für Solothurn sind alle Gewässerabschnitte auf der Karte hinterlegt."}</div>${state.canton==="SO"?"":`<button type="button" class="pri full" data-sh="okc">Kanton Solothurn wählen</button>`}`;
-    else h=`<div class="sh-h"><div><div class="sh-t">${esc(cname(c))}</div>${c===state.canton?`<span class="pill p-ok">aktueller Kanton</span>`:""}</div>${close}</div>
-      ${hasCM(c)?cwSelect(c):`<div class="sh-d">Für diesen Kanton sind nur die nationalen Mindestvorgaben geladen.</div>`}
-      <button type="button" class="pri full" data-sh="okc">${c===state.canton?"Gewässer bestätigen":"Kanton und Gewässer bestätigen"}</button>`;
+    else{const w=mapSel.water,m=matchW(c,w),wn=w?(w.name||(w.lake?"See ohne Namen":"Bach ohne Namen")):"";
+      h=`<div class="sh-h"><div><div class="sh-t">${esc(w?wn:cname(c))}</div><span class="pill ${c===state.canton?"p-ok":"p-mut"}">Kanton ${esc(cname(c))}</span></div>${close}</div>
+      ${w?"":`<div class="sh-d">An dieser Stelle wurde kein Gewässer erkannt. Tippe direkt auf einen Fluss oder See, oder wähle aus der Liste.</div>`}
+      ${hasCM(c)?(w?`<div class="sh-d">${m.cand.length>1?"Dieses Gewässer hat mehrere Abschnitte mit eigenen Regeln. Wähle den passenden.":m.cand.length===1?"Für dieses Gewässer gelten eigene Regeln.":m.sug?"Keine eigenen Regeln für dieses Gewässer – Vorschlag unten prüfen.":"Keine eigenen Regeln für dieses Gewässer – wähle die passende Gruppe."}</div>`:"")+cwSelect(c,m.sug||(m.cand.length?"-":""),m.cand):`<div class="sh-d">Für diesen Kanton sind nur die nationalen Mindestvorgaben geladen.</div>`}
+      <button type="button" class="pri full" data-sh="okc">${hasCM(c)?(c===state.canton?"Gewässer bestätigen":"Kanton und Gewässer bestätigen"):"Kanton wählen"}</button>`}
   } else {
     const x=hereSummary();
     h=`<div class="sh-h"><div><div class="sh-t"><span class="sh-dot ${x.cls}"></span>${esc(x.t)}</div></div></div>
       <div class="sh-d">${esc(state.pos?(x.s||""):(state.geoErr||"Standort wird gesucht …"))}</div>
       ${isSO()?`<div class="sh-d">Tippe auf eine Linie, um einen Abschnitt zu wählen.</div>${state.secAuto?"":`<button type="button" class="full" data-sh="auto">Abschnitt wieder per Standort bestimmen</button>`}`
-        :isCM()?cwSelect(state.canton)+`<button type="button" class="pri full" data-sh="okc">Gewässer bestätigen</button>`
+        :isCM()?(nearW&&state.pos?`<div class="sh-d">In der Nähe: <b>${esc(nearW.name||(nearW.lake?"See":"Bach ohne Namen"))}</b>. Tippe auf die Karte, um ein anderes Gewässer zu wählen.</div>`:`<div class="sh-d">Tippe auf einen Fluss oder See, um ihn zu wählen.</div>`)+cwSelect(state.canton,cwOf(state.canton)||(nearW&&state.pos?matchW(state.canton,nearW).sug:""))+`<button type="button" class="pri full" data-sh="okc">Gewässer bestätigen</button>`
         :`<div class="sh-d">Tippe auf die Karte, um einen Kanton zu wählen.</div>`}
       ${!state.pos&&watchId==null?`<button type="button" class="full" data-sh="geo">Standort aktivieren</button>`:""}`;
   }
@@ -931,9 +959,12 @@ async function mapTap(e){
     if(best){mapSel={t:"sec",id:best.f.id};renderSheet();drawSel();return}
   }
   const sel={t:"canton",code:null,lat,lon,loading:true};mapSel=sel;renderSheet();drawSel();
-  try{const u=`https://api3.geo.admin.ch/rest/services/api/MapServer/identify?geometry=${lon},${lat}&geometryType=esriGeometryPoint&layers=all:ch.swisstopo.swissboundaries3d-kanton-flaeche.fill&sr=4326&tolerance=0&returnGeometry=false&lang=de`;
-    const j=await fetch(u).then(r=>r.json());const a=j.results&&j.results[0]&&j.results[0].attributes;
-    if(a&&CANTONS.some(c=>c[0]===a.ak))sel.code=a.ak}catch(err){}
+  const tolm=Math.max(25,40075016*Math.cos(lat*Math.PI/180)/Math.pow(2,map.getZoom()+8)*26);
+  const u=`https://api3.geo.admin.ch/rest/services/api/MapServer/identify?geometry=${lon},${lat}&geometryType=esriGeometryPoint&layers=all:ch.swisstopo.swissboundaries3d-kanton-flaeche.fill&sr=4326&tolerance=0&returnGeometry=false&lang=de`;
+  const[cj,w]=await Promise.all([fetch(u).then(r=>r.json()).catch(()=>null),waterAt(lat,lon,tolm).catch(()=>null)]);
+  const a=cj&&cj.results&&cj.results[0]&&cj.results[0].attributes;
+  if(a&&CANTONS.some(c=>c[0]===a.ak))sel.code=a.ak;
+  sel.water=w;
   sel.loading=false;if(mapSel===sel){renderSheet();drawSel()}
 }
 function initMap(){

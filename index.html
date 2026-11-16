@@ -919,6 +919,7 @@ async function loadX(){
   try{const res=await Promise.all(src.layers.map(l=>fetch(l.url(b)).then(r=>{if(!r.ok)throw 0;return r.json()}).then(j=>[l,j])));
     res.forEach(([l,j])=>xAdd(c,j,l.map));if(b)G.boxes.push(b);else G.all=true}catch(e){G.fail=Date.now()}
   G.busy=false;if(state.canton===c){drawX();renderSheet();drawSel()}
+  if(XSRC[state.canton]&&(state.canton!==c||src.bbox))setTimeout(loadX,50);
 }
 function styleX(f){const k=kindOf(f.art);
   if(k==="schon")return{color:"#a8261c",weight:3,opacity:1,fillOpacity:.22};

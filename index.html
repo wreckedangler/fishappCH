@@ -103,9 +103,19 @@ td .pill{margin-top:4px}
 .lenrow{display:flex;gap:8px}.lenrow button{flex:0 0 56px;font-size:24px;font-weight:400;padding:0}
 .lenrow input{flex:1;font-size:24px;font-weight:650;text-align:center}
 details summary{cursor:pointer;color:var(--acc);margin-top:14px;font-size:14.5px;font-weight:600}
-.stat{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--rc);overflow:hidden}
-.stat div{background:var(--sf);padding:12px 14px;font-size:13px;line-height:1.35;color:var(--mut)}
-.stat b{display:block;font-size:24px;line-height:1.2;font-weight:650;color:var(--tx);margin-bottom:2px}
+.book-overview h1{font-size:24px;line-height:1.2;margin:0 0 16px}
+.book-total{display:flex;align-items:baseline;gap:10px;margin-top:18px}
+.book-total strong{font-size:42px;line-height:1.1;letter-spacing:-.04em;color:var(--acc)}
+.book-total span{font-weight:650}
+#bookMetrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px;border-top:1px solid var(--line);margin:16px 0 0;padding-top:14px}
+#bookMetrics dt{font-size:13px;color:var(--mut)}
+#bookMetrics dd{font-size:18px;font-weight:650;margin:0}
+.species-row{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:4px 12px;margin-top:12px}
+.species-row progress{grid-column:1/-1;appearance:none;width:100%;height:6px;border:0;border-radius:8px;overflow:hidden;background:var(--sf2);color:var(--acc)}
+.species-row progress::-webkit-progress-bar{background:var(--sf2)}
+.species-row progress::-webkit-progress-value{background:var(--acc)}
+.species-row progress::-moz-progress-bar{background:var(--acc)}
+#soCounts summary{margin:0}
 .big{font-size:30px;font-weight:700}.timer{font-variant-numeric:tabular-nums}
 .hide{display:none!important}
 .photo-field{min-width:0;margin:16px 0 0;padding:12px;border:1px solid var(--line);border-radius:var(--rc);background:var(--sf2)}
@@ -283,9 +293,22 @@ button:disabled{opacity:.55;cursor:wait}
 <!-- STATISTIK -->
 <section class="view" id="v-stat">
   <div class="seg"><button type="button" data-v="fang">Erfassen</button><button type="button" data-v="stat">Fangbuch</button></div>
-  <div class="card"><h2>Heute</h2><div class="stat" id="statToday"></div></div>
-  <div class="card"><h2>Saison <span id="statYear"></span></h2><div class="stat" id="statSeason"></div></div>
-  <div class="card"><h2>Alle Fänge</h2><div id="logList" class="list"></div></div>
+  <div class="card book-overview">
+    <h1>Mein Fangbuch</h1>
+    <div id="bookPeriod" class="chips" role="group" aria-label="Zeitraum">
+      <button type="button" data-period="today">Heute</button>
+      <button type="button" data-period="year">Dieses Jahr</button>
+      <button type="button" data-period="all" class="on" aria-pressed="true">Gesamt</button>
+    </div>
+    <div class="book-total"><strong id="fishTotal">0</strong><span>Fische erfasst</span></div>
+    <p class="mut small" id="fishOutcome"></p>
+    <dl id="bookMetrics"></dl>
+  </div>
+  <div class="card"><h2>Fänge nach Fischart</h2><div id="bookSpecies"></div></div>
+  <div class="card"><h2>Fangeinträge</h2><div id="logList" class="list"></div>
+    <button type="button" id="moreCatches" class="full" hidden>Weitere Einträge anzeigen</button>
+  </div>
+  <details class="card" id="soCounts"><summary>Fangzähler Solothurn</summary><div id="bookLimits" class="small"></div></details>
   <div class="card">
     <h2>Daten sichern</h2>
     <p class="mut small">Deine Fänge liegen nur auf diesem Handy. Der CSV-Export sichert die Fangdaten ohne Fotos.</p>
@@ -854,16 +877,46 @@ function saveFang(){
 }
 
 /* ================= RENDER: STATISTIK ================= */
+let bookPeriod="all",bookLimit=30;
+$("#bookPeriod").onclick=e=>{
+  const button=e.target.closest("[data-period]");
+  if(!button)return;
+  bookPeriod=button.dataset.period;bookLimit=30;renderStats();
+};
+$("#moreCatches").onclick=()=>{bookLimit+=30;renderStats()};
 function renderStats(){
-  const t=dayKey(new Date()),y=String(new Date().getFullYear());
-  const kept=state.log.filter(f=>f.kept),today=kept.filter(f=>f.day===t),season=kept.filter(f=>f.day.startsWith(y));
-  const sum=a=>a.reduce((s,f)=>s+(f.n||1),0);
-  const mins=store.get("sessions",[]).filter(s=>String(new Date(s.start).getFullYear())===y).reduce((a,s)=>a+s.mins,0);
-  $("#statToday").innerHTML=`<div><b>${sum(today)}</b>Fische behalten</div><div><b>${countToday("Bachforelle",true)}/2</b>Forellen + Saiblinge (SO)</div>`;
-  $("#statYear").textContent=y;
-  const by={};season.forEach(f=>by[f.art]=(by[f.art]||0)+(f.n||1));
-  $("#statSeason").innerHTML=`<div><b>${sum(season)}</b>Fische total</div><div><b>${countYear("Bachforelle")}/20</b>Bachforellen SO-Patent</div><div><b>${(mins/60).toFixed(1)} h</b>Angelzeit</div><div><b>${mins?(sum(season)/(mins/60)).toFixed(2):"–"}</b>Fische pro Stunde</div>${Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([a,n])=>`<div><b>${n}</b>${esc(a)}</div>`).join("")}`;
-  $("#logList").innerHTML=state.log.length?state.log.slice(0,300).map(f=>`<div class="it"><div class="row" style="align-items:center"><div style="flex:3"><b>${esc(f.art)}</b>${f.len!=null?` · ${f.len} cm`:""}${f.n>1?` · ${f.n} Stk.`:""} <span class="pill ${f.kept?"p-ok":"p-mut"}">${f.kept?"behalten":"zurück"}</span><div class="mut small">${new Date(f.ts).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"})} · ${esc((f.canton||"SO")==="SO"?f.sec:cname(f.canton)+(cwLabel(f.canton,f.sec)?" · "+cwLabel(f.canton,f.sec):""))}${f.note?" · "+esc(f.note):""}</div></div>${f.photoKey?`<button type="button" data-photo="${esc(f.photoKey)}">Foto ansehen</button>`:`<button type="button" data-add-photo="${esc(f.id)}">Foto hinzufügen</button>`}<button class="del" data-del="${f.id}">Löschen</button></div></div>`).join(""):`<p class="mut">Noch keine Fänge erfasst.</p>`;
+  const now=new Date(),today=dayKey(now),year=today.slice(0,4);
+  const inPeriod=day=>bookPeriod==="all"||(bookPeriod==="today"?day===today:day.startsWith(year));
+  const catches=state.log.filter(f=>inPeriod(f.day)).sort((a,b)=>b.ts-a.ts);
+  const bySpecies=new Map();
+  let kept=0,released=0,longest=0;
+  for(const f of catches){
+    const n=f.n||1;
+    if(f.kept)kept+=n;else released+=n;
+    bySpecies.set(f.art,(bySpecies.get(f.art)||0)+n);
+    if(Number.isFinite(f.len))longest=Math.max(longest,f.len);
+  }
+  const start=bookPeriod==="today"?new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime():bookPeriod==="year"?new Date(now.getFullYear(),0,1).getTime():0;
+  const minutes=Math.round(store.get("sessions",[]).reduce((sum,s)=>{
+    const end=s.start+s.mins*60000;
+    return sum+Math.max(0,Math.min(end,now.getTime())-Math.max(start,s.start))/60000;
+  },0));
+  const total=kept+released,number=n=>n.toLocaleString("de-CH",{maximumFractionDigits:1});
+  $("#bookPeriod").querySelectorAll("button").forEach(b=>{
+    const selected=b.dataset.period===bookPeriod;
+    b.classList.toggle("on",selected);b.setAttribute("aria-pressed",String(selected));
+  });
+  $("#fishTotal").textContent=number(total);
+  $("#fishOutcome").textContent=number(kept)+" behalten · "+number(released)+" zurückgesetzt";
+  const metrics=[["Fischarten",bySpecies.size],["Längster Fisch",longest?number(longest)+" cm":"–"],["Angelzeit (abgeschlossen)",Math.floor(minutes/60)+" h "+minutes%60+" min"],["Fische pro Angelstunde",minutes?number(total*60/minutes):"–"]];
+  $("#bookMetrics").innerHTML=metrics.map(([label,value])=>`<div><dt>${label}</dt><dd>${value}</dd></div>`).join("");
+  const ranked=[...bySpecies].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],"de"));
+  $("#bookSpecies").innerHTML=ranked.map(([art,n])=>`<div class="species-row"><span>${esc(art)}</span><b>${number(n)}</b><progress aria-hidden="true" max="${total}" value="${n}"></progress></div>`).join("")||'<p class="mut small">Noch keine Arten in diesem Zeitraum.</p>';
+  $("#soCounts").hidden=!isSO();
+  const troutToday=state.log.filter(f=>(f.canton||"SO")==="SO"&&f.kept&&f.day===today&&TROUT_GROUP.includes(f.art)).reduce((sum,f)=>sum+(f.n||1),0);
+  $("#bookLimits").textContent="Heute: "+troutToday+"/2 Forellen und Saiblinge · Dieses Jahr: "+countYear("Bachforelle")+"/20 Bachforellen im Patentgewässer";
+  $("#moreCatches").hidden=catches.length<=bookLimit;
+  $("#logList").innerHTML=catches.length?catches.slice(0,bookLimit).map(f=>`<div class="it"><div class="row" style="align-items:center"><div style="flex:3"><b>${esc(f.art)}</b>${f.len!=null?` · ${f.len} cm`:""}${f.n>1?` · ${f.n} Stk.`:""} <span class="pill ${f.kept?"p-ok":"p-mut"}">${f.kept?"behalten":"zurück"}</span><div class="mut small">${new Date(f.ts).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"})} · ${esc((f.canton||"SO")==="SO"?f.sec:cname(f.canton)+(cwLabel(f.canton,f.sec)?" · "+cwLabel(f.canton,f.sec):""))}${f.note?" · "+esc(f.note):""}</div></div>${f.photoKey?`<button type="button" data-photo="${esc(f.photoKey)}">Foto ansehen</button>`:`<button type="button" data-add-photo="${esc(f.id)}">Foto hinzufügen</button>`}<button class="del" data-del="${f.id}">Löschen</button></div></div>`).join(""):`<p class="mut">Keine Fangeinträge in diesem Zeitraum.</p>`;
 }
 function toCSV(){const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;return[["datum","zeit","kanton","gewaesser","art","laenge_cm","anzahl","behalten","notiz","lat","lon"].join(";")].concat(state.log.map(f=>{const d=new Date(f.ts);return[d.toLocaleDateString("de-CH"),d.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"}),f.canton||"SO",f.sec,f.art,f.len??"",f.n||1,f.kept?"ja":"nein",f.note,f.lat??"",f.lon??""].map(q).join(";")})).join("\n")}
 function exportCSV(){const csv="﻿"+toCSV();try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=`faenge_${dayKey(new Date())}.csv`;document.body.appendChild(a);a.click();a.remove()}catch(e){}

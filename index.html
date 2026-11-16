@@ -86,7 +86,7 @@ td .pill{margin-top:4px}
 .hero .d{color:rgba(255,255,255,.86);margin-top:6px;font-size:14.5px;line-height:1.45}
 .hero.none .d{color:var(--mut)}
 .hero ul{margin:12px 0 0;padding-left:20px}.hero li{margin:5px 0}
-.hero label{color:rgba(255,255,255,.86)}
+.hero label{color:inherit}
 .hero select{background:#fff;color:#12222a;border-color:#fff}
 .hero .chips button{background:#fff;color:#12222a;border-color:#fff}
 .hero.sm{padding:12px 16px;margin-bottom:0}.hero.sm .t{font-size:16px}.hero.sm .d{margin-top:2px;font-size:13px}
@@ -99,7 +99,7 @@ td .pill{margin-top:4px}
 .verdict .ln.sec{color:var(--mut)}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chips button{min-height:40px;padding:6px 14px;font-size:14px;border-radius:99px;font-weight:550}
-.chips button.on{background:var(--tx);color:var(--sf);border-color:var(--tx)}
+.chips button.on{background:var(--acc);color:var(--acc-tx);border-color:var(--acc)}
 .lenrow{display:flex;gap:8px}.lenrow button{flex:0 0 56px;font-size:24px;font-weight:400;padding:0}
 .lenrow input{flex:1;font-size:24px;font-weight:650;text-align:center}
 details summary{cursor:pointer;color:var(--acc);margin-top:14px;font-size:14.5px;font-weight:600}
@@ -151,7 +151,7 @@ nav svg{width:24px;height:24px;stroke-width:1.75}
 .leaflet-popup-content{margin:14px 16px;min-width:220px;color:#12222a}
 .leaflet-popup-content h3{margin:0 0 6px;font-size:16px}
 .leaflet-popup-content button{min-height:42px;margin-top:10px;width:100%;background:#0e5c63;color:#fff;border:0}
-.leaflet-popup-content .p-ok{background:#e4f2ea;color:#1c7548}.leaflet-popup-content .p-warn{background:#fbf0d5;color:#8a5a00}.leaflet-popup-content .p-bad{background:#fbe6e3;color:#b02a20}
+
 .lg{background:rgba(255,255,255,.96);color:#12222a;padding:9px 14px;border-radius:12px;font-size:12.5px;line-height:1.8;box-shadow:0 2px 10px rgba(10,20,24,.28)}
 .lg i{display:inline-block;width:22px;height:4px;border-radius:2px;margin-right:8px;vertical-align:middle}
 .mylbl{background:#fff;color:#12222a;font-weight:700;font-size:11.5px;padding:2px 8px;border-radius:99px;box-shadow:0 1px 4px rgba(0,0,0,.4);white-space:nowrap}
@@ -177,16 +177,40 @@ dialog{background:var(--sf);color:var(--tx);border:1px solid var(--line);border-
 dialog h2{margin:0 0 10px;font-size:18px}
 dialog::backdrop{background:rgba(10,20,24,.55)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+html{color-scheme:light dark;scroll-padding-block:calc(var(--tb) + 12px) calc(var(--nav) + 12px)}
+#tbStatus{border:0;background:transparent;color:inherit;text-align:left;padding:0}
+#tbStatus .sub,#tbStatus .txt{display:block}
+.chips button,.seg button,.del,#tbCanton,.mseg button{min-height:44px}
+.sh-x{flex-basis:44px;width:44px;height:44px;padding:12px}
+details:not(.fish)>summary{padding-block:10px}
+button:disabled{opacity:.55;cursor:wait}
+#map,.fpic img{background:var(--sf2)}
+.mseg,.lg,.mebtn,.mylbl,.leaflet-popup-content-wrapper,.leaflet-popup-tip,.leaflet-bar a{background:var(--sf);color:var(--tx)}
+.mseg button{color:var(--mut)}
+.mseg button.on,.leaflet-popup-content button{background:var(--acc);color:var(--acc-tx)}
+.mebtn{color:var(--acc)}.mylbl.s{color:var(--bad)}
+.leaflet-popup-content{color:var(--tx)}
+.picker-trigger{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;background:var(--sf2);color:var(--tx);font-weight:500}
+.picker-trigger::after{content:"";width:8px;height:8px;flex:none;border:solid var(--acc);border-width:0 2px 2px 0;transform:rotate(45deg)}
+#picker[open]{display:flex;flex-direction:column;gap:12px;max-height:80vh;max-height:80dvh}
+.picker-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.picker-head h2{margin:0}.picker-head button{padding:6px 12px;min-height:44px}
+#pickerList{min-height:0;overflow:auto;overscroll-behavior:contain}
+#pickerList button{display:block;width:100%;border:0;border-bottom:1px solid var(--line);border-radius:0;text-align:left;font-weight:500}
+#pickerList button[aria-pressed=true]{color:var(--acc);background:var(--sf2);box-shadow:inset 3px 0 var(--acc);font-weight:700}
+#pickerList button:focus-visible{outline-offset:-3px}
+#mapSheet{max-height:calc(100% - 20px);overflow:auto}
+@media(max-width:480px){#logList .it .row>div:first-child{flex:1 0 100%!important}main{padding-inline:12px}}
 </style>
 </head>
 <body>
 
 <div id="topbar"><div class="in">
-  <button id="tbCanton" aria-label="Kanton">SO</button>
-  <div id="tbStatus" role="button" aria-label="Status am aktuellen Ort">
+  <button id="tbCanton" aria-label="Kanton wählen">SO</button>
+  <button type="button" id="tbStatus" aria-label="Status am aktuellen Ort">
     <span class="dot" id="tbDot"></span>
-    <div style="min-width:0"><div class="txt" id="tbTxt">Standort wird gesucht …</div><div class="sub" id="tbSub"></div></div>
-  </div>
+    <span style="min-width:0"><span class="txt" id="tbTxt">Standort wird gesucht …</span><span class="sub" id="tbSub"></span></span>
+  </button>
 </div></div>
 
 <main>
@@ -228,7 +252,7 @@ dialog::backdrop{background:rgba(10,20,24,.55)}
     <label for="fArt">Fischart</label>
     <select id="fArt"></select>
     <label for="fLen">Länge in cm (Kopfspitze bis Schwanzende)</label>
-    <div class="lenrow"><button type="button" data-d="-1" aria-label="minus">−</button><input id="fLen" type="number" inputmode="decimal" step="0.5" min="0" placeholder="cm"><button type="button" data-d="1" aria-label="plus">+</button></div>
+    <div class="lenrow"><button type="button" data-d="-1" aria-label="Länge um 1 cm verringern">−</button><input id="fLen" type="number" inputmode="decimal" step="0.5" min="0" placeholder="cm"><button type="button" data-d="1" aria-label="Länge um 1 cm erhöhen">+</button></div>
     <div id="liveCheck"></div>
     <details><summary>Anzahl & Notiz</summary>
       <label for="fAnz">Anzahl (für Massenfänge wie Rotauge, Egli)</label>
@@ -243,7 +267,7 @@ dialog::backdrop{background:rgba(10,20,24,.55)}
       <button type="button" id="removePhoto">Foto entfernen</button>
     </div>
     <button class="pri full" id="btnSave" style="margin-top:14px">Fang speichern</button>
-    <div id="afterSave"></div>
+    <div id="afterSave" role="status"></div>
   </div>
 </section>
 
@@ -280,15 +304,20 @@ dialog::backdrop{background:rgba(10,20,24,.55)}
 </section>
 </main>
 
-<nav>
-  <button data-v="hier" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.3-7-12a7 7 0 0 1 14 0c0 5.7-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>Hier</button>
+<nav aria-label="Hauptnavigation">
+  <button data-v="hier" class="on" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.3-7-12a7 7 0 0 1 14 0c0 5.7-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>Hier</button>
   <button data-v="karte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg>Karte</button>
   <button data-v="fang"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12c3-4 7-6 12-5 3 .6 5 2.3 6 3.5L23 8v8l-3-2.5c-1 1.2-3 2.9-6 3.5-5 1-9-1-12-5z"/></svg>Fang</button>
   <button data-v="arten"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h11a3 3 0 0 1 3 3v12H7a3 3 0 0 1-3-3z"/><path d="M4 17a3 3 0 0 1 3-3h11"/></svg>Fische</button>
   <button data-v="regeln"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>Regeln</button>
 </nav>
 
-<div id="toast"></div>
+<div id="toast" role="status"></div>
+<dialog id="picker" aria-labelledby="pickerTitle">
+  <div class="picker-head"><h2 id="pickerTitle"></h2><button type="button" id="pickerClose">Schliessen</button></div>
+  <input type="search" id="pickerSearch" aria-label="Auswahl durchsuchen" placeholder="Suchen …">
+  <div id="pickerList"></div>
+</dialog>
 <dialog id="dlg"><div id="dlgBody"></div><div class="row" style="margin-top:12px"><button id="dlgNo">Abbrechen</button><button class="pri" id="dlgYes">OK</button></div></dialog>
 
 <script>
@@ -525,7 +554,7 @@ async function identifyCanton(lat,lon){
   lastIdent=[lat,lon];
   try{const u=`https://api3.geo.admin.ch/rest/services/api/MapServer/identify?geometry=${lon},${lat}&geometryType=esriGeometryPoint&layers=all:ch.swisstopo.swissboundaries3d-kanton-flaeche.fill&sr=4326&tolerance=0&returnGeometry=false&lang=de`;
     const j=await fetch(u).then(r=>r.json());const a=j.results&&j.results[0]&&j.results[0].attributes;
-    if(a&&a.ak&&a.ak!==state.canton&&CANTONS.some(c=>c[0]===a.ak)){state.canton=a.ak;save();toast("Kanton erkannt: "+cname(a.ak));onCantonChanged()}
+    if(state.cantonAuto&&lastIdent?.[0]===lat&&lastIdent?.[1]===lon&&a&&a.ak&&a.ak!==state.canton&&CANTONS.some(c=>c[0]===a.ak)){state.canton=a.ak;save();toast("Kanton erkannt: "+cname(a.ak));onCantonChanged()}
   }catch(e){lastIdent=null}
 }
 
@@ -549,6 +578,7 @@ function hereSummary(){
 }
 function renderTop(){
   $("#tbCanton").textContent=state.canton;
+  $("#tbCanton").setAttribute("aria-label","Kanton wählen, aktuell "+cname(state.canton));
   const x=hereSummary();
   let t=x.t,s=x.s,cls=x.cls;
   if(!state.pos&&(state.secAuto||state.cantonAuto)&&isSO()){s=state.geoErr||"Standort wird gesucht …"}
@@ -573,8 +603,67 @@ function rulesTableFor(sec){
     const pill=r.national||r.chk?"":`<br><span class="pill ${open?"p-ok":"p-bad"}">${open?"offen":r.prot?"geschützt":"Schonzeit"}</span>`;
     return`<tr><td>${esc(sp)}${pill}</td><td>${mass.replace(/ cm/g,"")}</td><td class="nw">${sz}</td><td class="nw">${lim}</td></tr>`}).join("")}</table></div>${cm?`<p class="mut small">* Limite gilt für mehrere Arten zusammen. Details unter «Regeln».</p>`:""}`;
 }
+function syncPickers(container){
+  container.querySelectorAll("select").forEach(select=>{
+    let trigger=document.getElementById(select.id+"Trigger");
+    if(!trigger){
+      const label=select.labels[0];
+      trigger=document.createElement("button");
+      trigger.type="button";
+      trigger.id=select.id+"Trigger";
+      trigger.className="picker-trigger";
+      trigger.setAttribute("aria-haspopup","dialog");
+      trigger.setAttribute("aria-controls","picker");
+      trigger.onclick=()=>openPicker(select,label.textContent);
+      select.after(trigger);
+      label.htmlFor=trigger.id;
+      label.id=select.id+"Label";
+      trigger.setAttribute("aria-labelledby",label.id+" "+trigger.id);
+      select.hidden=true;
+    }
+    trigger.textContent=select.selectedOptions[0]?.textContent||"Auswählen";
+  });
+}
+function openPicker(select,title){
+  const dlg=$("#picker"),search=$("#pickerSearch"),list=$("#pickerList"),canton=state.canton;
+  const options=Array.from(select.options);
+  const render=()=>{
+    list.replaceChildren();
+    const query=search.value.trim().toLocaleLowerCase();
+    for(const option of options){
+      if(!option.textContent.toLocaleLowerCase().includes(query))continue;
+      const button=document.createElement("button");
+      button.type="button";button.textContent=option.textContent;
+      button.setAttribute("aria-pressed",String(option.selected));
+      button.onclick=()=>{
+        const current=document.getElementById(select.id);
+        dlg.close();
+        if(!current || ((select.id==="heroCW"||select.id==="selSec")&&state.canton!==canton))return;
+        if(current.value!==option.value && Array.from(current.options).some(o=>o.value===option.value)){
+          current.value=option.value;
+          current.dispatchEvent(new Event("change",{bubbles:true}));
+        }
+      };
+      list.append(button);
+    }
+    if(!list.childElementCount)list.textContent="Keine Treffer";
+    list.scrollTop=0;
+  };
+  $("#pickerTitle").textContent=title;
+  search.value="";search.hidden=options.length<8;search.oninput=render;
+  render();dlg.showModal();
+  $("#pickerClose").focus();
+  list.querySelector('[aria-pressed="true"]')?.scrollIntoView({block:"nearest"});
+  dlg.onclose=()=>document.getElementById(select.id+"Trigger")?.focus({preventScroll:true});
+}
+$("#pickerClose").onclick=()=>$("#picker").close();
+$("#picker").onclick=e=>{
+  const r=e.currentTarget.getBoundingClientRect();
+  if(e.target===e.currentTarget&&(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom))e.currentTarget.close();
+};
 function renderHier(){
-  if(document.activeElement&&document.activeElement.id==="heroCW")return;
+  const restoreWaterFocus=document.activeElement?.id==="heroCWTrigger";
+
   const det=isSO(),cm=isCM(),sec=currentSec(),x=hereSummary(),st=det||cm?secStatus(sec):[];
   const h=state.here;
   let extra="",altHtml="";
@@ -598,6 +687,8 @@ function renderHier(){
   if(det){const opts=SECTIONS.map(s=>`<option value="${s.id}">${esc(s.name)} – ${esc(s.desc)}</option>`);
     if(!SECTIONS.some(s=>s.id===state.sec))opts.unshift(`<option value="${esc(state.sec)}">${esc(sec.name)}</option>`);
     $("#selSec").innerHTML=opts.join("");$("#selSec").value=state.sec}
+  syncPickers($("#v-hier"));
+  if(restoreWaterFocus)$("#heroCWTrigger")?.focus({preventScroll:true});
 }
 
 /* ================= RENDER: FANG ================= */
@@ -617,7 +708,7 @@ function renderFang(){
   $("#fangCtx").innerHTML=`<div class="hero sm ${x.cls}"><div class="t">${esc(x.t)}</div><div class="d">${esc(x.s||"")}</div></div>`;
   renderSess();liveCheck();
 }
-function setSpecies(sp){$("#fArt").value=sp;document.querySelectorAll("#spChips button").forEach(b=>b.classList.toggle("on",b.dataset.sp===sp));liveCheck()}
+function setSpecies(sp){$("#fArt").value=sp;syncPickers($("#v-fang"));document.querySelectorAll("#spChips button").forEach(b=>{b.classList.toggle("on",b.dataset.sp===sp);b.setAttribute("aria-pressed",String(b.dataset.sp===sp))});liveCheck()}
 function liveCheck(){
   const sp=$("#fArt").value,len=parseFloat($("#fLen").value);
   const c=check(currentSec(),sp,isNaN(len)?null:len);
@@ -909,7 +1000,7 @@ function artStatus(sp){
 }
 function renderArten(){
   const q=($("#artQ").value||"").trim().toLowerCase();
-  $("#artTags").innerHTML=FTAGS.map(([k,l])=>`<button type="button" data-tag="${k}" class="${k===artFilter?"on":""}">${l}</button>`).join("");
+  $("#artTags").innerHTML=FTAGS.map(([k,l])=>`<button type="button" data-tag="${k}" aria-pressed="${k===artFilter}" class="${k===artFilter?"on":""}">${l}</button>`).join("");
   const list=Object.entries(FISH).filter(([n,f])=>(artFilter==="alle"||f.tags.includes(artFilter))&&(!q||(n+" "+f.lat+" "+f.wo).toLowerCase().includes(q)));
   const ctx=isSO()?currentSec().name:isCM()?(currentSec().id?currentSec().name:cname(state.canton)):cname(state.canton)+" (national)";
   $("#artCtx").textContent="Status heute für: "+ctx;
@@ -1150,14 +1241,17 @@ function chooseWater(c,name,cw){
   save();mapSel=null;renderSheet();drawSel();
   toast(hasCM(c)&&!cw?name+" gewählt – Regelgruppe unter «Hier» wählen":name+" gewählt");
   onCantonChanged();
-  if(hasCM(c)&&!cw)show("hier");
+  show("hier");
 }
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape" && !document.querySelector("dialog[open]") && mapSel && $("#v-karte").classList.contains("on")){sheetAction("close");map?.getContainer().focus()}
+});
 function sheetAction(a){
   if(a==="close"){mapSel=null}
   else if(a==="rules"){mapSel=null;renderSheet();drawSel();show("hier");return}
   else if(a==="rules2"&&mapSel){a="ok"}
   if(a==="ok"&&mapSel){const id=mapSel.id;state.canton="SO";state.cantonAuto=false;state.sec=id;state.secAuto=false;state.pin=null;mapSel=null;save();renderSheet();toast(secById(id).name+" gewählt");onCantonChanged();
-    if(arguments[0]==="rules2")show("hier");return}
+    show("hier");return}
   if(a==="okx"&&mapSel){const c=mapSel.code,f=XGEO[c].feats[mapSel.id];chooseWater(c,f.name,pickCW(c,[f.name,f.name.split(/[\s\d(]/)[0]],f.poly,f.cw));return}
   if(a==="okw"&&mapSel){const c=mapSel.code,w=mapSel.water;chooseWater(c,w.name||"Gewässer",pickCW(c,w.names,w.lake));return}
   renderSheet();drawSel();
@@ -1200,7 +1294,7 @@ function initMap(){
     const draw=()=>{const cur=map.hasLayer(topo)?"topo":"luft";d.innerHTML=`<button type="button" data-b="luft" class="${cur==="luft"?"on":""}">Luftbild</button><button type="button" data-b="topo" class="${cur==="topo"?"on":""}">Karte</button>`};draw();
     d.onclick=e=>{const b=e.target.closest("[data-b]");if(!b)return;const t=b.dataset.b==="topo";map.removeLayer(t?luft:topo);(t?topo:luft).addTo(map);store.set("base",t?"topo":"luft");draw()};return d};Bs.addTo(map);
   const Lg=L.control({position:"bottomleft"});Lg.onAdd=()=>{const d=L.DomUtil.create("div","lg");L.DomEvent.disableClickPropagation(d);
-    const full=`<div><i style="background:#12b886"></i>Patentgewässer / frei</div><div><i style="background:repeating-linear-gradient(90deg,#ff6b6b 0 4px,transparent 4px 9px)"></i>Patent – heute gesperrt (SO)</div><div><i style="background:#a8261c;height:6px"></i>Schonstrecke / Schongebiet</div><div><i style="background:#f08c00"></i>Pacht / Revier</div><div><i style="background:#7d8b88"></i>Privat</div><div><i style="background:#ffd43b;height:6px"></i>Gewählt</div><div><i style="background:#1971c2;width:10px;height:10px;border-radius:50%"></i>Meine Fänge</div><div style="max-width:210px;line-height:1.35;margin-top:4px;color:#5a6a6c">Zonen vorhanden für SO, BE, VS, FR, VD, GL, ZH, AG, TG, SH. Geodaten © jeweiliger Kanton.</div>`;
+    const full=`<div><i style="background:#12b886"></i>Patentgewässer / frei</div><div><i style="background:repeating-linear-gradient(90deg,#ff6b6b 0 4px,transparent 4px 9px)"></i>Patent – heute gesperrt (SO)</div><div><i style="background:#a8261c;height:6px"></i>Schonstrecke / Schongebiet</div><div><i style="background:#f08c00"></i>Pacht / Revier</div><div><i style="background:#7d8b88"></i>Privat</div><div><i style="background:#ffd43b;height:6px"></i>Gewählt</div><div><i style="background:#1971c2;width:10px;height:10px;border-radius:50%"></i>Meine Fänge</div><div style="max-width:210px;line-height:1.35;margin-top:4px;color:var(--mut)">Zonen vorhanden für SO, BE, VS, FR, VD, GL, ZH, AG, TG, SH. Geodaten © jeweiliger Kanton.</div>`;
     let open=store.get("legendOpen",false);const draw=()=>{d.innerHTML=open?full+`<div style="text-align:right;font-weight:700">Schliessen</div>`:`<b>Legende</b>`};draw();
     d.style.cursor="pointer";d.onclick=()=>{open=!open;store.set("legendOpen",open);draw()};return d};Lg.addTo(map);map._legend=Lg;
   const Me=L.control({position:"bottomright"});Me.onAdd=()=>{const b=L.DomUtil.create("button","mebtn");b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>';b.setAttribute("aria-label","Zu meinem Standort");b.title="Zu meinem Standort";L.DomEvent.on(b,"click",e=>{L.DomEvent.stop(e);follow=true;if(state.pos)map.setView([state.pos.lat,state.pos.lon],16);else{startGeo();toast("Standort wird gesucht …")}});return b};Me.addTo(map);
@@ -1244,17 +1338,23 @@ function show(v){
   document.querySelectorAll("section.view").forEach(s=>s.classList.toggle("on",s.id==="v-"+v));
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v||(v==="stat"&&b.dataset.v==="fang")));
   document.querySelectorAll(".seg button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
+  document.querySelectorAll("nav button,.seg button").forEach(b=>{
+    if(b.classList.contains("on"))b.setAttribute("aria-current","page");
+    else b.removeAttribute("aria-current");
+  });
   if(v!=="karte")window.scrollTo(0,0);
   if(v==="karte")initMap();if(v==="fang")renderFang();if(v==="stat")renderStats();if(v==="regeln")renderRegeln();if(v==="hier")renderHier();if(v==="arten")renderArten();
 }
 document.querySelectorAll("nav button,.seg button").forEach(b=>b.onclick=()=>show(b.dataset.v));
 $("#tbStatus").onclick=()=>show("hier");
 $("#hereHero").onclick=e=>{const b=e.target.closest("[data-alt]");if(!b||!state.pos)return;state.pin={id:b.dataset.alt,lat:state.pos.lat,lon:state.pos.lon};state.sec=b.dataset.alt;save();updateHere();toast(secById(b.dataset.alt).name+" gewählt")};
-$("#tbCanton").onclick=()=>{show("hier");$("#manCard").open=true;setTimeout(()=>{$("#manCard").scrollIntoView({block:"center"});$("#selCanton").focus()},100)};
+$("#tbCanton").onclick=()=>{show("hier");$("#manCard").open=true;setTimeout(()=>{$("#manCard").scrollIntoView({block:"center"});$("#selCantonTrigger").focus()},100)};
 let _cSig="";function fillCantons(){const sig=CANTONS.map(([c])=>hasCM(c)||isDetailed(c)?1:0).join("");if(sig===_cSig)return;_cSig=sig;
   $("#selCanton").innerHTML=CANTONS.map(([c,n])=>`<option value="${c}">${esc(n)}${isDetailed(c)||hasCM(c)?"":" – nur national"}</option>`).join("")}
 fillCantons();
-$("#hereHero").onchange=e=>{if(e.target.id!=="heroCW")return;state.cw=Object.assign({},state.cw,{[state.canton]:e.target.value});save();renderAll();if(e.target.value)toast(cwLabel(state.canton,e.target.value)+" gewählt")};
+$("#hereHero").onchange=e=>{if(e.target.id!=="heroCW")return;
+  if(cwOf(state.canton))delete state.xsel[state.canton];
+  state.cw=Object.assign({},state.cw,{[state.canton]:e.target.value});save();renderAll();if(e.target.value)toast(cwLabel(state.canton,e.target.value)+" gewählt")};
 $("#selCanton").onchange=e=>{state.canton=e.target.value;state.cantonAuto=false;save();toast("Kanton manuell gewählt – automatische Erkennung aus");onCantonChanged()};
 $("#cbCantonAuto").onchange=e=>{setAuto(e.target.checked);toast(e.target.checked?"Standort bestimmt Kanton und Gewässer":"Automatik aus – du wählst selbst")};
 $("#hereAct").onclick=e=>{const b=e.target.closest("[data-act]");if(!b)return;if(b.dataset.act==="map")show("karte");else{setAuto(true);toast("Standort bestimmt Kanton und Gewässer")}};

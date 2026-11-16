@@ -180,21 +180,20 @@ dialog::backdrop{background:rgba(10,20,24,.55)}
 <!-- HIER -->
 <section class="view on" id="v-hier">
   <div id="hereHero"></div>
+  <div class="row" id="hereAct"></div>
+  <button class="pri full hide" id="btnGeo" style="margin-top:10px">Standort aktivieren</button>
+  <div id="geoMsg" class="mut small" style="margin:6px 4px 0"></div>
   <div id="hereRules"></div>
-  <div class="card">
-    <h2>Ort & Kanton</h2>
-    <button class="pri full hide" id="btnGeo">Standort aktivieren</button>
-    <div id="geoMsg" class="mut small"></div>
+  <details class="card" id="manCard">
+    <summary style="margin:0;color:var(--tx);font-size:17px;font-weight:650">Ohne Karte wählen</summary>
     <label for="selCanton">Kanton</label>
     <select id="selCanton"></select>
-    <label class="chk"><input type="checkbox" id="cbCantonAuto"> Kanton automatisch per Standort</label>
     <div id="secPick">
       <label for="selSec">Patentabschnitt</label>
       <select id="selSec"></select>
-      <label class="chk"><input type="checkbox" id="cbSecAuto"> Abschnitt automatisch per Standort</label>
     </div>
-    <button type="button" class="full" id="btnToMap" style="margin-top:18px">Auf der Karte wählen</button>
-  </div>
+    <label class="chk"><input type="checkbox" id="cbCantonAuto"> Kanton und Gewässer automatisch per Standort bestimmen</label>
+  </details>
 </section>
 
 <!-- KARTE -->
@@ -422,6 +421,8 @@ function cmRule(c,wid,sp){
 function ruleFor(sec,sp){if(isSO())return soRule(sec,sp);if(isCM())return cmRule(state.canton,sec.id,sp);return natRule(sp)}
 function cwOf(c){const v=(state.cw||{})[c];return((RULES[c]||{}).w||[]).some(x=>x[0]===v)?v:""}
 function cwLabel(c,id){const x=((RULES[c]||{}).w||[]).find(x=>x[0]===id);return x?x[1]:""}
+const isAuto=()=>state.cantonAuto&&(state.secAuto||!isSO());
+function setAuto(on){state.cantonAuto=on;state.secAuto=on;if(on){state.pin=null;lastIdent=null;lastNear=null}save();if(on&&state.pos){identifyCanton(state.pos.lat,state.pos.lon)}updateHere()}
 function currentSec(){
   if(isCM()){const c=state.canton,id=cwOf(c);return{id,kind:"cw",name:id?cwLabel(c,id):cname(c),desc:id?cname(c):"Gewässer noch nicht gewählt",notes:[]}}
   return secById(state.sec)}
@@ -571,11 +572,12 @@ function renderHier(){
     ${det?`<div class="card"><h2>Überall in SO</h2><ul><li>Widerhaken verboten</li><li>Drillinge verboten – ausser Aare A1–A6</li><li>Max. 2 Ruten, je max. 2 Köder; immer beaufsichtigen</li><li>Fischpässe und Umgehungsgerinne: Fangen verboten</li></ul></div>`:""}`;
   $("#btnGeo").classList.toggle("hide",!!state.pos||watchId!=null);
   $("#geoMsg").textContent=state.geoErr||"";
-  fillCantons();$("#selCanton").value=state.canton;$("#cbCantonAuto").checked=state.cantonAuto;
+  fillCantons();$("#selCanton").value=state.canton;$("#cbCantonAuto").checked=isAuto();
+  $("#hereAct").innerHTML=`<button type="button" data-act="map">Auf Karte wählen</button>${isAuto()?"":`<button type="button" data-act="auto">Per Standort</button>`}`;
   $("#secPick").classList.toggle("hide",!det);
   if(det){const opts=SECTIONS.map(s=>`<option value="${s.id}">${esc(s.name)} – ${esc(s.desc)}</option>`);
     if(!SECTIONS.some(s=>s.id===state.sec))opts.unshift(`<option value="${esc(state.sec)}">${esc(sec.name)}</option>`);
-    $("#selSec").innerHTML=opts.join("");$("#selSec").value=state.sec;$("#cbSecAuto").checked=state.secAuto}
+    $("#selSec").innerHTML=opts.join("");$("#selSec").value=state.sec}
 }
 
 /* ================= RENDER: FANG ================= */
@@ -1028,7 +1030,7 @@ function renderSheet(){
     const x=hereSummary();
     h=`<div class="sh-h"><div><div class="sh-t"><span class="sh-dot ${x.cls}"></span>${esc(x.t)}</div></div></div>
       <div class="sh-d">${esc(state.pos?(x.s||""):(state.geoErr||"Standort wird gesucht …"))}</div>
-      ${isSO()?`<div class="sh-d">Tippe auf eine Linie, um einen Abschnitt zu wählen.</div>${state.secAuto?"":`<button type="button" class="full" data-sh="auto">Abschnitt wieder per Standort bestimmen</button>`}`
+      ${isSO()?`<div class="sh-d">Tippe auf eine Linie, um einen Abschnitt zu wählen.</div>`
         :isCM()?(nearW&&state.pos?`<div class="sh-d">In der Nähe: <b>${esc(nearW.name||(nearW.lake?"See":"Bach ohne Namen"))}</b>. Tippe auf die Karte, um ein anderes Gewässer zu wählen.</div>`:`<div class="sh-d">Tippe auf einen Fluss oder See, um ihn zu wählen.</div>`)+cwSelect(state.canton,cwOf(state.canton)||(nearW&&state.pos?matchW(state.canton,nearW).sug:""))+`<button type="button" class="pri full" data-sh="okc">Gewässer bestätigen</button>`
         :`<div class="sh-d">Tippe auf die Karte, um einen Kanton zu wählen.</div>`}
       ${(()=>{const src=XSRC[state.canton];if(!src)return"";const G=xg(state.canton);
@@ -1037,6 +1039,7 @@ function renderSheet(){
         if(Date.now()-G.fail<30000)return`<div class="sh-d">Die Fischereigewässer konnten nicht geladen werden.</div>`;
         const n=state.pos?xNearest(state.pos.lat,state.pos.lon,150):null;
         return n?`<div class="sh-d">Am Standort: <b>${esc(n.f.name)}</b></div><button type="button" class="full" data-sh="nearx" data-id="${esc(n.f.id)}">Anzeigen</button>`:`<div class="sh-d">Tippe auf eine farbige Linie oder Fläche für die Angaben des Kantons.</div>`})()}
+      ${isAuto()?"":`<button type="button" class="full" data-sh="auto">Wieder per Standort</button>`}
       ${!state.pos&&watchId==null?`<button type="button" class="full" data-sh="geo">Standort aktivieren</button>`:""}`;
   }
   el.innerHTML=h;
@@ -1046,7 +1049,7 @@ function sheetAction(a){
   if(a==="close")mapSel=null;
   else if(a==="ok"&&mapSel){state.sec=mapSel.id;state.secAuto=false;state.pin=null;save();toast(secById(mapSel.id).name+" gewählt")}
   else if(a==="rules"){show("hier");return}
-  else if(a==="auto"){state.secAuto=true;mapSel=null;save();updateHere();toast("Abschnitt wird per Standort bestimmt");return}
+  else if(a==="auto"){mapSel=null;setAuto(true);toast("Standort bestimmt Kanton und Gewässer");return}
   else if(a==="geo"){state.geoErr=null;startGeo()}
   else if(a==="okc"){
     const c=mapSel&&mapSel.code?mapSel.code:state.canton,sel=$("#shCW"),w=sel?sel.value:null;
@@ -1085,10 +1088,12 @@ function initMap(){
   if(map){setTimeout(()=>map.invalidateSize(),50);renderSheet();drawSel();return}
   map=L.map("map",{preferCanvas:true,renderer:L.canvas({tolerance:12}),zoomControl:false,maxBounds:[[45.6,5.7],[48.0,10.7]],minZoom:7});
   L.control.zoom({position:"topright"}).addTo(map);
-  const topo=L.tileLayer("https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg",{maxNativeZoom:18,maxZoom:19,attribution:'© <a href="https://www.swisstopo.admin.ch">swisstopo</a> · Gewässer © Kanton SO'}).addTo(map);
-  const luft=L.tileLayer("https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swissimage/default/current/3857/{z}/{x}/{y}.jpeg",{maxNativeZoom:19,maxZoom:19,attribution:"© swisstopo"});
+  const topo=L.tileLayer("https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg",{maxNativeZoom:18,maxZoom:19,attribution:'© <a href="https://www.swisstopo.admin.ch">swisstopo</a>'});
+  const luft=L.tileLayer("https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swissimage/default/current/3857/{z}/{x}/{y}.jpeg",{maxNativeZoom:19,maxZoom:19,attribution:'© <a href="https://www.swisstopo.admin.ch">swisstopo</a>'});
   catchLayer=L.layerGroup().addTo(map);
-  L.control.layers({"Landeskarte":topo,"Luftbild":luft},{"Meine Fänge":catchLayer},{position:"topright"}).addTo(map);
+  (store.get("base","luft")==="topo"?topo:luft).addTo(map);
+  L.control.layers({"Luftbild":luft,"Landeskarte":topo},{"Meine Fänge":catchLayer},{position:"topright"}).addTo(map);
+  map.on("baselayerchange",e=>store.set("base",e.layer===topo?"topo":"luft"));
   const Lg=L.control({position:"bottomleft"});Lg.onAdd=()=>{const d=L.DomUtil.create("div","lg");L.DomEvent.disableClickPropagation(d);
     const full=state.canton==="SO"?`<div><i style="background:#12b886"></i>Patent – heute offen</div><div><i style="background:repeating-linear-gradient(90deg,#ff6b6b 0 4px,transparent 4px 9px)"></i>Patent – heute gesperrt</div><div><i style="background:#7a0019;height:7px"></i>Schonstrecke – verboten</div><div><i style="background:#f08c00"></i>Pacht – nicht mit Patent</div><div><i style="background:#7d8b88"></i>Privat</div><div><i style="background:#1971c2;width:10px;height:10px;border-radius:50%"></i>Meine Fänge</div>`:XSRC[state.canton]?`<div><i style="background:#12b886"></i>Patentgewässer / frei</div><div><i style="background:#f08c00"></i>Pachtgewässer / Revier</div><div><i style="background:#a8261c"></i>Schongebiet</div><div><i style="background:#7d8b88"></i>Privates Fischereirecht</div><div><i style="background:#12b886"></i>Freiangelrecht</div><div><i style="background:#1971c2;width:10px;height:10px;border-radius:50%"></i>Meine Fänge</div><div>${XSRC[state.canton].attr}</div>`:`<div style="max-width:200px;line-height:1.4">Für diesen Kanton gibt es keine eingezeichneten Abschnitte. Tippe auf einen Fluss oder See, um ihn zu wählen.</div>`;
     let open=store.get("legendOpen",false);const draw=()=>{d.innerHTML=open?full+`<div style="text-align:right;font-weight:700">Schliessen</div>`:`<b>Legende</b>`};draw();
@@ -1140,15 +1145,15 @@ function show(v){
 document.querySelectorAll("nav button,.seg button").forEach(b=>b.onclick=()=>show(b.dataset.v));
 $("#tbStatus").onclick=()=>show("hier");
 $("#hereHero").onclick=e=>{const b=e.target.closest("[data-alt]");if(!b||!state.pos)return;state.pin={id:b.dataset.alt,lat:state.pos.lat,lon:state.pos.lon};state.sec=b.dataset.alt;save();updateHere();toast(secById(b.dataset.alt).name+" gewählt")};
-$("#tbCanton").onclick=()=>{show("hier");setTimeout(()=>$("#selCanton").focus(),100)};
+$("#tbCanton").onclick=()=>{show("hier");$("#manCard").open=true;setTimeout(()=>{$("#manCard").scrollIntoView({block:"center"});$("#selCanton").focus()},100)};
 let _cSig="";function fillCantons(){const sig=CANTONS.map(([c])=>hasCM(c)||isDetailed(c)?1:0).join("");if(sig===_cSig)return;_cSig=sig;
   $("#selCanton").innerHTML=CANTONS.map(([c,n])=>`<option value="${c}">${esc(n)}${isDetailed(c)||hasCM(c)?"":" – nur national"}</option>`).join("")}
 fillCantons();
 $("#hereHero").onchange=e=>{if(e.target.id!=="heroCW")return;state.cw=Object.assign({},state.cw,{[state.canton]:e.target.value});save();renderAll();if(e.target.value)toast(cwLabel(state.canton,e.target.value)+" gewählt")};
 $("#selCanton").onchange=e=>{state.canton=e.target.value;state.cantonAuto=false;save();toast("Kanton manuell gewählt – automatische Erkennung aus");onCantonChanged()};
-$("#cbCantonAuto").onchange=e=>{state.cantonAuto=e.target.checked;save();if(state.cantonAuto&&state.pos){lastIdent=null;identifyCanton(state.pos.lat,state.pos.lon)}};
+$("#cbCantonAuto").onchange=e=>{setAuto(e.target.checked);toast(e.target.checked?"Standort bestimmt Kanton und Gewässer":"Automatik aus – du wählst selbst")};
+$("#hereAct").onclick=e=>{const b=e.target.closest("[data-act]");if(!b)return;if(b.dataset.act==="map")show("karte");else{setAuto(true);toast("Standort bestimmt Kanton und Gewässer")}};
 $("#selSec").onchange=e=>{state.sec=e.target.value;state.secAuto=false;save();renderAll()};
-$("#cbSecAuto").onchange=e=>{state.secAuto=e.target.checked;save();updateHere()};
 $("#btnGeo").onclick=()=>{state.geoErr=null;startGeo();renderHier()};
 $("#spChips").innerHTML=QUICK.map(s=>`<button type="button" data-sp="${esc(s)}">${esc(s.replace(" (Flussbarsch)",""))}</button>`).join("");
 $("#spChips").onclick=e=>{const b=e.target.closest("[data-sp]");if(b)setSpecies(b.dataset.sp)};
@@ -1157,7 +1162,6 @@ $("#fArt").onchange=e=>setSpecies(e.target.value);
 $("#fLen").oninput=liveCheck;
 document.querySelectorAll(".lenrow [data-d]").forEach(b=>b.onclick=()=>{const v=parseFloat($("#fLen").value)||0;$("#fLen").value=Math.max(0,v+parseFloat(b.dataset.d));liveCheck()});
 $("#btnSave").onclick=saveFang;
-$("#btnToMap").onclick=()=>show("karte");
 $("#artQ").oninput=renderArten;
 $("#artTags").onclick=e=>{const b=e.target.closest("[data-tag]");if(b){artFilter=b.dataset.tag;renderArten()}};
 $("#artList").addEventListener("toggle",e=>{const d=e.target;if(d.open)artOpen=d.dataset.sp;else if(artOpen===d.dataset.sp)artOpen=null},true);

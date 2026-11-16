@@ -1,5 +1,5 @@
 // Fischer-Begleiter Service Worker
-const APP = "fb-app-v30";      // eigene Dateien: Netz zuerst, sonst Cache
+const APP = "fb-app-v31";      // eigene Dateien: Netz zuerst, sonst Cache
 const LIB = "fb-lib-v1";      // Kartenbibliothek: Cache zuerst
 const TILES = "fb-tiles-v1";  // Kartenkacheln: Cache zuerst, begrenzt
 const MAX_TILES = 600;

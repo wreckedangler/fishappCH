@@ -249,6 +249,12 @@ button:disabled{opacity:.55;cursor:wait}
  #logList .entry-menu{margin-left:auto}
 }
 .water-approach{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;margin:8px 0 0;font-size:14px}.water-approach dt{color:var(--mut)}.water-approach dd{margin:0}
+#shorePanel{position:absolute;z-index:690;bottom:8px;left:8px;right:8px;max-width:490px;margin:auto;background:var(--sf);color:var(--tx);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;box-shadow:0 3px 16px #0004;max-height:40%;overflow:auto}
+#shorePanel .shore-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#shorePanel button{min-height:44px;padding:5px 10px}#shorePanel p{margin:4px 0}
+.shore-pin{display:grid;place-items:center;width:44px;height:44px;color:white;font:bold 16px system-ui;background:transparent}
+.shore-pin span{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;border:2px solid white;background:#07565d;box-shadow:0 1px 5px #0009}
+#waterFish [data-shore-fish]{margin-top:6px}
 </style>
 </head>
 <body>
@@ -288,6 +294,7 @@ button:disabled{opacity:.55;cursor:wait}
   <div id="map"></div>
   <div id="mapMsg" class="hide"></div>
   <div id="mapHint" aria-live="polite"></div>
+  <aside id="shorePanel" hidden aria-label="Uferstellen"></aside>
   <div id="mapSheet" aria-live="polite"></div>
 </section>
 
@@ -1827,6 +1834,44 @@ function approachDetails(name,season,lake,river){
   }
   return `<dl class="water-approach"><dt>Stelle</dt><dd>${esc(spot)}</dd><dt>Starttiefe</dt><dd>${esc(depth)}</dd><dt>Tageszeit</dt><dd>${esc(time)}</dd></dl>`;
 }
+// Map-derived search positions on footways/paths within 18 m of the bank.
+// Sources: swisstopo Base Vector Tiles v1.0.0 z14 (water, waterway, transportation,
+// landcover, bathymetry), swissBOUNDARIES3D and SO AWJF fishing sections.
+const shoreSites={
+"SO/A1":[[47.23188,7.60661,["Uferweg","Gehölznähe"]],[47.23175,7.60972,["Uferweg","Gehölznähe"]],[47.23116,7.61294,["Uferweg","Gehölznähe"]],[47.23048,7.61618,["Uferweg","Gehölznähe"]],[47.23081,7.60383,["Uferweg","Gehölznähe"]],[47.2306,7.6002,["Uferweg","Gehölznähe"]],[47.23019,7.59686,["Uferweg","Gehölznähe"]],[47.22939,7.59369,["Uferweg","Gehölznähe"]],[47.22695,7.58616,["Uferweg","Gehölznähe"]],[47.22602,7.58303,["Uferweg","Gehölznähe"]],[47.22514,7.57977,["Uferweg","Gehölznähe"]]],
+"SO/A2":[[47.28311,7.84477,["Uferweg","Gehölznähe","Uferbiegung"]],[47.2641,7.81943,["Uferweg","Gehölznähe","Uferbiegung"]],[47.36719,7.91447,["Uferweg","Gehölznähe"]],[47.36819,7.92097,["Uferweg","Gehölznähe"]],[47.36611,7.92246,["Uferweg","Gehölznähe"]],[47.35596,7.90731,["Uferweg","Gehölznähe"]],[47.34812,7.90577,["Uferweg","Gehölznähe"]],[47.34086,7.9075,["Uferweg","Gehölznähe"]],[47.34345,7.90581,["Uferweg","Gehölznähe"]]],
+"SO/A3":[[47.36637,7.92238,["Uferweg","Gehölznähe"]],[47.36137,7.93111,["Uferweg","Gehölznähe"]],[47.3627,7.92828,["Uferweg","Gehölznähe"]],[47.36402,7.92546,["Uferweg","Gehölznähe"]],[47.36919,7.99233,["Uferweg","Gehölznähe"]],[47.37027,7.99668,["Uferweg","Gehölznähe"]],[47.36962,7.97746,["Uferweg","Gehölznähe"]],[47.36322,7.95462,["Uferweg","Gehölznähe"]],[47.36676,7.95977,["Uferweg","Gehölznähe"]],[47.36084,7.94099,["Uferweg","Gehölznähe"]],[47.36096,7.94556,["Uferweg","Gehölznähe"]],[47.36119,7.94885,["Uferweg","Gehölznähe"]]],
+"SO/A4":[[47.36063,7.92491,["Uferweg","Gehölznähe"]],[47.35914,7.92734,["Uferweg","Gehölznähe"]],[47.36315,7.99071,["Uferweg","Gehölznähe"]],[47.36428,7.99321,["Uferweg","Gehölznähe"]],[47.3643,7.98173,["Uferweg","Gehölznähe"]],[47.36531,7.97867,["Uferweg","Gehölznähe"]],[47.37238,7.99738,["Uferweg","Gehölznähe"]],[47.37038,7.99677,["Uferweg","Gehölznähe"]],[47.3557,7.95736,["Uferweg","Gehölznähe"]],[47.35452,7.96183,["Uferweg","Gehölznähe"]],[47.35988,7.96452,["Uferweg","Gehölznähe"]],[47.36205,7.96321,["Uferweg","Gehölznähe"]]],
+"SO/A5":[[47.38904,8.01933,["Uferweg","Gehölznähe"]],[47.38701,8.01765,["Uferweg","Gehölznähe"]],[47.38591,8.01467,["Uferweg","Gehölznähe"]],[47.39116,8.02103,["Uferweg","Gehölznähe"]],[47.39297,8.02319,["Uferweg","Gehölznähe"]]],
+"SO/A6":[[47.38459,8.01528,["Uferweg","Gehölznähe"]],[47.39292,8.0238,["Uferweg","Gehölznähe"]],[47.391,8.02297,["Uferweg","Gehölznähe"]],[47.38866,8.02321,["Uferweg","Gehölznähe"]],[47.38652,8.02204,["Uferweg","Gehölznähe"]],[47.38425,8.02112,["Uferweg","Gehölznähe"]]],
+"SO/B":[[47.48701,7.60802,["Uferweg","Gehölznähe"]],[47.48358,7.60915,["Uferweg","Gehölznähe"]],[47.48144,7.60795,["Uferweg","Gehölznähe"]],[47.47751,7.60649,["Uferweg","Gehölznähe"]]],
+"SO/CH":[[47.42893,7.5786,["Uferweg","Gehölznähe"]],[47.42526,7.58167,["Uferweg","Gehölznähe"]],[47.41608,7.59698,["Uferweg","Gehölznähe"]],[47.40715,7.59796,["Uferweg","Gehölznähe"]],[47.40913,7.59682,["Uferweg","Gehölznähe"]],[47.4226,7.58292,["Uferweg"]]],
+"SO/D":[[47.34358,7.87861,["Uferweg","Gehölznähe"]],[47.34297,7.87533,["Uferweg","Gehölznähe"]],[47.33923,7.86759,["Uferweg","Gehölznähe"]],[47.3373,7.8636,["Uferweg","Gehölznähe"]],[47.32719,7.84482,["Uferweg","Gehölznähe"]],[47.32083,7.80156,["Uferweg","Gehölznähe"]],[47.31333,7.78458,["Uferweg","Gehölznähe"]],[47.3121,7.78183,["Uferweg","Gehölznähe"]],[47.31058,7.77952,["Uferweg","Gehölznähe"]],[47.29979,7.76335,["Uferweg","Gehölznähe"]],[47.30551,7.77726,["Uferweg","Gehölznähe"]],[47.2908,7.73877,["Uferweg","Gehölznähe"]]],
+"SO/E":[[47.21772,7.57184,["Uferweg","Gehölznähe"]],[47.2156,7.57295,["Uferweg","Gehölznähe"]],[47.1902,7.57687,["Uferweg","Gehölznähe"]],[47.19249,7.57914,["Uferweg","Gehölznähe"]],[47.20208,7.57666,["Uferweg","Gehölznähe"]],[47.19574,7.58136,["Uferweg","Gehölznähe"]],[47.18527,7.56891,["Uferweg","Gehölznähe"]],[47.18685,7.57136,["Uferweg","Gehölznähe"]],[47.17585,7.56168,["Uferweg","Gehölznähe"]],[47.1781,7.5625,["Uferweg","Gehölznähe"]],[47.17131,7.55967,["Uferweg","Gehölznähe"]],[47.17351,7.56078,["Uferweg","Gehölznähe"]]],
+"SO/EK":[[47.21905,7.57324,["Uferweg","Gehölznähe"]],[47.21677,7.57395,["Uferweg","Gehölznähe"]],[47.21402,7.57482,["Uferweg","Gehölznähe"]],[47.19663,7.58215,["Uferweg","Gehölznähe"]],[47.20291,7.57833,["Uferweg"]]],
+"SO/LS":[[47.3979,7.53937,["Uferweg","Gehölznähe","Uferbiegung"]],[47.39586,7.53962,["Uferweg","Gehölznähe","Uferbiegung"]],[47.38049,7.53774,["Uferweg","Gehölznähe","Uferbiegung"]],[47.3936,7.53908,["Uferweg","Gehölznähe"]],[47.37403,7.54196,["Uferweg","Gehölznähe"]],[47.36664,7.55721,["Uferweg","Gehölznähe"]],[47.36483,7.56218,["Uferweg","Gehölznähe"]],[47.36046,7.57065,["Uferweg","Gehölznähe"]],[47.38996,7.5389,["Uferweg"]],[47.38296,7.5371,["Uferweg"]],[47.37124,7.54209,["Uferweg"]],[47.36255,7.56815,["Uferweg"]]],
+"SO/LT":[[47.42859,7.39076,["Uferweg","Gehölznähe","Uferbiegung"]],[47.4258,7.42748,["Uferweg","Gehölznähe"]],[47.4267,7.43059,["Uferweg","Gehölznähe"]],[47.42756,7.44671,["Uferweg","Gehölznähe"]],[47.42703,7.39331,["Uferweg","Gehölznähe"]]],
+"BE/biel":[[47.11022,7.21973,["Uferweg","Gehölznähe","Uferbiegung"]],[47.10653,7.21679,["Uferweg","Uferbiegung"]],[47.10266,7.21207,["Uferweg","Gehölznähe"]]],
+"BE/thun":[[46.7382,7.65357,["Uferweg","Tiefenlinie in Ufernähe"]],[46.68936,7.68868,["Uferweg","Gehölznähe"]],[46.72842,7.62936,["Uferweg"]],[46.73851,7.63254,["Uferweg"]],[46.72521,7.62572,["Uferweg"]],[46.68657,7.68987,["Uferweg"]],[46.68744,7.68707,["Uferweg"]]],
+"BE/brienz":[[46.75458,8.03848,["Uferweg","Uferbiegung"]],[46.69874,7.88469,["Uferweg","Gehölznähe"]],[46.75375,8.03385,["Uferweg"]]],
+"VD/leman":[[46.50764,6.62328,["Uferweg","Uferbiegung"]],[46.5087,6.61795,["Uferweg"]]],
+"GE/leman":[[46.22127,6.15358,["Uferweg","Gehölznähe"]],[46.21241,6.15297,["Uferweg","Uferbiegung"]],[46.212,6.17244,["Uferweg"]]],
+"NE/neuch":[[46.98965,6.93335,["Uferweg","Uferbiegung"]],[46.99023,6.9367,["Uferweg","Uferbiegung"]],[46.98866,6.93011,["Uferweg"]]],
+"ZH/zuerichsee":[[47.36688,8.54407,["Uferweg"]],[47.35433,8.53582,["Uferweg"]],[47.35813,8.53596,["Uferweg"]],[47.36012,8.53611,["Uferweg"]],[47.36544,8.53979,["Uferweg"]],[47.36396,8.54558,["Uferweg"]]],
+"SZ/zuerichsee":[[47.20129,8.80725,["Uferweg","Gehölznähe"]]],
+"AG/hallwil":[[47.31767,8.20805,["Uferweg","Gehölznähe"]],[47.31433,8.21263,["Uferweg","Gehölznähe"]],[47.31239,8.21451,["Uferweg","Gehölznähe"]],[47.31027,8.21586,["Uferweg","Gehölznähe"]],[47.3188,8.20477,["Uferweg"]]],
+"LU/sempach":[[47.13453,8.18922,["Uferweg","Uferbiegung"]],[47.13167,8.19111,["Uferweg","Gehölznähe"]]],
+"LU/vws":[[47.04282,8.33035,["Uferweg","Uferbiegung"]],[47.05334,8.33385,["Uferweg"]],[47.0511,8.33485,["Uferweg"]],[47.04809,8.3416,["Uferweg"]]],
+"ZG/zugersee":[[47.17256,8.50522,["Uferweg"]],[47.17167,8.50947,["Uferweg"]],[47.16831,8.51436,["Uferweg"]],[47.16552,8.51372,["Uferweg"]]],
+"UR/urnersee":[[46.8987,8.61829,["Uferweg","Gehölznähe","Uferbiegung"]],[46.9021,8.62409,["Uferweg","Uferbiegung"]]],
+"SG/walensee":[[47.12893,9.22482,["Uferweg","Gehölznähe","Tiefenlinie in Ufernähe"]],[47.11547,9.2155,["Uferweg","Tiefenlinie in Ufernähe"]]],
+"GL/walensee":[[47.12816,9.1071,["Uferweg","Gehölznähe"]]],
+"OW/sarnersee":[[46.87573,8.22151,["Uferweg","Tiefenlinie in Ufernähe"]],[46.88848,8.23391,["Uferweg","Gehölznähe"]]],
+"TI/verbano":[[46.15372,8.80177,["Uferweg","Gehölznähe","Uferbiegung"]],[46.15836,8.80245,["Uferweg","Gehölznähe","Uferbiegung"]],[46.16302,8.80458,["Uferweg"]]],
+"TI/ceresio":[[46.00214,8.96245,["Uferweg","Tiefenlinie in Ufernähe","Uferbiegung"]],[46.00318,8.95209,["Uferweg"]]],
+"TG/obersee":[[47.56593,9.3832,["Uferweg","Uferbiegung"]],[47.56374,9.3841,["Uferweg"]],[47.56862,9.38353,["Uferweg"]],[47.57062,9.38321,["Uferweg"]]],
+"TG/untersee":[[47.6751,9.01708,["Uferweg"]],[47.67237,9.01236,["Uferweg"]]]
+};
 function renderWaterFish(sec,date=new Date()){
   const box=$("#waterFish");
   box.hidden=unknownWater()||(!isSO()&&!isCM())||!sec.id;
@@ -1841,15 +1886,16 @@ function renderWaterFish(sec,date=new Date()){
   const bernLake=isCM()&&state.canton==="BE"&&["biel","thun","brienz"].includes(sec.id);
   const typical=lake?["Egli (Flussbarsch)","Hecht","Rotauge"]:river?["Alet","Barbe","Bachforelle"]:[];
   const names=[...new Set([...(documented||[]),...(bernLake?["Felchen"]:[]),...local,...(!documented&&!local.length?typical:[])])];
+  const siteKey=state.canton+"/"+sec.id;
   const closed=secStatus(sec,date).some(s=>s.lvl==="bad");
   const rows=names.filter(n=>baitBySeason[n]).map(n=>{
     const rule=ruleFor(sec,n);
     const protectedNow=rule.prot||[rule.schon,rule.schon2].some(period=>period&&inRange(date,...period));
     const reason=bernLake&&n==="Felchen"?"Fangnachweis im See (Kanton Bern)":documented?.includes(n)?"Fangnachweis 2024":local.includes(n)?"Im eigenen Fangbuch":"Typisch für diesen Gewässertyp";
     const tip=closed?"Gewässer gesperrt":protectedNow?"Geschützt oder in der Schonzeit":rule.pickW||rule.chk?"Lokale Vorschriften prüfen":(rule.national?"Kantonale Regeln vorab prüfen. ":"")+baitBySeason[n][season];
-    return {blocked:closed||protectedNow,html:`<div class="it"><b>${esc(n)}</b><div class="mut small">${reason}</div><div>${esc(tip)}</div>${closed||protectedNow||rule.pickW||rule.chk?"":approachDetails(n,season,lake,river)}</div>`};
+    return {blocked:closed||protectedNow,html:`<div class="it"><b>${esc(n)}</b><div class="mut small">${reason}</div><div>${esc(tip)}</div>${closed||protectedNow||rule.pickW||rule.chk?"":approachDetails(n,season,lake,river)}${shoreSites[siteKey]&&!closed&&!protectedNow&&!rule.pickW&&!rule.chk?`<button type="button" class="full" data-shore-fish="${esc(n)}">Uferstellen auf Karte</button>`:""}</div>`};
   }).sort((a,b)=>Number(a.blocked)-Number(b.blocked));
-  const html=`<h2>Fische im ${seasonName}</h2><p class="mut small">${esc(sec.name)} · Richtwerte für deinen ersten Versuch. Tiefe und Stelle vor Ort prüfen. Lokale Fangzeiten und Ködervorschriften beachten.</p><div class="list">${rows.slice(0,3).map(r=>r.html).join("")}</div>${rows.length>3?`<details><summary>Weitere Arten (${rows.length-3})</summary><div class="list">${rows.slice(3).map(r=>r.html).join("")}</div></details>`:""}${!rows.length?"<p>Für diese Auswahl fehlen passende Artendaten.</p>":""}${documented?'<a class="small" href="https://so.ch/verwaltung/volkswirtschaftsdepartement/amt-fuer-wald-jagd-und-fischerei/fischerei/fangstatistik/" target="_blank" rel="noopener">Quelle: Kantonale Fangstatistik</a>':bernLake?'<a class="small" href="https://www.be.ch/de/start/dienstleistungen/medien/medienmitteilungen.html?newsID=c050d5c2-0070-3add-9647-46dffb9b608e" target="_blank" rel="noopener">Quelle: Fangstatistik Kanton Bern</a>':""}`;
+  const html=`<h2>Fische im ${seasonName}</h2><p class="mut small">${esc(sec.name)} · Richtwerte für deinen ersten Versuch. Tiefe und Stelle vor Ort prüfen. Lokale Fangzeiten und Ködervorschriften beachten.</p><div class="list">${rows.slice(0,3).map(r=>r.html).join("")}</div>${rows.length>3?`<details><summary>Weitere Arten (${rows.length-3})</summary><div class="list">${rows.slice(3).map(r=>r.html).join("")}</div></details>`:""}${!rows.length?"<p>Für diese Auswahl fehlen passende Artendaten.</p>":!shoreSites[siteKey]?'<p class="mut small">Für diese Auswahl sind noch keine Uferpunkte kartiert.</p>':""}${documented?'<a class="small" href="https://so.ch/verwaltung/volkswirtschaftsdepartement/amt-fuer-wald-jagd-und-fischerei/fischerei/fangstatistik/" target="_blank" rel="noopener">Quelle: Kantonale Fangstatistik</a>':bernLake?'<a class="small" href="https://www.be.ch/de/start/dienstleistungen/medien/medienmitteilungen.html?newsID=c050d5c2-0070-3add-9647-46dffb9b608e" target="_blank" rel="noopener">Quelle: Fangstatistik Kanton Bern</a>':""}`;
   if(box.dataset.content!==html){box.innerHTML=html;box.dataset.content=html}
 
 }
@@ -2130,6 +2176,7 @@ function sheetAction(a){
 }
 let tapSeq=0;
 async function mapTap(e){
+  clearShore();
   const lat=e.latlng.lat,lon=e.latlng.lng,seq=++tapSeq;$("#mapMsg").className="hide";
   const tol=40075016*Math.cos(lat*Math.PI/180)/Math.pow(2,map.getZoom()+8)*26;
   let best=null;for(const f of GEO.features){const d=distToLines(lat,lon,f.l)-(f.art==="Schon"?3:0);if(d<=tol&&(!best||d<best.d))best={f,d}}
@@ -2158,6 +2205,51 @@ function mapFailure(retry){
   again.onclick=()=>{msg.className="hide";retry()};
   manual.onclick=()=>{msg.className="hide";show("hier");$("#manCard").open=true;$("#selCantonTrigger").focus()};
 }
+let shoreView=null,shoreLayer=null;
+function clearShore(){
+  shoreView=null;
+  if(shoreLayer){shoreLayer.remove();shoreLayer=null}
+  $("#shorePanel").hidden=true;
+}
+function showShoreMarkers(){
+  if(!shoreView||!map||shoreLayer)return;
+  const {fish,key,season}=shoreView,sec=currentSec();
+  if(key!==state.canton+"/"+sec.id){clearShore();return}
+  const points=shoreSites[key];
+  const [,depth,time]=waterApproach[fish][season];
+  const spot=shoreView.spot;
+  const preference=/schatten|gehölz|äste/i.test(spot)?"Gehölznähe":/tief|halde|abbruch|steil/i.test(spot)?"Tiefenlinie in Ufernähe":"Uferbiegung";
+  const distance=p=>state.pos?Math.hypot((p[0]-state.pos.lat)*111000,(p[1]-state.pos.lon)*75000):0;
+  const ranked=[...points].sort((a,b)=>Number(b[2].includes(preference))-Number(a[2].includes(preference))||distance(a)-distance(b)).slice(0,3);
+  follow=false;mapSel=null;renderSheet();drawSel();
+  shoreLayer=L.layerGroup().addTo(map);
+  const panel=$("#shorePanel");panel.hidden=false;
+  panel.innerHTML=`<div class="shore-head"><strong>${esc(fish)} · ${esc(sec.name)}</strong><button type="button" data-shore-close>Schliessen</button></div><div class="shore-options"></div><p class="small">Suchpunkte an kartierten Wegen. Zugang, Sperren und Ufer vor Ort prüfen.</p><small>Geodaten © swisstopo</small>`;
+  panel.querySelector("[data-shore-close]").onclick=clearShore;
+  const locationButtons=panel.querySelector(".shore-options");
+  ranked.forEach(([lat,lon,tags],i)=>{
+    const title="Uferstelle "+(i+1);
+    const marker=L.marker([lat,lon],{title,alt:title,zIndexOffset:900,icon:L.divIcon({className:"shore-pin",html:`<span>${i+1}</span>`,iconSize:[44,44],iconAnchor:[22,22]})}).addTo(shoreLayer);
+    const html=`<b>${title} · ${esc(fish)}</b><p>Kartiert: ${esc(tags.join(" · "))}</p><p>Vor Ort suchen: ${esc(shoreView.spot)}</p><div>${esc(baitBySeason[fish][season])}</div><div>${esc(depth)} · ${esc(time)}</div>`;
+    marker.bindPopup(html,{maxWidth:245,autoPanPaddingBottomRight:[12,panel.offsetHeight+12]});
+    const open=()=>{
+      map.setView([lat,lon],Math.max(16,map.getZoom()),{animate:false});
+      marker.openPopup();
+    };
+    const b=document.createElement("button");b.type="button";b.textContent=title;b.onclick=open;locationButtons.append(b);
+  });
+  map.invalidateSize({pan:false});
+  map.fitBounds(ranked.map(p=>[p[0],p[1]]),{paddingTopLeft:[30,55],paddingBottomRight:[30,panel.offsetHeight+30],maxZoom:16,animate:false});
+}
+$("#waterFish").onclick=e=>{
+  const b=e.target.closest("[data-shore-fish]");if(!b)return;
+  const fish=b.dataset.shoreFish,sec=currentSec(),key=state.canton+"/"+sec.id;
+  if(!shoreSites[key]||!baitBySeason[fish]||secStatus(sec).some(s=>s.lvl==="bad")||artStatus(fish)[0]==="p-bad")return;
+  clearShore();
+  const season=Math.floor(((new Date().getMonth()+10)%12)/3);
+  shoreView={fish,key,season,spot:b.parentElement.querySelector(".water-approach dd").textContent};
+  show("karte");
+};
 function initMap(){
   const msg=$("#mapMsg");
   if(!window.L){
@@ -2172,7 +2264,7 @@ function initMap(){
     document.head.append(script);return;
   }
   msg.className="hide";
-  if(map){setTimeout(()=>map.invalidateSize(),50);renderSheet();drawSel();return}
+  if(map){setTimeout(()=>map.invalidateSize(),50);renderSheet();drawSel();showShoreMarkers();return}
   map=L.map("map",{preferCanvas:true,renderer:L.canvas({tolerance:12}),zoomControl:false,maxBounds:[[45.6,5.7],[48.0,10.7]],minZoom:7});
   map.createPane("casing").style.zIndex=390;casR=L.canvas({pane:"casing"});
   L.control.zoom({position:"topright"}).addTo(map);
@@ -2194,7 +2286,7 @@ function initMap(){
   map.on("moveend",()=>{loadX();updateHint()});
   if(state.pos)map.setView([state.pos.lat,state.pos.lon],14);else map.setView([47.30,7.75],10);
   drawGeo();drawX();loadX();drawCatches();updateMe();renderSheet();drawSel();
-  setTimeout(()=>map.invalidateSize(),60);
+  showShoreMarkers();setTimeout(()=>map.invalidateSize(),60);
 }
 function onGeoChanged(){if(map)drawGeo();if(state.pos)updateHere();else renderAll()}
 function onCantonChanged(){
@@ -2223,9 +2315,10 @@ async function fetchUpdates(){
 function loadCached(){const c=store.get("data",null);if(c&&c.version>=DATA_META.version){DATA_META={version:c.version,updated:c.updated,checked:store.get("data_checked",null)};if(c.news)NEWS=c.news;if(c.rules)Object.keys(c.rules).forEach(k=>{RULES[k]=c.rules[k]})}else DATA_META.checked=store.get("data_checked",null)}
 
 /* ================= NAVIGATION & INIT ================= */
-function renderAll(){renderTop();renderHier();if(map&&$("#v-karte").classList.contains("on")){if(mapSel&&mapSel.t==="sec")renderSheet();drawSel()}if($("#v-arten").classList.contains("on"))renderArten();if($("#v-fang").classList.contains("on"))renderFang();if($("#v-regeln").classList.contains("on"))renderRegeln()}
+function renderAll(){if(shoreView&&(unknownWater()||shoreView.key!==state.canton+"/"+currentSec().id||secStatus(currentSec()).some(s=>s.lvl==="bad")))clearShore();renderTop();renderHier();if(map&&$("#v-karte").classList.contains("on")){if(mapSel&&mapSel.t==="sec")renderSheet();drawSel()}if($("#v-arten").classList.contains("on"))renderArten();if($("#v-fang").classList.contains("on"))renderFang();if($("#v-regeln").classList.contains("on"))renderRegeln()}
 function route(){const key=location.hash.slice(1);return key==="fangbuch"?"stat":["fang","karte","arten","regeln"].includes(key)?key:"hier"}
 function show(v,restore=false){
+  if(v!=="karte")clearShore();
   if(!restore&&route()!==v){
     history.replaceState({scroll:scrollY},"",location.href);
     history.pushState(null,"","#"+(v==="stat"?"fangbuch":v));

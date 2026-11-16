@@ -23,6 +23,7 @@ Handy, ohne App Store.
 - **Fangerfassung** mit Schnellwahl der Art, sofortiger Prüfung von Mass,
   Schonzeit, Schutzstatus, Tages- und Jahreslimiten; Text zum Übertragen in
   die offizielle App.
+- **Fische**: Übersicht aller Arten mit Erkennungsmerkmalen, Vorkommen, Ködern, Tipp und Status heute im gewählten Kanton
 - **Statistik**, Angelzeit-Uhr, CSV-Export/Import.
 - **Alle 26 Kantone:** Solothurn vollständig; übrige Kantone vorerst mit den
   nationalen Mindestvorgaben des Bundes (VBGF), klar gekennzeichnet.

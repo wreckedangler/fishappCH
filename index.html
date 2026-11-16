@@ -87,6 +87,12 @@ nav svg{width:24px;height:24px}
 .mebtn{background:#fff;color:#0f3d2e;border:0;width:44px;height:44px;min-height:0;padding:0;border-radius:10px;font-size:20px;box-shadow:0 1px 5px rgba(0,0,0,.35)}
 #toast{position:fixed;left:50%;bottom:calc(var(--nav) + 16px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#e8f2ee;color:#0b1f18;padding:10px 16px;border-radius:12px;font-weight:650;font-size:14px;z-index:2000;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90%}
 #toast.on{opacity:1}
+.fish{border-bottom:1px solid var(--line);scroll-margin-top:calc(var(--tb) + 12px)}.fish:last-child{border:0}
+.fish summary{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;color:var(--tx);margin:0;font-size:15px}
+.fish summary::-webkit-details-marker{display:none}
+.fish summary .pill{flex:0 0 auto;max-width:45%;text-align:center}
+.fish .fb{padding:0 0 14px;font-size:14px;line-height:1.45}.fish .fb p{margin:0 0 10px}
+.tip{background:#173a2f;border-left:4px solid var(--acc);border-radius:10px;padding:10px 12px}
 dialog{background:var(--card);color:var(--tx);border:1px solid var(--line);border-radius:16px;max-width:440px;width:92%}
 dialog::backdrop{background:rgba(0,0,0,.6)}
 </style>
@@ -163,6 +169,18 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
   </div>
 </section>
 
+<!-- FISCHARTEN -->
+<section class="view" id="v-arten">
+  <div class="card">
+    <h2>Fischarten</h2>
+    <input id="artQ" type="search" placeholder="Art suchen, z.B. Hecht" aria-label="Art suchen">
+    <div class="chips" id="artTags" style="margin-top:10px"></div>
+    <p class="mut small" id="artCtx" style="margin:10px 0 0"></p>
+  </div>
+  <div class="card list" id="artList" style="padding-top:2px;padding-bottom:2px"></div>
+  <p class="mut small" style="margin:0 4px 16px">Köder und Methoden nur einsetzen, wo sie erlaubt sind – lebende Köderfische, Widerhaken und Nachtfischen sind in vielen Kantonen verboten.</p>
+</section>
+
 <!-- REGELN -->
 <section class="view" id="v-regeln">
   <div id="rulesBody"></div>
@@ -175,6 +193,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
   <button data-v="karte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg>Karte</button>
   <button data-v="fang"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12c3-4 7-6 12-5 3 .6 5 2.3 6 3.5L23 8v8l-3-2.5c-1 1.2-3 2.9-6 3.5-5 1-9-1-12-5z"/></svg>Fang</button>
   <button data-v="stat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Statistik</button>
+  <button data-v="arten"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h11a3 3 0 0 1 3 3v12H7a3 3 0 0 1-3-3z"/><path d="M4 17a3 3 0 0 1 3-3h11"/></svg>Fische</button>
   <button data-v="regeln"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>Regeln</button>
 </nav>
 
@@ -509,7 +528,8 @@ function liveCheck(){
   const sp=$("#fArt").value,len=parseFloat($("#fLen").value);
   const c=check(currentSec(),sp,isNaN(len)?null:len);
   const cls=c.needLen?"v-warn":c.ok?"v-ok":"v-bad",head=c.needLen?"Länge eingeben":c.ok?"✓ Darf behalten werden":"✗ Nicht behalten";
-  $("#liveCheck").innerHTML=`<div class="verdict ${cls}"><div class="big">${head}</div>${c.issues.map(i=>`<div class="ln">• ${esc(i)}</div>`).join("")}${c.infos.map(i=>`<div class="ln" style="opacity:.85">${esc(i)}</div>`).join("")}</div>`;
+  $("#liveCheck").innerHTML=`<div class="verdict ${cls}"><div class="big">${head}</div>${c.issues.map(i=>`<div class="ln">• ${esc(i)}</div>`).join("")}${c.infos.map(i=>`<div class="ln" style="opacity:.85">${esc(i)}</div>`).join("")}</div>${FISH[sp]?`<button type="button" class="full" id="btnFishInfo" style="margin-top:8px;min-height:40px">ℹ ${esc(sp.replace(" (Flussbarsch)",""))}: Vorkommen, Köder, Tipp</button>`:""}`;
+  const bi=$("#btnFishInfo");if(bi)bi.onclick=()=>{artOpen=sp;artFilter="alle";$("#artQ").value="";show("arten");setTimeout(()=>{const d=document.querySelector(`#artList details[open]`);if(d)d.scrollIntoView({block:"start"})},50)};
   return c;
 }
 function saveFang(){
@@ -595,6 +615,136 @@ function renderRegeln(){
     <button class="full" id="btnRefresh">Jetzt alles aktualisieren</button>
     <p class="mut small" style="margin-top:12px">Quellen: Gewässer © Kanton Solothurn, AWJF (geo.so.ch, Open Data) · Karte © swisstopo · Kantonserkennung: geo.admin.ch · Regeln SO: «Auszug aus den Fischereivorschriften ab 01.03.2026» (AWJF) · übrige Kantone: kantonale Verordnungen, siehe Kantonsseite · National: VBGF. Ohne Gewähr – verbindlich sind die amtlichen Vorschriften.</p>`;
   $("#btnRefresh").onclick=async e=>{const b=e.target;b.textContent="Aktualisiere …";const[a,g]=await Promise.all([fetchUpdates(true),refreshGeo(true)]);b.textContent=(a==="offline"&&g==="offline")?"Keine Verbindung":"Aktualisiert ✓";renderRegeln()};
+}
+
+/* ================= FISCHARTEN ================= */
+const FISH={
+"Bachforelle":{lat:"Salmo trutta fario",tags:["fluss","raub"],size:"25–40 cm",
+ erk:"Rote Punkte mit hellem Hof, schwarze Punkte, kleine Fettflosse.",
+ wo:"Kühle, sauerstoffreiche Bäche und Flüsse vom Mittelland bis in die Berge. Steht hinter Steinen, unter unterspülten Ufern und am Kopf von Gumpen.",
+ koeder:"Kleine Spinner (Gr. 1–3), Wobbler 3–5 cm, Nymphen und Trockenfliegen, Bachwurm wo Naturköder erlaubt.",
+ tipp:"Flussaufwärts pirschen – die Forelle schaut gegen die Strömung und sieht dich so nicht. Nach einem Sommergewitter, wenn das Wasser leicht trüb steigt, beisst sie am besten: Köder dicht am Grund an der Kante zum Strömungsschatten führen."},
+"Regenbogenforelle":{lat:"Oncorhynchus mykiss",tags:["see","fluss","raub"],size:"30–50 cm",
+ erk:"Rosa bis violettes Seitenband, schwarze Punkte auch auf der Schwanzflosse. Nicht einheimisch.",
+ wo:"Vor allem Weiher, Stauseen und Bergseen mit Besatz, vereinzelt in Flüssen.",
+ koeder:"Sbirolino mit Fliege oder Bienenmade, kleine Blinker, Teig wo erlaubt.",
+ tipp:"Sie ziehen in Trupps durchs Freiwasser. Nach einem Biss genau gleiche Stelle und gleiche Tiefe weiterfischen. Sbirolino sehr langsam einholen, ab und zu kurz stoppen – der Biss kommt oft im Stopp."},
+"Seeforelle":{lat:"Salmo trutta lacustris",tags:["see","raub"],size:"50–90 cm",
+ erk:"Silbrig, kleine schwarze x-förmige Punkte, kaum Rot. Kräftig gebaut.",
+ wo:"Grosse Voralpenseen (Genfer-, Boden-, Vierwaldstätter-, Zürich-, Thuner-, Brienzersee, Lago Maggiore). Laicht im Herbst in den Zuflüssen.",
+ koeder:"Schleppfischen mit Löffeln und schlanken Wobblern in Felchen- oder Laubenfarben.",
+ tipp:"Im Frühling (März–Mai) jagt sie oberflächennah: an der Halde in 0–5 m mit langer Leine weit hinter dem Boot schleppen – bei Wind und bedecktem Himmel am besten."},
+"Saibling":{lat:"Salvelinus umbla",tags:["see","raub"],size:"25–45 cm",
+ erk:"Weisser Saum an Brust-, Bauch- und Afterflosse, kleine helle Punkte, Bauch zur Laichzeit orange-rot.",
+ wo:"Kalte, tiefe Seen: Bergseen sowie grosse Seen in 20–80 m Tiefe.",
+ koeder:"Hegene (wo erlaubt), kleine Löffel, in Bergseen Wurm oder Bienenmade.",
+ tipp:"In Bergseen direkt nach der Eisschmelze ufernah, im Hochsommer tief. In grossen Seen über Unterwasserkuppen suchen und die Tiefe Meter für Meter absuchen, bis der Schwarm gefunden ist."},
+"Äsche":{lat:"Thymallus thymallus",tags:["fluss","raub"],size:"30–45 cm",
+ erk:"Grosse, fahnenartige Rückenflosse, kleines Maul, riecht leicht nach Thymian.",
+ wo:"Mittelgrosse Flüsse mit Kiesgrund und gleichmässiger Strömung (Aare, Rhein, Reuss, Doubs, Inn). Bestand gefährdet, vor allem durch warmes Wasser.",
+ koeder:"Kleine Nymphen und Trockenfliegen (Gr. 16–20).",
+ tipp:"Steht in Gruppen mitten in der Strömung über Kies. Feines Vorfach, winzige Fliegen. Bei über 20 °C Wassertemperatur nicht befischen – sie überlebt den Drill dann oft nicht."},
+"Hecht":{lat:"Esox lucius",tags:["see","fluss","raub"],size:"50–100 cm",
+ erk:"Langer Körper, entenschnabelförmiges Maul, Rücken- und Afterflosse weit hinten.",
+ wo:"Seen, Weiher, Altarme und langsame Flüsse. Lauert an Kraut, Schilf und Scharkanten.",
+ koeder:"Gummifische 10–20 cm, Spinnerbaits, Löffel, grosse Wobbler; toter Köderfisch wo erlaubt.",
+ tipp:"Stahl- oder Titanvorfach ist Pflicht. Die Grossen fressen im Herbst am meisten: grosse Köder langsam an der Scharkante führen. Im Frühsommer flach vor den Krautfeldern."},
+"Zander":{lat:"Sander lucioperca",tags:["see","fluss","raub"],size:"40–80 cm",
+ erk:"Glasige, grosse Augen, zwei getrennte Rückenflossen (vordere stachelig), Fangzähne.",
+ wo:"Grosse Seen und trübe, langsame Flüsse (Neuenburger-, Murten-, Bielersee, Rhein, Stauhaltungen der Aare, Lago Maggiore).",
+ koeder:"Gummifisch am Jigkopf am Grund, schlanke Wobbler in der Dämmerung, Köderfisch wo erlaubt.",
+ tipp:"Dämmerungsjäger. Bisse sind oft nur ein leichtes Zupfen in der Absinkphase – die Schnur beim Absinken nie aus den Augen lassen. Steinpackungen, Brückenpfeiler und Hafeneinfahrten absuchen."},
+"Egli (Flussbarsch)":{lat:"Perca fluviatilis",tags:["see","fluss","raub"],size:"15–35 cm",
+ erk:"Dunkle Querbänder, stachelige erste Rückenflosse mit schwarzem Fleck, rote Bauchflossen.",
+ wo:"Fast alle Seen, Weiher und ruhigen Flüsse.",
+ koeder:"Kleine Gummifische, Dropshot, Spinner, Wurm, Maden; in Seen die Hegene.",
+ tipp:"Wo einer beisst, sind viele – nach dem ersten Fang an der Stelle bleiben. Springende Fischchen oder kreisende Möwen verraten jagende Schwärme. Im Winter tief an der Halde."},
+"Felchen":{lat:"Coregonus sp.",tags:["see","fried"],size:"30–45 cm",
+ erk:"Silbrig, kleiner Kopf, kleines Maul, Fettflosse, grosse Schuppen.",
+ wo:"Grosse und mittlere Seen im Freiwasser.",
+ koeder:"Hegene mit Nymphen (Zuckmückenimitate).",
+ tipp:"Die Tiefe entscheidet alles: mit dem Echolot den Schwarm suchen, morgens steht er oft höher. Die Hegene nur ganz langsam anheben und absenken – Bisse sind sehr fein."},
+"Barbe":{lat:"Barbus barbus",tags:["fluss","fried"],size:"40–70 cm",
+ erk:"Vier Barteln am unterständigen Maul, schlanker kräftiger Körper.",
+ wo:"Grössere Flüsse mit Kies und kräftiger Strömung (Rhein, Aare, Reuss, Birs, Doubs).",
+ koeder:"Grundmontage mit Maden, Wurm, Käse, Mais oder Frühstücksfleisch.",
+ tipp:"Bei steigendem, leicht trübem Wasser nach Regen. Mit dem Futterkorb immer an dieselbe Stelle füttern – nach einer halben Stunde kommt der Schwarm. Abends und nachts am stärksten (wo erlaubt)."},
+"Alet":{lat:"Squalius cephalus",tags:["fluss","see","fried"],size:"30–55 cm",
+ erk:"Breiter Kopf, grosses Maul, dunkel umrandete Schuppen, Afterflosse nach aussen gewölbt.",
+ wo:"Fast alle Flüsse und Seeufer. Allesfresser, sehr scheu.",
+ koeder:"Brotflocke, Käse, kleine Wobbler, Insekten und Fliegen; im Sommer Kirschen.",
+ tipp:"Unter überhängenden Bäumen eine Brotflocke ohne Blei treiben lassen. Im Sommer frisst er herabfallende Kirschen und Holunder – genau das als Köder. Keinen Schatten aufs Wasser werfen."},
+"Rotauge":{lat:"Rutilus rutilus",tags:["see","fluss","fried"],size:"15–30 cm",
+ erk:"Rotes Auge, rötliche Flossen, silbriger Körper.",
+ wo:"Seen, Weiher und langsame Flüsse.",
+ koeder:"Maden, Caster, Teig, Brot.",
+ tipp:"Feine Posenmontage, wenig aber regelmässig anfüttern. Im Winter sammeln sie sich in Häfen und tiefen, ruhigen Becken."},
+"Brachsmen":{lat:"Abramis brama",tags:["see","fluss","fried"],size:"35–60 cm",
+ erk:"Hochrückig, seitlich abgeflacht, dunkle Flossen, Schleim.",
+ wo:"Nährstoffreiche Seen und Unterläufe grosser Flüsse.",
+ koeder:"Mais, Maden, Würmer am Futterkorb.",
+ tipp:"Grosse Schwärme brauchen viel Futter. Aufsteigende Bläschenfelder zeigen, wo sie gerade am Grund wühlen."},
+"Karpfen":{lat:"Cyprinus carpio",tags:["see","fluss","fried"],size:"50–90 cm",
+ erk:"Vier Barteln, hochrückig, grosse Schuppen (Schuppen- und Spiegelkarpfen).",
+ wo:"Warme Weiher, Seen, Altarme und Stauhaltungen.",
+ koeder:"Boilies, Mais, gekochte Tigernüsse, Teig – an der Haarmontage.",
+ tipp:"Ein paar Tage vorher anfüttern macht den Unterschied. Im Frühsommer in flachen, sonnigen Buchten. Nachtfischen ist in vielen Kantonen verboten – Regeln prüfen."},
+"Schleie":{lat:"Tinca tinca",tags:["see","fried"],size:"25–50 cm",
+ erk:"Olivgrün, sehr kleine Schuppen, rote Augen, zwei kleine Barteln.",
+ wo:"Krautreiche, warme Weiher und Seebuchten.",
+ koeder:"Wurm, Mais, Maden.",
+ tipp:"Früh morgens im Juni und Juli am Rand von Seerosenfeldern. Feine Bläschenspuren verraten sie."},
+"Wels":{lat:"Silurus glanis",tags:["see","fluss","raub"],size:"80–200 cm",
+ erk:"Riesiges breites Maul, sechs Barteln, lange Afterflosse, keine Schuppen.",
+ wo:"Grosse Seen und langsame Flüsse (Neuenburger-, Murten-, Bielersee, Rhein, Aare-Stauhaltungen, Lago Maggiore). Nimmt zu.",
+ koeder:"Grosse Gummifische, Tauwurmbündel, Köderfisch wo erlaubt.",
+ tipp:"Sehr kräftiges Gerät. In warmen Sommernächten zieht er ins Flachwasser. Langsam und tief führen – er frisst lieber, was ihm vors Maul kommt, als dass er weit jagt."},
+"Aal":{lat:"Anguilla anguilla",tags:["see","fluss","prot"],size:"40–100 cm",
+ erk:"Schlangenförmig, durchgehender Flossensaum.",
+ wo:"Seen und Flüsse; wandert zum Laichen bis in die Sargassosee. Stark gefährdet.",
+ koeder:null,tipp:"Wenn er beisst: Haken abschneiden, sofort zurücksetzen."},
+"Nase":{lat:"Chondrostoma nasus",tags:["fluss","prot"],size:"30–50 cm",
+ erk:"Vorstehende Nase, unterständiges Maul mit harter Lippe.",
+ wo:"Grössere Flüsse (Rhein, Aare, Birs). Vom Aussterben bedroht.",
+ koeder:null,tipp:"Nicht gezielt befischen; als Beifang schonend zurücksetzen."},
+"Lachs":{lat:"Salmo salar",tags:["fluss","prot"],size:"60–110 cm",
+ erk:"Silbrig, schmale Schwanzwurzel, wenige Punkte über der Seitenlinie.",
+ wo:"In der Schweiz ausgestorben. Er soll über den Rhein bei Basel zurückkehren.",
+ koeder:null,tipp:"Ein Fang wäre eine Sensation: sofort zurücksetzen und der Fischereiverwaltung melden."},
+"Strömer":{lat:"Telestes souffia",tags:["fluss","prot"],size:"10–20 cm",
+ erk:"Dunkles Längsband, orange Flossenansätze.",
+ wo:"Klare Flüsse im Mittelland und Jura. Gefährdet.",
+ koeder:null,tipp:"Geschützt – zurücksetzen."},
+"Bachneunauge":{lat:"Lampetra planeri",tags:["fluss","prot"],size:"12–18 cm",
+ erk:"Kein Fisch im engeren Sinn: Rundmaul ohne Kiefer, sieben Kiemenöffnungen.",
+ wo:"Bäche mit sandigem Grund.",
+ koeder:null,tipp:"Geschützt – zurücksetzen."},
+"Bitterling":{lat:"Rhodeus amarus",tags:["see","prot"],size:"5–9 cm",
+ erk:"Klein, hochrückig, blaugrüner Längsstreifen.",
+ wo:"Krautreiche Kleingewässer mit Grossmuscheln, in die er seine Eier legt.",
+ koeder:null,tipp:"Geschützt – zurücksetzen."}
+};
+const FTAGS=[["alle","Alle"],["fluss","Fluss"],["see","See"],["raub","Raubfisch"],["fried","Friedfisch"],["prot","Geschützt"]];
+let artFilter="alle",artOpen=null;
+function artStatus(sp){
+  const r=ruleFor(currentSec(),sp),now=new Date();
+  if(r.prot)return["p-bad","geschützt"];
+  if(r.pickW)return["p-mut","je nach Gewässer"];
+  if((r.schon&&inRange(now,r.schon[0],r.schon[1]))||(r.schon2&&inRange(now,r.schon2[0],r.schon2[1])))return["p-bad","Schonzeit"];
+  if(r.chk)return["p-mut","prüfen"];
+  return["p-ok",r.slot?fmtSlot(r.slot):"offen"];
+}
+function renderArten(){
+  const q=($("#artQ").value||"").trim().toLowerCase();
+  $("#artTags").innerHTML=FTAGS.map(([k,l])=>`<button type="button" data-tag="${k}" class="${k===artFilter?"on":""}">${l}</button>`).join("");
+  const list=Object.entries(FISH).filter(([n,f])=>(artFilter==="alle"||f.tags.includes(artFilter))&&(!q||(n+" "+f.lat+" "+f.wo).toLowerCase().includes(q)));
+  const ctx=isSO()?currentSec().name:isCM()?(currentSec().id?currentSec().name:cname(state.canton)):cname(state.canton)+" (national)";
+  $("#artCtx").textContent="Status heute für: "+ctx;
+  $("#artList").innerHTML=list.length?list.map(([n,f])=>{const[pc,pt]=artStatus(n);return`<details class="fish"${artOpen===n?" open":""} data-sp="${esc(n)}"><summary><span><b>${esc(n)}</b><span class="mut small"> · ${esc(f.size)}</span><br><i class="mut small">${esc(f.lat)}</i></span><span class="pill ${pc}">${esc(pt)}</span></summary>
+    <div class="fb"><p><b>Erkennen</b><br>${esc(f.erk)}</p><p><b>Vorkommen</b><br>${esc(f.wo)}</p>
+    ${f.koeder?`<p><b>Köder</b><br>${esc(f.koeder)}</p>`:""}
+    <div class="tip"><b>${f.koeder?"💡 Secret-Tipp":"Wenn er am Haken hängt"}</b><br>${esc(f.tipp)}</div>
+    <button type="button" class="full" data-catch="${esc(n)}" style="margin-top:10px">${f.koeder?"Fang erfassen":"Regeln ansehen"}</button></div></details>`}).join(""):`<p class="mut">Keine Art gefunden.</p>`;
 }
 
 /* ================= KARTE ================= */
@@ -685,12 +835,12 @@ async function fetchUpdates(){
 function loadCached(){const c=store.get("data",null);if(c&&c.version>=DATA_META.version){DATA_META={version:c.version,updated:c.updated,checked:store.get("data_checked",null)};if(c.news)NEWS=c.news;if(c.rules)Object.keys(c.rules).forEach(k=>{RULES[k]=c.rules[k]})}else DATA_META.checked=store.get("data_checked",null)}
 
 /* ================= NAVIGATION & INIT ================= */
-function renderAll(){renderTop();renderHier();if($("#v-fang").classList.contains("on"))renderFang();if($("#v-regeln").classList.contains("on"))renderRegeln()}
+function renderAll(){renderTop();renderHier();if($("#v-arten").classList.contains("on"))renderArten();if($("#v-fang").classList.contains("on"))renderFang();if($("#v-regeln").classList.contains("on"))renderRegeln()}
 function show(v){
   document.querySelectorAll("section.view").forEach(s=>s.classList.toggle("on",s.id==="v-"+v));
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
   if(v!=="karte")window.scrollTo(0,0);
-  if(v==="karte")initMap();if(v==="fang")renderFang();if(v==="stat")renderStats();if(v==="regeln")renderRegeln();if(v==="hier")renderHier();
+  if(v==="karte")initMap();if(v==="fang")renderFang();if(v==="stat")renderStats();if(v==="regeln")renderRegeln();if(v==="hier")renderHier();if(v==="arten")renderArten();
 }
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>show(b.dataset.v));
 $("#tbStatus").onclick=()=>show("hier");
@@ -712,6 +862,10 @@ $("#fArt").onchange=e=>setSpecies(e.target.value);
 $("#fLen").oninput=liveCheck;
 document.querySelectorAll(".lenrow [data-d]").forEach(b=>b.onclick=()=>{const v=parseFloat($("#fLen").value)||0;$("#fLen").value=Math.max(0,v+parseFloat(b.dataset.d));liveCheck()});
 $("#btnSave").onclick=saveFang;
+$("#artQ").oninput=renderArten;
+$("#artTags").onclick=e=>{const b=e.target.closest("[data-tag]");if(b){artFilter=b.dataset.tag;renderArten()}};
+$("#artList").addEventListener("toggle",e=>{const d=e.target;if(d.open)artOpen=d.dataset.sp;else if(artOpen===d.dataset.sp)artOpen=null},true);
+$("#artList").onclick=e=>{const b=e.target.closest("[data-catch]");if(!b)return;const sp=b.dataset.catch;if(FISH[sp]&&FISH[sp].koeder){show("fang");setSpecies(sp)}else show("regeln")};
 $("#logList").onclick=e=>{const id=e.target.closest("[data-del]")?.dataset.del;if(id)ask("<h2>Fang löschen?</h2>",()=>{state.log=state.log.filter(f=>String(f.id)!==id);save();renderStats();if(map)drawCatches()})};
 $("#btnExport").onclick=exportCSV;$("#btnImport").onclick=()=>$("#fileImport").click();
 $("#fileImport").onchange=e=>{if(e.target.files[0])importCSV(e.target.files[0])};

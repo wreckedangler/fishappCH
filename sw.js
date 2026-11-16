@@ -1,5 +1,5 @@
 // Fischer-Begleiter Service Worker
-const APP = "fb-app-v35";      // eigene Dateien: Netz zuerst, sonst Cache
+const APP = "fb-app-v36";      // eigene Dateien: Netz zuerst, sonst Cache
 const LIB = "fb-lib-v1";      // Kartenbibliothek: Cache zuerst
 const TILES = "fb-tiles-v1";  // Kartenkacheln: Cache zuerst, begrenzt
 const MAX_TILES = 600;
@@ -43,6 +43,7 @@ self.addEventListener("fetch", e => {
   const url = new URL(req.url);
   if (url.origin === location.origin) {
     if (url.pathname.endsWith("/data/updates.json")) return e.respondWith(networkFirst(req));
+    if (/\/data\/zones-(SG|GR)\.json$/.test(url.pathname)) return e.respondWith(cacheFirst(req, APP));
     const shell = req.mode === "navigate" ? new URL("./index.html",self.registration.scope).href : req;
     return e.respondWith(caches.open(APP).then(async cache=>(await cache.match(shell)) || fetch(req)));
   }

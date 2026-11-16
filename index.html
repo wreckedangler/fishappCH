@@ -2133,8 +2133,72 @@ function drawX(){
 }
 function inRing(x,y,r){let c=false;for(let i=0,j=r.length-1;i<r.length;j=i++){if((r[i][1]>y)!==(r[j][1]>y)&&x<(r[j][0]-r[i][0])*(y-r[i][1])/(r[j][1]-r[i][1])+r[i][0])c=!c}return c}
 function xDist(lat,lon,f){if(f.poly&&f.polygons.some(([outer,...holes])=>inRing(lon,lat,outer)&&!holes.some(r=>inRing(lon,lat,r))))return 0;return distToLines(lat,lon,f.l)}
-function xNearest(lat,lon,tol){let best=null;
-  for(const c of Object.keys(XGEO).filter(c=>map.getZoom()>=(XSRC[c].minZoom||11)))for(const f of Object.values(XGEO[c].feats)){const d=xDist(lat,lon,f)-(f.art==="Schon"?3:0);if(d<=tol&&(!best||d<best.d))best={f,d,c}}return best}
+// WMS tiles are images. Resolve taps against the corresponding official objects.
+const zoneIndexes=new Map();
+async function zoneJson(url){
+  const r=await fetch(url,{signal:AbortSignal.timeout(12000)});
+  if(!r.ok)throw Error("Zonenabfrage "+r.status);
+  const data=await r.json();
+  if(!Array.isArray(data.features))throw Error("Ungültige Zonendaten");
+  return data;
+}
+function tapBox(lat,lon,meters){
+  const dy=meters/111000,dx=dy/Math.cos(lat*Math.PI/180);
+  return [lon-dx,lat-dy,lon+dx,lat+dy];
+}
+function touchesBox(a,b){return a[0]<=b[2]&&a[2]>=b[0]&&a[1]<=b[3]&&a[3]>=b[1]}
+function zoneHit(code,name,kind,lines,polygons,lat,lon,tol,detail=""){
+  const l=lines.concat(polygons.flat());
+  const d=xDist(lat,lon,{l,poly:polygons.length>0,polygons});
+  return d<=tol?{t:"zone",code,name,kind,detail,l,lake:!!polygons.length,lat,lon,d}:null;
+}
+function decodeZonePath(encoded){
+  const points=[],position=[0,0];
+  let index=0;
+  while(index<encoded.length){
+    for(let axis=0;axis<2;axis++){
+      let bits=0,shift=0,chunk;
+      do{
+        chunk=encoded.charCodeAt(index++)-63;
+        bits|=(chunk&31)<<shift;shift+=5;
+      }while(chunk>=32);
+      position[axis]+=(bits&1)?~(bits>>1):bits>>1;
+    }
+    points.push([position[0]/1e5,position[1]/1e5]);
+  }
+  return points;
+}
+async function indexedHits(code,lat,lon,tol,box){
+  if(!zoneIndexes.has(code))zoneIndexes.set(code,zoneJson("./data/zones-"+code+".json").catch(e=>{zoneIndexes.delete(code);throw e}));
+  const data=await zoneIndexes.get(code);
+  return data.features.filter(f=>touchesBox(f.bounds,box)).map(f=>zoneHit(code,f.name,f.kind,f.lines.map(decodeZonePath),f.polygons.map(r=>r.map(decodeZonePath)),lat,lon,tol,"Geometriestand "+data.date)).filter(Boolean);
+}
+async function agHits(layer,lat,lon,tol,box){
+  const params=new URLSearchParams({service:"WMS",version:"1.1.1",request:"GetMap",layers:layer.wmsParams.layers,
+    styles:"",srs:"EPSG:4326",bbox:box.join(","),width:256,height:256,format:"application/json;type=geojson"});
+  const data=await zoneJson(layer._url+"?"+params),hits=[];
+  for(const f of data.features){
+    const g=f.geometry,p=f.properties;if(!g||!p)continue;
+    const lines=g.type==="LineString"?[g.coordinates]:g.type==="MultiLineString"?g.coordinates:[];
+    const polygons=g.type==="Polygon"?[g.coordinates]:g.type==="MultiPolygon"?g.coordinates:[];
+    const protectedZone=layer.wmsParams.layers==="ch_ag_geo_aw_fschonp";
+    const kind=protectedZone?"Schongebiet":"Fischereirevier";
+    const name=[p.bachname||p.reviername,p.fnr!=null?"Revier "+p.fnr:""].filter(Boolean).join(" · ")||kind;
+    const hit=zoneHit("AG",name,kind,lines,polygons,lat,lon,tol,[p.ort,p.verein].filter(Boolean).join(" · "));
+    if(hit)hits.push(hit);
+  }
+  return hits;
+}
+async function aiHits(layer,lat,lon){
+  const crs=map.options.crs,center=crs.project(L.latLng(lat,lon));
+  const half=50.5*40075016.686/(256*2**map.getZoom()),x=center.x,y=center.y;
+  const layers=layer.wmsParams.layers;
+  const params=new URLSearchParams({service:"WMS",version:"1.3.0",request:"GetFeatureInfo",layers,query_layers:layers,
+    crs:"EPSG:3857",bbox:[x-half,y-half,x+half,y+half].join(","),width:101,height:101,i:50,j:50,
+    feature_count:20,styles:"",format:"image/png",info_format:"application/json"});
+  const data=await zoneJson(layer._url+"?"+params);
+  return data.features.map(f=>({t:"zone",code:"AI",lat,lon,d:0,l:[],name:String(f.properties?.Info||f.label||"Kartierte Zone"),kind:"Amtliche Karteninformation"}));
+}
 function xPill(f){const k=kindOf(f.art);return k==="schon"?`<span class="pill p-bad">Schongebiet</span>`:k==="privat"?`<span class="pill p-warn">Privates Fischereirecht</span>`:k==="frei"?`<span class="pill p-ok">Freiangelrecht</span>`:k==="patent"?`<span class="pill p-ok">Patentgewässer</span>`:k==="revier"?`<span class="pill p-mut">Fischereirevier</span>`:k==="pacht"?`<span class="pill p-warn">Pachtgewässer</span>`:`<span class="pill p-warn">Berechtigung unbekannt</span>`}
 /* ---- Karte: Auswahl per Antippen, Bestätigen im Blatt unten ---- */
 let mapSel=null,selLayer=null;
@@ -2170,8 +2234,9 @@ function drawSel(){
   if(!map)return;
   const id=mapSel&&mapSel.t==="sec"?mapSel.id:(!mapSel&&isSO()&&!unknownWater()?state.sec:null);
   const xf=mapSel&&mapSel.t==="x"&&XGEO[mapSel.code]?XGEO[mapSel.code].feats[mapSel.id]:null;
+  const zone=mapSel?.t==="zone"?mapSel:null;
   const overview=map.getZoom()<12;
-  const key=[overview,id,xf?mapSel.code+mapSel.id+xf.l.length:"",mapSel&&mapSel.t==="w"?mapSel.lat+","+mapSel.lon:"",GEO.features.length].join("|");
+  const key=[zone?.name,zone?.kind,zone?.lat,zone?.lon,overview,id,xf?mapSel.code+mapSel.id+xf.l.length:"",mapSel&&mapSel.t==="w"?mapSel.lat+","+mapSel.lon:"",GEO.features.length].join("|");
   if(key===selKey&&(selLayer||!id&&!xf))return;selKey=key;
   if(selLayer){selLayer.remove();selLayer=null}
   const parts=[];
@@ -2180,7 +2245,8 @@ function drawSel(){
     parts.push(L.polyline(ll,{color:"#ffd43b",weight:overview?6:12,opacity:.95,pane:"selection",interactive:false,lineCap:"round"}));
     parts.push(L.polyline(ll,Object.assign({},styleFor(f),{weight:overview?2:5,pane:"selection",interactive:false,lineCap:"round"})))}
   if(xf)xf.l.forEach(l=>{const ll=l.map(([lo,la])=>[la,lo]);parts.push(L.polyline(ll,{color:"#ffd43b",weight:16,opacity:.95,pane:"selection",interactive:false,lineCap:"round"}));parts.push(L.polyline(ll,Object.assign({},styleX(xf),{weight:7,dashArray:null,pane:"selection",interactive:false})))});
-  if(mapSel&&mapSel.t==="w")parts.push(L.circleMarker([mapSel.lat,mapSel.lon],{radius:9,color:"#12222a",weight:3,fillColor:"#ffd43b",fillOpacity:1,pane:"selection",interactive:false}));
+  if(zone?.l.length)parts.push(L.polyline(zone.l.map(l=>l.map(([x,y])=>[y,x])),{color:"#ffd43b",weight:6,opacity:.9,pane:"selection",interactive:false}));
+  if(zone||mapSel&&mapSel.t==="w")parts.push(L.circleMarker([mapSel.lat,mapSel.lon],{radius:9,color:"#12222a",weight:3,fillColor:"#ffd43b",fillOpacity:1,pane:"selection",interactive:false}));
   if(parts.length)selLayer=L.layerGroup(parts).addTo(map);
 }
 let hintT=null,hintMsg="";
@@ -2223,12 +2289,22 @@ function renderSheet(){
       ${(f.x||[]).filter(t=>t!==f.t).slice(0,2).map(t=>`<div class="sh-d">${esc(t)}</div>`).join("")}
       ${f.url?`<div class="sh-d"><a href="${esc(f.url)}" target="_blank" rel="noopener">Merkblatt des Kantons (PDF)</a></div>`:""}
       ${k==="schon"?"":`<div class="sh-a">${chosen?`<button type="button" class="pri" data-sh="rules">Regeln ansehen</button>`:`<button type="button" class="pri" data-sh="okx">Gewässer wählen</button>`}</div>`}`;
+  } else if(mapSel?.t==="zone"){
+    const z=mapSel;
+    h=head(z.name,chip(z.code))+ `<b>${esc(z.kind)}</b>${z.detail?`<div class="sh-d">${esc(z.detail)}</div>`:""}<div class="sh-d">Berechtigung und lokale Vorschriften prüfen.</div>`;
+    if(!restrictedHit(z))h+='<div class="sh-a"><button type="button" class="pri" data-sh="zone">Gewässer wählen</button></div>';
   } else if(mapSel&&mapSel.t==="w"){
     const c=mapSel.code,w=mapSel.water,chosen=state.canton===c&&(state.xsel||{})[c]===w.name;
     h=head(w.name||(w.lake?"See ohne Namen":"Bach ohne Namen"),`<span class="pill p-mut">${w.lake?"See":"Fliessgewässer"}</span>`+chip(c))+`
       <div class="sh-d">${hasCM(c)?"Fischereiberechtigung an dieser Stelle unbekannt. Revier, Bewilligung und lokale Vorschriften prüfen.":"Für diesen Kanton sind nur die nationalen Mindestvorgaben geladen."}</div>
       <div class="sh-a">${chosen?`<button type="button" class="pri" data-sh="rules">Regeln ansehen</button>`:`<button type="button" class="pri" data-sh="okw">Gewässer wählen</button>`}</div>`;
   }
+  if(h&&mapHits.includes(mapSel)&&mapHits.length>1){
+    if(!restrictedHit(mapSel)&&mapHits.some(restrictedHit))h+='<p class="sh-warn">Am selben oder unmittelbar benachbarten Ort ist eine Einschränkung kartiert. Schutzgebiet und Geltungsbereich prüfen.</p>';
+    h+='<div class="sh-d">Weitere Treffer an dieser Stelle</div><div class="chips">'+mapHits.map((z,i)=>z===mapSel?"":`<button type="button" data-sh="hit-${i}">${esc(z.code||"SO")} · ${esc(z.name)} · ${esc(z.kind)}</button>`).join("")+"</div>";
+  }
+  if(h&&mapHits.includes(mapSel)&&hitWarning)h+=`<p class="sh-warn">${esc(hitWarning)}</p>`;
+  if(h&&mapSel?.code==="AG")h+='<p class="sh-d">Quelle: © Kanton Aargau (AGIS), Fischereireviere und Schongebiete.</p>';
   if(h&&mapSel?.code)h+=coverageInfo(mapSel.code);
   if(h){el.innerHTML=h;el.classList.add("on")}else el.classList.remove("on");
   $("#v-karte").style.setProperty("--sheet",h?(el.offsetHeight+12)+"px":"0px");
@@ -2253,6 +2329,11 @@ document.addEventListener("keydown",e=>{
   if(e.key==="Escape" && !document.querySelector("dialog[open]") && mapSel && $("#v-karte").classList.contains("on")){sheetAction("close");map?.getContainer().focus()}
 });
 function sheetAction(a){
+  ++tapSeq;
+  if(a.startsWith("hit-")){const z=mapHits[Number(a.slice(4))];if(z){mapSel=z;renderSheet();drawSel()}return}
+  if(a==="zone"&&mapSel?.t==="zone"&&!restrictedHit(mapSel)){
+    const z=mapSel;chooseWater(z.code,z.name,pickCW(z.code,[z.name.split(" · ")[0]],z.lake));return;
+  }
   if(a==="close"){mapSel=null}
   else if(a==="rules"){mapSel=null;renderSheet();drawSel();show("hier");return}
   else if(a==="rules2"&&mapSel){a="ok"}
@@ -2262,18 +2343,52 @@ function sheetAction(a){
   if(a==="okw"&&mapSel){const c=mapSel.code,w=mapSel.water;chooseWater(c,w.name||"Gewässer",pickCW(c,w.names,w.lake));return}
   renderSheet();drawSel();
 }
-let tapSeq=0;
+let tapSeq=0,mapHits=[],hitWarning="";
+function restrictedHit(hit){return /schon|verbot|nationalpark/i.test(hit.kind+" "+hit.name)}
+function chooseHits(hits){
+  hits.sort((a,b)=>Number(restrictedHit(b))-Number(restrictedHit(a))||a.d-b.d);
+  const seen=new Set();
+  mapHits=hits.filter(z=>{
+    const key=[z.code||"SO",z.t,z.id||z.name,z.kind].join("|");
+    if(seen.has(key))return false;seen.add(key);return true;
+  });
+  mapSel=mapHits[0];flashHint("");renderSheet();drawSel();
+}
 async function mapTap(e){
   clearShore();
   const lat=e.latlng.lat,lon=e.latlng.lng,seq=++tapSeq;$("#mapMsg").className="hide";
   flashHint("");
-  if(map.getZoom()<11){map.setView(e.latlng,11);flashHint("Für die Gewässerwahl eine Stelle antippen.",2400);return}
   const tol=Math.min(100,40075016*Math.cos(lat*Math.PI/180)/Math.pow(2,map.getZoom()+8)*22);
-  let best=null;for(const f of GEO.features){const d=distToLines(lat,lon,f.l)-(f.art==="Schon"?3:0);if(d<=tol&&(!best||d<best.d))best={f,d}}
-  const xb=xNearest(lat,lon,tol);
-  if(best&&(!xb||best.d<=xb.d)){mapSel={t:"sec",id:best.f.id};renderSheet();drawSel();return}
-  if(xb){mapSel={t:"x",code:xb.c,id:xb.f.id};renderSheet();drawSel();return}
-  if(mapSel){mapSel=null;renderSheet();drawSel();return}
+  const hits=[],box=tapBox(lat,lon,tol*1.03);
+  for(const f of GEO.features){
+    const d=distToLines(lat,lon,f.l);if(d<=tol)hits.push({t:"sec",id:f.id,name:secById(f.id).name,kind:f.art,d});
+  }
+  for(const [code,G] of Object.entries(XGEO)){
+    if(map.getZoom()<(XSRC[code].minZoom||11))continue;
+    for(const f of Object.values(G.feats)){
+      const d=xDist(lat,lon,f);if(d<=tol)hits.push({t:"x",code,id:f.id,name:f.name,kind:f.art,d});
+    }
+  }
+  if(map.getZoom()<11&&!hits.length){map.setView(e.latlng,11);flashHint("Für die Gewässerwahl eine Stelle antippen.",2400);return}
+  const jobs=[];
+  map.eachLayer(layer=>{
+    const code=layer.zoneCanton;if(!code||!map.hasLayer(layer)||!L.latLngBounds(layer.options.bounds).pad(.01).contains(e.latlng))return;
+    const request=code==="AG"?agHits(layer,lat,lon,tol,box):code==="AI"?aiHits(layer,lat,lon):indexedHits(code,lat,lon,tol,box);
+    jobs.push({code,request});
+  });
+  hitWarning="";
+  if(jobs.length){
+    flashHint("Reviere und Schutzgebiete werden geprüft …");
+    const results=await Promise.allSettled(jobs.map(j=>j.request));
+    if(seq!==tapSeq)return;
+    const failed=new Set();
+    results.forEach((r,i)=>{if(r.status==="fulfilled")hits.push(...r.value);else failed.add(jobs[i].code)});
+    if(failed.size)hitWarning="Zonenabfrage unvollständig ("+[...failed].join(", ")+"). Berechtigung unbekannt.";
+    flashHint("");
+  }
+  if(hits.length){chooseHits(hits);return}
+  mapSel=null;mapHits=[];renderSheet();drawSel();
+  if(hitWarning){mapFailure(()=>mapTap(e));return}
   if(!navigator.onLine){mapFailure(()=>mapTap(e));return}
   flashHint("Gewässer wird gesucht …");
   const tolm=Math.max(60,tol*1.6);
@@ -2393,14 +2508,14 @@ function initMap(){
       attribution:"Fischereireviere © Kanton Aargau (AGIS)"
     });
     layer.on("tileerror",()=>flashHint("Ein Teil der Aargauer Revierkarte konnte nicht geladen werden.",5000));
-    regionalLayers.push(layer);
+    layer.zoneCanton="AG";regionalLayers.push(layer);
   }
   const pane=map.createPane("eastFishery");pane.style.zIndex=351;pane.style.pointerEvents="none";
   for(const [c,url,layers,bounds] of eastWms){
     const layer=L.tileLayer.wms(url,{layers,bounds,pane:"eastFishery",format:"image/png",transparent:true,
       version:"1.1.1",minZoom:11,maxZoom:19,attribution:"Fischereikarte © Kanton "+cname(c)})
       .on("tileerror",()=>flashHint("Fischereikarte "+cname(c)+" teilweise nicht geladen.",5000));
-    regionalLayers.push(layer);
+    layer.zoneCanton=c;regionalLayers.push(layer);
   }
   const Bs=L.control({position:"topleft"});Bs.onAdd=()=>{const d=L.DomUtil.create("div","mseg");L.DomEvent.disableClickPropagation(d);
     const draw=()=>{const cur=map.hasLayer(topo)?"topo":"luft";d.innerHTML=`<button type="button" data-b="luft" aria-pressed="${cur==="luft"}" class="${cur==="luft"?"on":""}">Luftbild</button><button type="button" data-b="topo" aria-pressed="${cur==="topo"}" class="${cur==="topo"?"on":""}">Karte</button>`};draw();

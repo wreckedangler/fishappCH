@@ -285,6 +285,8 @@ button:disabled{opacity:.55;cursor:wait}
 #mapSheet .sh-p{margin-top:-3px}
 #mapSheet .sh-warn{color:var(--bad);font-weight:600;font-size:13px;margin:6px 0}
 #map.inspecting-zone .leaflet-zoneCasing-pane,#map.inspecting-zone .leaflet-zoneInk-pane{opacity:.46}
+#map.inspecting-zone .leaflet-nationalWater-pane{opacity:.28}
+#map.district-overview .leaflet-zoneCasing-pane,#map.district-overview .leaflet-zoneInk-pane{opacity:.28}
 .leaflet-nationalWater-pane{filter:brightness(0) saturate(100%) invert(49%) sepia(25%) saturate(679%) hue-rotate(153deg)}
 .map-tools{display:flex;gap:6px}.map-tools button{min-height:44px;background:var(--sf);color:var(--tx)}
 #v-karte:has(#shorePanel:not([hidden])) .map-tools{display:none}
@@ -2313,6 +2315,7 @@ function drawSel(){
     FishSections.drawSelection(selLayer,parts,zoom);
   }
   map.getContainer().classList.toggle("inspecting-zone",!!mapSel&&parts.length>0);
+  map.getContainer().classList.toggle("district-overview",!!mapSel?.districtView);
   if(Number.isFinite(hit?.lat)&&Number.isFinite(hit?.lon)){
     if(selPin)selPin.setLatLng([hit.lat,hit.lon]);else selPin=FishSections.pin(map,hit.lat,hit.lon);
   }else if(selPin){selPin.remove();selPin=null}
@@ -2701,12 +2704,14 @@ function initMap(){
   (store.get("base","luft")==="topo"?topo:luft).addTo(map);
   const hydroPane=map.createPane("nationalWater");hydroPane.style.zIndex=345;hydroPane.style.pointerEvents="none";
   const hydro=L.tileLayer("https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swisstlm3d-gewaessernetz/default/current/3857/{z}/{x}/{y}.png",
-    {pane:"nationalWater",minZoom:11,maxNativeZoom:17,maxZoom:19,opacity:.74,updateWhenIdle:true,
+    {pane:"nationalWater",minZoom:11,maxNativeZoom:17,maxZoom:19,opacity:.36,updateWhenIdle:true,
       attribution:'Gewässer © <a href="https://www.swisstopo.admin.ch/de/landschaftsmodell-swisstlm3d">swisstopo</a>'});
   const regionalLayers=[];
   function syncRegionalLayers(){
     const view=map.getBounds(),zoom=map.getZoom();
     const waterways=map.hasLayer(luft)&&zoom>=11;
+    const waterOpacity=zoom<13?.22:zoom<15?.36:.54;
+    if(waterways&&hydro.options.opacity!==waterOpacity)hydro.setOpacity(waterOpacity);
     if(waterways&&!map.hasLayer(hydro))hydro.addTo(map);
     else if(!waterways&&map.hasLayer(hydro))hydro.remove();
     for(const layer of regionalLayers){

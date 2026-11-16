@@ -39,12 +39,17 @@ Seite in Chrome (Android) bzw. Safari (iOS) öffnen → Menü →
 | Gewässer, Schonstrecken SO | Kanton Solothurn, AWJF – `ch.so.awjf.gewaesser.patentgewaesser` (geo.so.ch, Open Data) | live vom Kanton, automatisch wöchentlich |
 | Kantonserkennung | swisstopo / geo.admin.ch | live |
 | Karte | swisstopo WMTS | live, Kacheln werden zwischengespeichert |
-| Regeln, Preise, Verfügungen | `data/updates.json` in diesem Repo | bei jedem Start |
+| Regeln, Preise, Verfügungen | `data/updates.json` in diesem Repo | App lädt bei jedem Start; Inhalt wird regelmässig gegen die kantonalen Quellen geprüft |
 
-### Regeln ändern (`data/updates.json`)
+### Regeln ändern
 
-1. Werte unter `rules` bzw. `news` anpassen.
-2. `version` um 1 erhöhen, `updated` setzen, committen.
+Kantonale Regeln liegen editierbar in `data/src/*.json` (ein Objekt pro Kanton).
+SO, nationale Werte und `news` stehen direkt in `data/updates.json`.
+
+1. Werte anpassen.
+2. `python3 tools/build_data.py` – prüft die Daten, baut `data/updates.json`
+   und erhöht `version` automatisch, wenn sich etwas geändert hat.
+3. Committen.
 
 Alle Handys übernehmen es beim nächsten Öffnen.
 
@@ -54,14 +59,21 @@ Alle Handys übernehmen es beim nächsten Öffnen.
 - `news[].secs`: Codes der betroffenen Strecken (A1–A6, E, EK, D, LS, LT, CH,
   B, S1–S8 oder Reviernummern).
 - `rules.CH`: nationale Mindestvorgaben für Kantone ohne Detaildaten.
-- Ein Kanton mit `"detailed": true` gilt als vollständig hinterlegt.
+- Ein Kanton mit `"detailed": true` gilt als vollständig hinterlegt (SO).
+- Kantone in `data/src`: `w` = Gewässergruppen zur Auswahl, `sp` = Regeln pro
+  Art (erster passender Eintrag gilt, Eintrag ohne `w` = übrige Gewässer,
+  `Forelle` = Bach- und Seeforelle), `prot` = geschützte Arten, `lim` =
+  Fanglimiten (`per: "Jahr"` sonst pro Tag), `closed` = gesperrte Zeiten pro
+  Gewässer, `src` = amtliche Quellen, `updated` = Stand der Quelle.
 
 ## Dateien
 
 | Datei | Zweck |
 |---|---|
 | `index.html` | die ganze App |
-| `data/updates.json` | Regeldaten je Kanton |
+| `data/updates.json` | Regeldaten je Kanton (wird gebaut) |
+| `data/src/*.json` | kantonale Regeln, Quelle zum Bearbeiten |
+| `tools/build_data.py` | prüft und baut `updates.json` |
 | `sw.js` | Offline-Betrieb |
 | `manifest.webmanifest`, `icon.svg` | Installation als App |
 

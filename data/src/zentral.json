@@ -1,0 +1,2881 @@
+{
+ "LU": {
+  "updated": "2021-01-01",
+  "src": [
+   [
+    "Luzerner Fischereiverordnung (SRL 721), Stand 1.1.2021",
+    "https://www.lexfind.ch/tolv/192774/de"
+   ],
+   [
+    "Ausführungsbestimmungen Vierwaldstättersee (SRL 724b), Stand 1.9.2023",
+    "https://lu.lexwork.naz.ch/de/dta/724b.pdf"
+   ],
+   [
+    "Ausführungsbestimmungen Konkordat Zugersee, Stand 1.11.2021",
+    "https://www.lexfind.ch/tol/24404/de"
+   ],
+   [
+    "Übereinkunft Hallwilersee (AG/LU, 2021)",
+    "https://www.lexfind.ch/tol/33688/de"
+   ]
+  ],
+  "w": [
+   [
+    "vws",
+    "Vierwaldstättersee"
+   ],
+   [
+    "zugersee",
+    "Zugersee"
+   ],
+   [
+    "hallwil",
+    "Hallwilersee"
+   ],
+   [
+    "sempach",
+    "Sempachersee"
+   ],
+   [
+    "see",
+    "Übrige stehende Gewässer (Baldeggersee u.a.)"
+   ],
+   [
+    "fluss",
+    "Fliessgewässer und Stauhaltungen"
+   ]
+  ],
+  "sp": {
+   "Forelle": [
+    {
+     "w": [
+      "vws"
+     ],
+     "slot": [
+      [
+       35,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       12,
+       25
+      ]
+     ]
+    },
+    {
+     "w": [
+      "zugersee"
+     ],
+     "slot": [
+      [
+       40,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       12,
+       25
+      ]
+     ]
+    },
+    {
+     "w": [
+      "hallwil"
+     ],
+     "slot": [
+      [
+       50,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       9,
+       16
+      ],
+      [
+       12,
+       25
+      ]
+     ]
+    },
+    {
+     "w": [
+      "sempach",
+      "see"
+     ],
+     "slot": [
+      [
+       35,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       12,
+       25
+      ]
+     ]
+    },
+    {
+     "slot": [
+      [
+       22,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       1,
+       31
+      ]
+     ]
+    }
+   ],
+   "Saibling": [
+    {
+     "w": [
+      "zugersee"
+     ],
+     "slot": [
+      [
+       22,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       15
+      ],
+      [
+       1,
+       15
+      ]
+     ]
+    },
+    {
+     "slot": [
+      [
+       22,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       12,
+       25
+      ]
+     ]
+    }
+   ],
+   "Äsche": [
+    {
+     "w": [
+      "vws"
+     ],
+     "slot": [
+      [
+       30,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       2,
+       15
+      ],
+      [
+       4,
+       30
+      ]
+     ]
+    },
+    {
+     "slot": [
+      [
+       35,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       1,
+       1
+      ],
+      [
+       9,
+       30
+      ]
+     ],
+     "t": "Äschen: Fang nur 1.10.–31.12."
+    }
+   ],
+   "Felchen": [
+    {
+     "w": [
+      "vws"
+     ],
+     "slot": [
+      [
+       30,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       15
+      ],
+      [
+       12,
+       25
+      ]
+     ]
+    },
+    {
+     "w": [
+      "zugersee"
+     ],
+     "slot": [
+      [
+       28,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       11,
+       15
+      ],
+      [
+       1,
+       31
+      ]
+     ]
+    },
+    {
+     "w": [
+      "hallwil"
+     ],
+     "slot": [
+      [
+       25,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       12,
+       1
+      ],
+      [
+       2,
+       10
+      ]
+     ]
+    },
+    {
+     "slot": [
+      [
+       25,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       11,
+       15
+      ],
+      [
+       12,
+       25
+      ]
+     ]
+    }
+   ],
+   "Hecht": [
+    {
+     "w": [
+      "vws"
+     ],
+     "slot": [
+      [
+       50,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       3,
+       15
+      ],
+      [
+       4,
+       30
+      ]
+     ]
+    },
+    {
+     "w": [
+      "zugersee"
+     ],
+     "slot": [
+      [
+       50,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       3,
+       1
+      ],
+      [
+       4,
+       30
+      ]
+     ]
+    },
+    {
+     "w": [
+      "hallwil"
+     ],
+     "slot": [
+      [
+       50,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       2,
+       1
+      ],
+      [
+       4,
+       30
+      ]
+     ]
+    },
+    {
+     "w": [
+      "sempach",
+      "see"
+     ],
+     "slot": [
+      [
+       45,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       3,
+       15
+      ],
+      [
+       4,
+       30
+      ]
+     ]
+    },
+    {
+     "t": "In Fliessgewässern kein Mindestmass und keine Schonzeit"
+    }
+   ],
+   "Zander": [
+    {
+     "w": [
+      "vws"
+     ],
+     "slot": [
+      [
+       40,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       4,
+       15
+      ],
+      [
+       5,
+       31
+      ]
+     ]
+    },
+    {
+     "w": [
+      "hallwil"
+     ],
+     "slot": [
+      [
+       50,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       4,
+       1
+      ],
+      [
+       5,
+       31
+      ]
+     ]
+    },
+    {
+     "w": [
+      "sempach",
+      "see"
+     ],
+     "slot": [
+      [
+       40,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       4,
+       1
+      ],
+      [
+       5,
+       31
+      ]
+     ]
+    },
+    {
+     "schon": [
+      [
+       4,
+       1
+      ],
+      [
+       5,
+       31
+      ]
+     ]
+    }
+   ],
+   "Egli (Flussbarsch)": [
+    {
+     "slot": [
+      [
+       15,
+       null
+      ]
+     ]
+    }
+   ],
+   "Aal": [
+    {
+     "slot": [
+      [
+       50,
+       null
+      ]
+     ]
+    }
+   ],
+   "Karpfen": [
+    {
+     "w": [
+      "hallwil"
+     ],
+     "slot": [
+      [
+       35,
+       null
+      ]
+     ]
+    }
+   ]
+  },
+  "prot": [
+   "Nase"
+  ],
+  "lim": [
+   {
+    "n": 2,
+    "sp": [
+     "Äsche"
+    ],
+    "t": "Äschen pro Tag"
+   },
+   {
+    "n": 12,
+    "per": "Jahr",
+    "sp": [
+     "Äsche"
+    ],
+    "t": "Äschen pro Jahr"
+   },
+   {
+    "n": 15,
+    "sp": [
+     "Felchen"
+    ],
+    "w": [
+     "sempach"
+    ],
+    "t": "Balchen pro Tag im Sempachersee"
+   },
+   {
+    "n": 1,
+    "sp": [
+     "Bachforelle",
+     "Seeforelle"
+    ],
+    "w": [
+     "hallwil"
+    ],
+    "t": "Forelle pro Tag (Hallwilersee)"
+   },
+   {
+    "n": 25,
+    "sp": [
+     "Felchen"
+    ],
+    "w": [
+     "hallwil"
+    ],
+    "t": "Felchen pro Tag (Hallwilersee)"
+   },
+   {
+    "n": 30,
+    "sp": [
+     "Egli (Flussbarsch)"
+    ],
+    "w": [
+     "hallwil"
+    ],
+    "t": "Egli pro Tag (Hallwilersee)"
+   },
+   {
+    "n": 3,
+    "sp": [
+     "Hecht"
+    ],
+    "w": [
+     "hallwil"
+    ],
+    "t": "Hechte pro Tag (Hallwilersee)"
+   }
+  ],
+  "notes": [
+   "Widerhaken nur mit Sachkundenachweis und nur in stehenden Gewässern; in Fliessgewässern verboten.",
+   "Nachtfischverbot: ab 1 Std. nach Sonnenuntergang bis 1 Std. vor Sonnenaufgang (Vierwaldstättersee: Nachtfischen auf Aal/Trüsche vom Ufer erlaubt).",
+   "Lebende Köderfische verboten; tote nur aus dem gleichen Gewässer.",
+   "Vierwaldstättersee: Edelfisch (sommerlaichende Felchen) und alle Krebse ganzjährig geschützt.",
+   "Sempachersee: Fischen über dem Balchenberg 15.11.–15.1. verboten.",
+   "Krebsfang nur mit Bewilligung."
+  ]
+ },
+ "ZG": {
+  "updated": "2022-10-29",
+  "src": [
+   [
+    "Zuger Verordnung über die Fischerei (BGS 933.211), Stand 29.10.2022",
+    "https://www.lexfind.ch/tol/20812/de"
+   ],
+   [
+    "Ausführungsbestimmungen Konkordat Zugersee, Stand 1.11.2021",
+    "https://www.lexfind.ch/tol/24404/de"
+   ]
+  ],
+  "w": [
+   [
+    "zugersee",
+    "Zugersee"
+   ],
+   [
+    "aegeri",
+    "Ägerisee"
+   ],
+   [
+    "see",
+    "Übrige stehende Gewässer"
+   ],
+   [
+    "fluss",
+    "Fliessgewässer und Stauhaltungen"
+   ]
+  ],
+  "sp": {
+   "Forelle": [
+    {
+     "w": [
+      "fluss"
+     ],
+     "slot": [
+      [
+       24,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       2,
+       29
+      ]
+     ]
+    },
+    {
+     "slot": [
+      [
+       40,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       12,
+       25
+      ]
+     ]
+    }
+   ],
+   "Saibling": [
+    {
+     "slot": [
+      [
+       22,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       15
+      ],
+      [
+       1,
+       15
+      ]
+     ]
+    }
+   ],
+   "Felchen": [
+    {
+     "w": [
+      "aegeri"
+     ],
+     "slot": [
+      [
+       26,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       11,
+       15
+      ],
+      [
+       1,
+       31
+      ]
+     ]
+    },
+    {
+     "slot": [
+      [
+       28,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       11,
+       15
+      ],
+      [
+       1,
+       31
+      ]
+     ]
+    }
+   ],
+   "Äsche": [
+    {
+     "slot": [
+      [
+       30,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       2,
+       1
+      ],
+      [
+       4,
+       30
+      ]
+     ]
+    }
+   ],
+   "Hecht": [
+    {
+     "slot": [
+      [
+       50,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       3,
+       1
+      ],
+      [
+       4,
+       30
+      ]
+     ]
+    }
+   ],
+   "Egli (Flussbarsch)": [
+    {
+     "slot": [
+      [
+       15,
+       null
+      ]
+     ]
+    }
+   ]
+  },
+  "prot": [
+   "Nase",
+   "Aal"
+  ],
+  "notes": [
+   "Widerhaken nur in Seen, nur mit Sachkundenachweis und Patent; in Fliessgewässern verboten.",
+   "Alle Krebsarten ganzjährig geschont.",
+   "Im See max. zwei Angelgeräte pro Patentinhaber; Schleppangeln max. 10 Anbissstellen pro Boot."
+  ]
+ },
+ "SZ": {
+  "updated": "2025-01-01",
+  "src": [
+   [
+    "Ausführungsbestimmungen Angelfischerei in Fliessgewässern (SZ), gültig ab 1.1.2025",
+    "https://www.sz.ch/public/upload/assets/63104/Ausfuehrungsbestimmungen_fuer_die_Angelfischerei_in_Fliessgewaessern.pdf"
+   ],
+   [
+    "Ausführungsbestimmungen Angelfischerei in stehenden Gewässern (SZ), gültig ab 1.1.2025",
+    "https://www.sz.ch/public/upload/assets/63105/Ausfuehrungsbestimmungen_fuer_die_Angelfischerei_in_stehenden_Gewaessern_Lauerzersee_und_Itlimoosweier.pdf?fp=2"
+   ],
+   [
+    "Ausführungsbestimmungen Vierwaldstättersee, Stand 1.9.2023",
+    "https://lu.lexwork.naz.ch/de/dta/724b.pdf"
+   ],
+   [
+    "Ausführungsbestimmungen Konkordat Zugersee, Stand 1.11.2021",
+    "https://www.lexfind.ch/tol/24404/de"
+   ],
+   [
+    "Ausführungsbestimmungen Zürichsee und Obersee (ZH 923.721)",
+    "https://www.notes.zh.ch/appl/zhlex_r.nsf/WebView/68E4A5E47CF28E5BC1258DA70021F932/$File/923.721_13.7.07_132.pdf"
+   ]
+  ],
+  "w": [
+   [
+    "sihl",
+    "Sihl, Alp, Muota"
+   ],
+   [
+    "fluss",
+    "Übrige Fliessgewässer"
+   ],
+   [
+    "see",
+    "Lauerzersee und übrige stehende Gewässer"
+   ],
+   [
+    "vws",
+    "Vierwaldstättersee"
+   ],
+   [
+    "zugersee",
+    "Zugersee"
+   ],
+   [
+    "zuerichsee",
+    "Zürichsee / Obersee"
+   ],
+   [
+    "linth",
+    "Linthkanal"
+   ],
+   [
+    "pachtsee",
+    "Sihlsee, Wägitalersee (Pachtseen)"
+   ]
+  ],
+  "closed": [
+   {
+    "w": [
+     "sihl",
+     "fluss"
+    ],
+    "from": [
+     9,
+     16
+    ],
+    "to": [
+     3,
+     31
+    ],
+    "t": "Fliessgewässer: Fischen 1.4.–15.9., 4–23 Uhr"
+   }
+  ],
+  "sp": {
+   "Bachforelle": [
+    {
+     "w": [
+      "sihl"
+     ],
+     "slot": [
+      [
+       28,
+       38
+      ],
+      [
+       48,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       9,
+       16
+      ],
+      [
+       3,
+       31
+      ]
+     ]
+    },
+    {
+     "w": [
+      "fluss"
+     ],
+     "slot": [
+      [
+       28,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       9,
+       16
+      ],
+      [
+       3,
+       31
+      ]
+     ]
+    },
+    {
+     "w": [
+      "see"
+     ],
+     "slot": [
+      [
+       40,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       9,
+       16
+      ],
+      [
+       12,
+       25
+      ]
+     ]
+    },
+    {
+     "w": [
+      "vws"
+     ],
+     "slot": [
+      [
+       35,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       12,
+       25
+      ]
+     ]
+    },
+    {
+     "w": [
+      "zugersee",
+      "zuerichsee"
+     ],
+     "slot": [
+      [
+       40,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       12,
+       25
+      ]
+     ]
+    },
+    {
+     "w": [
+      "linth"
+     ],
+     "slot": [
+      [
+       32,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       1,
+       31
+      ]
+     ]
+    },
+    {
+     "t": "Eigene Bestimmungen der Pachtseen beachten"
+    }
+   ],
+   "Seeforelle": [
+    {
+     "w": [
+      "sihl",
+      "fluss"
+     ],
+     "slot": [
+      [
+       35,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       8,
+       16
+      ],
+      [
+       3,
+       31
+      ]
+     ]
+    },
+    {
+     "w": [
+      "see"
+     ],
+     "slot": [
+      [
+       40,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       9,
+       16
+      ],
+      [
+       12,
+       25
+      ]
+     ]
+    },
+    {
+     "w": [
+      "vws"
+     ],
+     "slot": [
+      [
+       35,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       12,
+       25
+      ]
+     ]
+    },
+    {
+     "w": [
+      "zugersee",
+      "zuerichsee"
+     ],
+     "slot": [
+      [
+       40,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       12,
+       25
+      ]
+     ]
+    },
+    {
+     "w": [
+      "linth"
+     ],
+     "slot": [
+      [
+       32,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       1,
+       31
+      ]
+     ]
+    },
+    {
+     "t": "Eigene Bestimmungen der Pachtseen beachten"
+    }
+   ],
+   "Äsche": [
+    {
+     "w": [
+      "sihl",
+      "fluss"
+     ],
+     "slot": [
+      [
+       32,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       9,
+       16
+      ],
+      [
+       4,
+       30
+      ]
+     ]
+    },
+    {
+     "w": [
+      "vws"
+     ],
+     "slot": [
+      [
+       30,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       2,
+       15
+      ],
+      [
+       4,
+       30
+      ]
+     ]
+    },
+    {
+     "w": [
+      "zuerichsee"
+     ],
+     "prot": true,
+     "t": "Im Zürichsee/Obersee ganzjährig geschützt"
+    },
+    {
+     "w": [
+      "linth"
+     ],
+     "slot": [
+      [
+       32,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       2,
+       1
+      ],
+      [
+       5,
+       31
+      ]
+     ]
+    },
+    {
+     "t": "Keine Angabe für dieses Gewässer"
+    }
+   ],
+   "Saibling": [
+    {
+     "w": [
+      "vws"
+     ],
+     "slot": [
+      [
+       22,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       12,
+       25
+      ]
+     ]
+    },
+    {
+     "w": [
+      "zugersee"
+     ],
+     "slot": [
+      [
+       22,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       15
+      ],
+      [
+       1,
+       15
+      ]
+     ]
+    },
+    {
+     "w": [
+      "zuerichsee"
+     ],
+     "slot": [
+      [
+       25,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       12,
+       25
+      ]
+     ]
+    }
+   ],
+   "Felchen": [
+    {
+     "w": [
+      "see"
+     ],
+     "slot": [
+      [
+       28,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       12,
+       31
+      ]
+     ]
+    },
+    {
+     "w": [
+      "vws"
+     ],
+     "slot": [
+      [
+       30,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       15
+      ],
+      [
+       12,
+       25
+      ]
+     ]
+    },
+    {
+     "w": [
+      "zugersee"
+     ],
+     "slot": [
+      [
+       28,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       11,
+       15
+      ],
+      [
+       1,
+       31
+      ]
+     ]
+    },
+    {
+     "w": [
+      "zuerichsee"
+     ],
+     "slot": [
+      [
+       25,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       11,
+       20
+      ],
+      [
+       12,
+       31
+      ]
+     ]
+    },
+    {
+     "w": [
+      "linth"
+     ],
+     "slot": [
+      [
+       25,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       12,
+       1
+      ],
+      [
+       1,
+       31
+      ]
+     ]
+    }
+   ],
+   "Hecht": [
+    {
+     "w": [
+      "see"
+     ],
+     "slot": [
+      [
+       50,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       2,
+       1
+      ],
+      [
+       3,
+       31
+      ]
+     ]
+    },
+    {
+     "w": [
+      "vws"
+     ],
+     "slot": [
+      [
+       50,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       3,
+       15
+      ],
+      [
+       4,
+       30
+      ]
+     ]
+    },
+    {
+     "w": [
+      "zugersee"
+     ],
+     "slot": [
+      [
+       50,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       3,
+       1
+      ],
+      [
+       4,
+       30
+      ]
+     ]
+    }
+   ],
+   "Zander": [
+    {
+     "w": [
+      "see"
+     ],
+     "slot": [
+      [
+       45,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       4,
+       1
+      ],
+      [
+       5,
+       31
+      ]
+     ]
+    },
+    {
+     "w": [
+      "vws"
+     ],
+     "slot": [
+      [
+       40,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       4,
+       15
+      ],
+      [
+       5,
+       31
+      ]
+     ]
+    }
+   ],
+   "Egli (Flussbarsch)": [
+    {
+     "w": [
+      "see",
+      "vws",
+      "zugersee"
+     ],
+     "slot": [
+      [
+       15,
+       null
+      ]
+     ]
+    }
+   ],
+   "Aal": [
+    {
+     "w": [
+      "vws"
+     ],
+     "slot": [
+      [
+       50,
+       null
+      ]
+     ]
+    }
+   ]
+  },
+  "prot": [
+   "Nase"
+  ],
+  "lim": [
+   {
+    "n": 4,
+    "sp": [
+     "Bachforelle",
+     "Seeforelle",
+     "Regenbogenforelle",
+     "Saibling",
+     "Äsche"
+    ],
+    "w": [
+     "sihl",
+     "fluss"
+    ],
+    "t": "Grosse Salmoniden (Forelle, Saibling, Äsche) pro Tag"
+   },
+   {
+    "n": 80,
+    "per": "Jahr",
+    "sp": [
+     "Bachforelle"
+    ],
+    "w": [
+     "sihl",
+     "fluss"
+    ],
+    "t": "Bachforellen pro Jahr"
+   },
+   {
+    "n": 5,
+    "sp": [
+     "Hecht",
+     "Zander"
+    ],
+    "w": [
+     "see"
+    ],
+    "t": "Hecht und Zander zusammen pro Tag"
+   },
+   {
+    "n": 4,
+    "sp": [
+     "Bachforelle",
+     "Seeforelle",
+     "Regenbogenforelle"
+    ],
+    "w": [
+     "zuerichsee"
+    ],
+    "t": "Forellen pro Tag (Zürichsee)"
+   },
+   {
+    "n": 10,
+    "sp": [
+     "Felchen"
+    ],
+    "w": [
+     "zuerichsee"
+    ],
+    "t": "Felchen pro Tag (Zürichsee)"
+   },
+   {
+    "n": 5,
+    "sp": [
+     "Saibling"
+    ],
+    "w": [
+     "zuerichsee"
+    ],
+    "t": "Saiblinge pro Tag (Zürichsee)"
+   },
+   {
+    "n": 5,
+    "sp": [
+     "Hecht"
+    ],
+    "w": [
+     "zuerichsee"
+    ],
+    "t": "Hechte pro Tag (Zürichsee)"
+   },
+   {
+    "n": 50,
+    "sp": [
+     "Egli (Flussbarsch)"
+    ],
+    "w": [
+     "zuerichsee"
+    ],
+    "t": "Egli pro Tag (Zürichsee)"
+   }
+  ],
+  "notes": [
+   "Fliessgewässer: nur Einzelhaken ohne Widerhaken (Grösse 1–6); Fliegenfischen max. 2 Fliegen. Alp und alte Sihl: nur Fliegenfischen.",
+   "Stehende Gewässer: Widerhaken nur beim Hegenen- und Schleppfischen; Mehrfachhaken ohne Widerhaken.",
+   "Krebsfang im ganzen Kanton verboten.",
+   "Tagespatent Fliessgewässer erst ab 15. Mai.",
+   "Sihl- und Wägitalersee: eigene Pachtbestimmungen."
+  ]
+ },
+ "UR": {
+  "updated": "2024-12-01",
+  "src": [
+   [
+    "Fischereireglement Uri (RB 40.3215), Stand 1.12.2024",
+    "https://rechtsbuch.ur.ch/api/de/versions/824/pdf_file"
+   ],
+   [
+    "Ausführungsbestimmungen Vierwaldstättersee, Stand 1.9.2023",
+    "https://lu.lexwork.naz.ch/de/dta/724b.pdf"
+   ]
+  ],
+  "w": [
+   [
+    "urnersee",
+    "Urnersee"
+   ],
+   [
+    "reuss",
+    "Reuss (Urnersee–Göschenen), Dorfbach, Giessen, Stille Reuss, Walenbrunnen, Gangbach, Palanggenbach, Bockibach, Göscheneralpreuss"
+   ],
+   [
+    "faetsch",
+    "Staubecken Fätschbachwerk"
+   ],
+   [
+    "oberalp",
+    "Oberalp- und Gotthardreuss"
+   ],
+   [
+    "fluss",
+    "Übrige Fliessgewässer"
+   ],
+   [
+    "berg",
+    "Bergseen"
+   ],
+   [
+    "seelisberg",
+    "Seelisbergersee"
+   ]
+  ],
+  "sp": {
+   "Bachforelle": [
+    {
+     "w": [
+      "urnersee"
+     ],
+     "slot": [
+      [
+       35,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       12,
+       25
+      ]
+     ]
+    },
+    {
+     "w": [
+      "reuss"
+     ],
+     "slot": [
+      [
+       24,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       4,
+       14
+      ]
+     ]
+    },
+    {
+     "w": [
+      "faetsch"
+     ],
+     "slot": [
+      [
+       25,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       4,
+       30
+      ]
+     ]
+    },
+    {
+     "w": [
+      "berg"
+     ],
+     "slot": [
+      [
+       24,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       5,
+       31
+      ]
+     ]
+    },
+    {
+     "w": [
+      "seelisberg"
+     ],
+     "t": "Siehe Merkblatt Seelisbergersee"
+    },
+    {
+     "slot": [
+      [
+       22,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       4,
+       14
+      ]
+     ]
+    }
+   ],
+   "Regenbogenforelle": [
+    {
+     "w": [
+      "urnersee"
+     ],
+     "slot": [
+      [
+       35,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       12,
+       25
+      ]
+     ]
+    },
+    {
+     "w": [
+      "berg"
+     ],
+     "slot": [
+      [
+       24,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       5,
+       31
+      ]
+     ]
+    },
+    {
+     "w": [
+      "seelisberg"
+     ],
+     "t": "Siehe Merkblatt Seelisbergersee"
+    },
+    {
+     "slot": [
+      [
+       24,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       4,
+       14
+      ]
+     ]
+    }
+   ],
+   "Seeforelle": [
+    {
+     "w": [
+      "urnersee"
+     ],
+     "slot": [
+      [
+       35,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       12,
+       25
+      ]
+     ]
+    },
+    {
+     "slot": [
+      [
+       35,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       4,
+       14
+      ]
+     ]
+    }
+   ],
+   "Saibling": [
+    {
+     "w": [
+      "urnersee"
+     ],
+     "slot": [
+      [
+       22,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       12,
+       25
+      ]
+     ],
+     "t": "Seesaibling"
+    },
+    {
+     "w": [
+      "berg"
+     ],
+     "slot": [
+      [
+       24,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       5,
+       31
+      ]
+     ],
+     "t": "Seesaibling in Bergseen"
+    },
+    {
+     "w": [
+      "oberalp"
+     ],
+     "slot": [
+      [
+       22,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       4,
+       14
+      ]
+     ],
+     "t": "Bachsaibling"
+    },
+    {
+     "slot": [
+      [
+       24,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       4,
+       14
+      ]
+     ],
+     "t": "Bachsaibling"
+    }
+   ],
+   "Hecht": [
+    {
+     "w": [
+      "urnersee"
+     ],
+     "slot": [
+      [
+       50,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       3,
+       15
+      ],
+      [
+       4,
+       30
+      ]
+     ]
+    },
+    {
+     "w": [
+      "seelisberg"
+     ],
+     "slot": [
+      [
+       50,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       1,
+       1
+      ],
+      [
+       5,
+       14
+      ]
+     ]
+    },
+    {
+     "slot": [
+      [
+       50,
+       null
+      ]
+     ]
+    }
+   ],
+   "Felchen": [
+    {
+     "slot": [
+      [
+       30,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       15
+      ],
+      [
+       12,
+       25
+      ]
+     ],
+     "t": "Balchen/Blaufelchen; Albeli ab 22 cm"
+    }
+   ],
+   "Egli (Flussbarsch)": [
+    {
+     "slot": [
+      [
+       15,
+       null
+      ]
+     ]
+    }
+   ],
+   "Zander": [
+    {
+     "slot": [
+      [
+       40,
+       null
+      ]
+     ]
+    }
+   ]
+  },
+  "prot": [
+   "Äsche",
+   "Aal",
+   "Nase"
+  ],
+  "lim": [
+   {
+    "n": 6,
+    "sp": [
+     "Bachforelle",
+     "Regenbogenforelle",
+     "Seeforelle",
+     "Saibling"
+    ],
+    "t": "Forellen und Saiblinge zusammen pro Tag"
+   },
+   {
+    "n": 25,
+    "sp": [
+     "Felchen"
+    ],
+    "t": "Albeli, Balchen, Blaufelchen zusammen pro Tag"
+   }
+  ],
+  "notes": [
+   "Widerhaken in Fliessgewässern, Berg- und Stauseen verboten (angedrückte gelten als widerhakenlos); im Urnersee mit Sachkundenachweis erlaubt.",
+   "Äsche, Edelfisch (sommerlaichende Felchen), Aal und alle Krebse: ganzjähriges Fangverbot.",
+   "Lebende Köderfische verboten; tote nur im Urnersee.",
+   "Namaycush ab 24 cm, Schonzeit 1.10.–31.5."
+  ]
+ },
+ "OW": {
+  "updated": "2025-01-01",
+  "src": [
+   [
+    "Merkblatt über die Fischerei im Kanton Obwalden, Stand 1.1.2025",
+    "https://ow.ch/_doc/400891"
+   ]
+  ],
+  "w": [
+   [
+    "fluss",
+    "Fliessgewässer (inkl. Sewensee)"
+   ],
+   [
+    "sarnersee",
+    "Sarnersee"
+   ],
+   [
+    "alpnach",
+    "Alpnachersee"
+   ],
+   [
+    "wichelsee",
+    "Wichelsee"
+   ]
+  ],
+  "closed": [
+   {
+    "w": [
+     "fluss"
+    ],
+    "from": [
+     10,
+     1
+    ],
+    "to": [
+     4,
+     30
+    ],
+    "t": "Fliessgewässer nur 1.5.–30.9. (Sarneraa Sarnen–Alpnach mit Jahrespatent auch im Oktober)"
+   }
+  ],
+  "sp": {
+   "Forelle": [
+    {
+     "w": [
+      "sarnersee"
+     ],
+     "slot": [
+      [
+       45,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       12,
+       25
+      ]
+     ]
+    },
+    {
+     "w": [
+      "alpnach"
+     ],
+     "slot": [
+      [
+       35,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       12,
+       25
+      ]
+     ]
+    },
+    {
+     "w": [
+      "wichelsee"
+     ],
+     "slot": [
+      [
+       35,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       4,
+       30
+      ]
+     ]
+    },
+    {
+     "slot": [
+      [
+       24,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       4,
+       30
+      ]
+     ]
+    }
+   ],
+   "Äsche": [
+    {
+     "w": [
+      "alpnach"
+     ],
+     "slot": [
+      [
+       30,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       2,
+       15
+      ],
+      [
+       4,
+       30
+      ]
+     ]
+    },
+    {
+     "slot": [
+      [
+       38,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       11,
+       1
+      ],
+      [
+       5,
+       31
+      ]
+     ]
+    }
+   ],
+   "Saibling": [
+    {
+     "w": [
+      "sarnersee",
+      "wichelsee"
+     ],
+     "slot": [
+      [
+       22,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       12,
+       31
+      ]
+     ]
+    },
+    {
+     "w": [
+      "alpnach"
+     ],
+     "slot": [
+      [
+       22,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       12,
+       25
+      ]
+     ]
+    },
+    {
+     "slot": [
+      [
+       22,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       4,
+       30
+      ]
+     ]
+    }
+   ],
+   "Felchen": [
+    {
+     "w": [
+      "sarnersee",
+      "wichelsee"
+     ],
+     "slot": [
+      [
+       25,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       11,
+       1
+      ],
+      [
+       1,
+       15
+      ]
+     ]
+    },
+    {
+     "w": [
+      "alpnach"
+     ],
+     "slot": [
+      [
+       25,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       15
+      ],
+      [
+       12,
+       25
+      ]
+     ]
+    },
+    {
+     "slot": [
+      [
+       25,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       4,
+       30
+      ]
+     ]
+    }
+   ],
+   "Zander": [
+    {
+     "w": [
+      "sarnersee"
+     ],
+     "slot": [
+      [
+       45,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       3,
+       15
+      ],
+      [
+       6,
+       15
+      ]
+     ]
+    },
+    {
+     "w": [
+      "alpnach"
+     ],
+     "slot": [
+      [
+       40,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       4,
+       15
+      ],
+      [
+       5,
+       31
+      ]
+     ]
+    },
+    {
+     "w": [
+      "wichelsee"
+     ],
+     "slot": [
+      [
+       45,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       4,
+       15
+      ],
+      [
+       5,
+       31
+      ]
+     ]
+    },
+    {
+     "slot": [
+      [
+       45,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       5,
+       31
+      ]
+     ]
+    }
+   ],
+   "Hecht": [
+    {
+     "w": [
+      "sarnersee",
+      "alpnach"
+     ],
+     "t": "Kein Mindestmass und keine Schonzeit"
+    },
+    {
+     "slot": [
+      [
+       50,
+       null
+      ]
+     ]
+    }
+   ],
+   "Egli (Flussbarsch)": [
+    {
+     "slot": [
+      [
+       15,
+       null
+      ]
+     ]
+    }
+   ]
+  },
+  "prot": [
+   "Nase",
+   "Aal"
+  ],
+  "lim": [
+   {
+    "n": 5,
+    "sp": [
+     "Bachforelle",
+     "Seeforelle",
+     "Regenbogenforelle",
+     "Äsche",
+     "Saibling"
+    ],
+    "w": [
+     "fluss",
+     "sarnersee",
+     "wichelsee"
+    ],
+    "t": "Fische pro Tag (Fliessgewässer, Sarner- und Wichelsee; Sewensee 3)"
+   },
+   {
+    "n": 3,
+    "sp": [
+     "Äsche"
+    ],
+    "w": [
+     "fluss"
+    ],
+    "t": "Äschen pro Tag"
+   },
+   {
+    "n": 80,
+    "per": "Jahr",
+    "sp": [
+     "Bachforelle"
+    ],
+    "t": "Bachforellen pro Jahr"
+   },
+   {
+    "n": 5,
+    "per": "Jahr",
+    "sp": [
+     "Äsche"
+    ],
+    "t": "Äschen pro Jahr"
+   },
+   {
+    "n": 300,
+    "per": "Jahr",
+    "sp": [
+     "Felchen"
+    ],
+    "t": "Felchen pro Jahr"
+   }
+  ],
+  "notes": [
+   "Lungerersee: Patente berechtigen dort nicht zum Fischen.",
+   "Widerhaken in Fliessgewässern verboten; in Seen nur mit Sachkundenachweis.",
+   "Nachtfischverbot: März–Oktober 22–4 Uhr, November–Februar 20–6 Uhr.",
+   "Jede gefangene Regenbogenforelle ist zu entnehmen.",
+   "Einheimische Krebse ganzjährig geschützt."
+  ]
+ },
+ "NW": {
+  "updated": "2024-01-01",
+  "src": [
+   [
+    "Kantonale Fischereiverordnung Nidwalden (kFV, NG 842.11), Stand 1.1.2024",
+    "https://www.lexfind.ch/tol/12108/de"
+   ],
+   [
+    "Ausführungsbestimmungen Vierwaldstättersee, Stand 1.9.2023",
+    "https://lu.lexwork.naz.ch/de/dta/724b.pdf"
+   ]
+  ],
+  "w": [
+   [
+    "vws",
+    "Vierwaldstättersee"
+   ],
+   [
+    "pacht",
+    "Pachtgewässer: Fliessgewässer (Engelberger Aa u.a.)"
+   ],
+   [
+    "pacht_see",
+    "Pachtgewässer: stehende Gewässer"
+   ]
+  ],
+  "sp": {
+   "Bachforelle": [
+    {
+     "w": [
+      "vws"
+     ],
+     "slot": [
+      [
+       35,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       12,
+       25
+      ]
+     ]
+    },
+    {
+     "w": [
+      "pacht_see"
+     ],
+     "slot": [
+      [
+       25,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       3,
+       31
+      ]
+     ]
+    },
+    {
+     "slot": [
+      [
+       22,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       3,
+       31
+      ]
+     ]
+    }
+   ],
+   "Seeforelle": [
+    {
+     "w": [
+      "vws"
+     ],
+     "slot": [
+      [
+       35,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       12,
+       25
+      ]
+     ]
+    },
+    {
+     "w": [
+      "pacht_see"
+     ],
+     "slot": [
+      [
+       25,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       3,
+       31
+      ]
+     ]
+    },
+    {
+     "slot": [
+      [
+       50,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       3,
+       31
+      ]
+     ]
+    }
+   ],
+   "Äsche": [
+    {
+     "w": [
+      "vws"
+     ],
+     "slot": [
+      [
+       30,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       2,
+       15
+      ],
+      [
+       4,
+       30
+      ]
+     ]
+    },
+    {
+     "slot": [
+      [
+       30,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       1,
+       1
+      ],
+      [
+       4,
+       30
+      ]
+     ]
+    }
+   ],
+   "Saibling": [
+    {
+     "w": [
+      "vws"
+     ],
+     "slot": [
+      [
+       22,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       1
+      ],
+      [
+       12,
+       25
+      ]
+     ]
+    },
+    {
+     "slot": [
+      [
+       25,
+       null
+      ]
+     ],
+     "t": "Bachsaibling"
+    }
+   ],
+   "Felchen": [
+    {
+     "w": [
+      "vws"
+     ],
+     "slot": [
+      [
+       30,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       10,
+       15
+      ],
+      [
+       12,
+       25
+      ]
+     ]
+    }
+   ],
+   "Hecht": [
+    {
+     "w": [
+      "vws"
+     ],
+     "slot": [
+      [
+       50,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       3,
+       15
+      ],
+      [
+       4,
+       30
+      ]
+     ]
+    }
+   ],
+   "Zander": [
+    {
+     "w": [
+      "vws"
+     ],
+     "slot": [
+      [
+       40,
+       null
+      ]
+     ],
+     "schon": [
+      [
+       4,
+       15
+      ],
+      [
+       5,
+       31
+      ]
+     ]
+    }
+   ],
+   "Egli (Flussbarsch)": [
+    {
+     "w": [
+      "vws"
+     ],
+     "slot": [
+      [
+       15,
+       null
+      ]
+     ]
+    }
+   ],
+   "Aal": [
+    {
+     "w": [
+      "vws"
+     ],
+     "slot": [
+      [
+       50,
+       null
+      ]
+     ]
+    }
+   ]
+  },
+  "prot": [
+   "Nase"
+  ],
+  "notes": [
+   "Fliessgewässer sind verpachtet – Fischereikarte beim Pächter; in Fliessgewässern nur 1 Rute.",
+   "Pachtgewässer: max. 2 Ruten, nur Angelrute erlaubt.",
+   "Vierwaldstättersee: Widerhaken nur mit Sachkundenachweis; lebende Köderfische verboten; Edelfisch und Krebse ganzjährig geschützt.",
+   "Krebse in Pachtgewässern ab 12 cm, Schonzeit 1.10.–31.7."
+  ]
+ }
+}

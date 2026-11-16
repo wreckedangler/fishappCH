@@ -191,6 +191,9 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 const CANTONS=[["AG","Aargau"],["AI","Appenzell I.Rh."],["AR","Appenzell A.Rh."],["BE","Bern"],["BL","Basel-Landschaft"],["BS","Basel-Stadt"],["FR","Freiburg"],["GE","Genf"],["GL","Glarus"],["GR","Graubünden"],["JU","Jura"],["LU","Luzern"],["NE","Neuenburg"],["NW","Nidwalden"],["OW","Obwalden"],["SG","St. Gallen"],["SH","Schaffhausen"],["SO","Solothurn"],["SZ","Schwyz"],["TG","Thurgau"],["TI","Tessin"],["UR","Uri"],["VD","Waadt"],["VS","Wallis"],["ZG","Zug"],["ZH","Zürich"]];
 const cname=c=>(CANTONS.find(x=>x[0]===c)||[c,c])[1];
 const isDetailed=c=>!!(RULES[c]&&RULES[c].detailed);
+const hasCM=c=>!!(RULES[c]&&RULES[c].sp);
+const isSO=()=>state.canton==="SO"&&isDetailed("SO");
+const isCM=()=>!isSO()&&hasCM(state.canton);
 
 const STREAM_CLOSED={from:[10,1],to:[3,15],why:"Fischereiverbot 01.10.–15.03."};
 const BIRS_CLOSED={from:[10,15],to:[2,29],why:"Fischereiverbot in der Birs 15.10.–Ende Februar"};
@@ -244,13 +247,14 @@ const p2=n=>String(n).padStart(2,"0");
 const fmtR=r=>`${p2(r[0][1])}.${p2(r[0][0])}.–${r[1][0]===2&&r[1][1]>=28?"Ende Feb.":p2(r[1][1])+"."+p2(r[1][0])+"."}`;
 const fmtSlot=s=>s.map(([a,b])=>b?`${a}–${b} cm`:`ab ${a} cm`).join(" oder ");
 const dayKey=d=>`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;
+const fmtD=x=>{if(!x)return"–";const[a,b,c]=String(x).split("-");return c?`${c}.${b}.${a}`:x};
 const fmtM=m=>m<1000?`${Math.round(m)} m`:`${(m/1000).toFixed(1)} km`;
 const store={get(k,d){try{const v=localStorage.getItem("fb_"+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem("fb_"+k,JSON.stringify(v));return true}catch(e){return false}}};
 let toastT;function toast(t){const el=$("#toast");el.textContent=t;el.classList.add("on");clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove("on"),2600)}
 function ask(html,yes,noBtn){const d=$("#dlg");$("#dlgBody").innerHTML=html;$("#dlgNo").classList.toggle("hide",noBtn===false);$("#dlgYes").onclick=()=>{d.close();yes&&yes()};$("#dlgNo").onclick=()=>d.close();try{d.showModal()}catch(e){}}
 
-let state={canton:store.get("canton","SO"),cantonAuto:store.get("cantonAuto",true),sec:store.get("sec","A2"),secAuto:store.get("secAuto",true),log:store.get("log",[]),sess:store.get("sess",null),pos:null,here:null,geoErr:null};
-function save(){["canton","cantonAuto","sec","secAuto","log","sess"].forEach(k=>store.set(k,state[k]))}
+let state={cw:store.get("cw",{}),canton:store.get("canton","SO"),cantonAuto:store.get("cantonAuto",true),sec:store.get("sec","A2"),secAuto:store.get("secAuto",true),log:store.get("log",[]),sess:store.get("sess",null),pos:null,here:null,geoErr:null};
+function save(){["cw","canton","cantonAuto","sec","secAuto","log","sess"].forEach(k=>store.set(k,state[k]))}
 
 /* ================= GEODATEN (offizielle SO-Gewässer) ================= */
 const WFS="https://geo.so.ch/api/wfs?SERVICE=WFS&VERSION=1.1.0&REQUEST=GetFeature&TYPENAME=ch.so.awjf.gewaesser.patentgewaesser&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326";
@@ -306,11 +310,34 @@ function natRule(sp){
   if(n)return{slot:[[n,null]],national:true,weeks:C.weeks[sp],note:sp==="Bachforelle"||sp==="Seeforelle"?`In grösseren Seen unter 800 m: ab ${C.troutLake} cm`:null};
   return{national:true,note:"Kein nationales Mindestmass – kantonal prüfen"};
 }
-function ruleFor(sec,sp){return isDetailed(state.canton)?soRule(sec,sp):natRule(sp)}
-function currentSec(){return secById(state.sec)}
+const FOR_ALIAS=["Bachforelle","Seeforelle"];
+function cmEntries(c,sp){const R=RULES[c];if(!R||!R.sp)return null;return R.sp[sp]||(FOR_ALIAS.includes(sp)?R.sp.Forelle:null)||null}
+function cmLims(c,wid,sp){return((RULES[c]||{}).lim||[]).filter(l=>l.sp.includes(sp)&&(!l.w||l.w.includes(wid)))}
+function cmRule(c,wid,sp){
+  const R=RULES[c];
+  if((R.prot||[]).includes(sp))return{prot:true,note:sp+" ist in "+cname(c)+" geschützt",lims:[]};
+  const list=cmEntries(c,sp)||[];
+  const e=list.find(x=>!x.w||x.w.includes(wid));
+  const lims=cmLims(c,wid,sp);
+  if(!e){
+    const nr=natRule(sp);nr.lims=lims;
+    if(list.length){nr.note=wid?"Für dieses Gewässer keine kantonale Sonderregel hinterlegt – nationale Vorgaben, vor Ort prüfen":"Regeln je nach Gewässer – oben das Gewässer wählen";nr.pickW=!wid}
+    else if(!nr.prot)nr.note=nr.slot?"Kein kantonaler Wert hinterlegt – nationales Mindestmass":"Kein Mindestmass hinterlegt";
+    if(!list.length&&!["Bachforelle","Seeforelle","Saibling","Felchen","Äsche","Hecht","Egli (Flussbarsch)"].includes(sp)){nr.national=false;nr.note="Für diese Art kein Mindestmass und keine Schonzeit hinterlegt"}
+    return nr}
+  if(e.prot)return{prot:true,note:e.t||sp+" ist hier geschützt",lims:[]};
+  return{slot:e.slot||null,schon:e.schon||null,schon2:e.schon2||null,keep:!!e.keep,chk:e.chk===false,note:e.t||null,lims,cm:true};
+}
+function ruleFor(sec,sp){if(isSO())return soRule(sec,sp);if(isCM())return cmRule(state.canton,sec.id,sp);return natRule(sp)}
+function cwOf(c){const v=(state.cw||{})[c];return((RULES[c]||{}).w||[]).some(x=>x[0]===v)?v:""}
+function cwLabel(c,id){const x=((RULES[c]||{}).w||[]).find(x=>x[0]===id);return x?x[1]:""}
+function currentSec(){
+  if(isCM()){const c=state.canton,id=cwOf(c);return{id,kind:"cw",name:id?cwLabel(c,id):cname(c),desc:id?cname(c):"Gewässer noch nicht gewählt",notes:[]}}
+  return secById(state.sec)}
 function secStatus(sec,d=new Date()){
   const out=[];
-  if(!isDetailed(state.canton))return out;
+  if(isCM()){((RULES[state.canton]||{}).closed||[]).forEach(cl=>{if(sec.id&&cl.w.includes(sec.id)&&inRange(d,cl.from,cl.to))out.push({lvl:"bad",txt:"Heute geschlossen: "+cl.t})});return out}
+  if(!isSO())return out;
   if(sec.kind==="schon")out.push({lvl:"bad",txt:"Schonstrecke – Fischen verboten"});
   if(sec.closed&&inRange(d,sec.closed.from,sec.closed.to))out.push({lvl:"bad",txt:sec.closed.why});
   NEWS.forEach(n=>{if((n.secs||[]).includes(sec.id))out.push({lvl:"bad",txt:`Verfügung vom ${n.date}: Fischereiverbot bis auf Widerruf`})});
@@ -325,12 +352,20 @@ function check(sec,sp,len,d=new Date()){
   secStatus(sec,d).forEach(x=>x.lvl==="bad"?issues.push(x.txt):infos.push(x.txt));
   if(r.prot)issues.push(r.note+" – schonend mit nasser Hand zurücksetzen");
   if(r.schon&&inRange(d,r.schon[0],r.schon[1]))issues.push(`${sp}: Schonzeit ${fmtR(r.schon)}`);
+  if(r.schon2&&inRange(d,r.schon2[0],r.schon2[1]))issues.push(`${sp}: Schonzeit ${fmtR(r.schon2)}`);
+  if(r.pickW)issues.push("Gewässer wählen – die Regeln für "+sp+" hängen vom Gewässer ab");
   let needLen=false;
-  if(r.slot){if(len==null||isNaN(len)){needLen=true;infos.push(`Erlaubt: ${fmtSlot(r.slot)}`)}
+  if(r.chk){infos.push(r.note||"Werte amtlich prüfen");r.note=null}
+  else if(r.slot){if(len==null||isNaN(len)){needLen=true;infos.push(`Erlaubt: ${fmtSlot(r.slot)}`)}
     else if(!r.slot.some(([a,b])=>len>=a&&(b==null||len<=b)))issues.push(`${len} cm ist nicht erlaubt – erlaubt: ${fmtSlot(r.slot)}`);
     else infos.push(`Mass ok (${fmtSlot(r.slot)})`)}
   if(r.day){const c=countToday(sp,r.dayGroup==="trout");if(c>=r.day)issues.push(`Tageslimite erreicht (${c}/${r.day})`);else infos.push(`Heute behalten: ${c}/${r.day}${r.dayGroup==="trout"?" Forellen+Saiblinge":""}`)}
   if(r.year&&sec.kind==="patent"){const c=countYear(sp);if(c>=r.year)issues.push(`Jahreslimite erreicht (${c}/${r.year})`);else infos.push(`Saison: ${c}/${r.year} Bachforellen`)}
+  if(r.lims){const y=String(d.getFullYear()),t=dayKey(d);r.lims.forEach(l=>{const yr=l.per==="Jahr";
+      const c=state.log.filter(f=>f.kept&&f.canton===state.canton&&l.sp.includes(f.art)&&(!l.w||l.w.includes(f.sec))&&(yr?f.day.startsWith(y):f.day===t)).reduce((a,f)=>a+(f.n||1),0);
+      if(c>=l.n)issues.push(`${yr?"Jahres":"Tages"}limite erreicht: ${l.t} (${c}/${l.n})`);else infos.push(`${l.t}: ${c}/${l.n} behalten`)})}
+  if(r.keep)infos.push("Muss behalten werden – Zurücksetzen nicht erlaubt");
+  if(r.cm&&!r.slot&&!r.schon&&!r.chk&&!r.note)infos.push("Kein Mindestmass und keine Schonzeit hinterlegt");
   if(r.national){infos.push(r.weeks?`Schonzeit: mind. ${r.weeks} Wochen – Daten legt der Kanton fest`:"Schonzeit: kantonal prüfen");infos.push("Nur nationale Mindestvorgaben – der Kanton kann strenger sein")}
   if(r.note&&!r.prot)infos.push(r.note);
   needLen=needLen&&issues.length===0;
@@ -384,8 +419,13 @@ async function identifyCanton(lat,lon){
 
 /* ================= RENDER: TOPBAR & HIER ================= */
 function hereSummary(){
-  const det=isDetailed(state.canton),sec=currentSec(),h=state.here;
-  if(!det)return{cls:"warn",t:cname(state.canton)+": nationale Mindestregeln",s:"Kantonale Details folgen – vor Ort prüfen"};
+  const det=isSO(),sec=currentSec(),h=state.here;
+  if(isCM()){const R=RULES[state.canton];
+    if(!sec.id)return{cls:"warn",t:cname(state.canton)+": Gewässer wählen",s:"Masse und Schonzeiten hängen vom Gewässer ab"};
+    const bad=secStatus(sec).find(x=>x.lvl==="bad");
+    if(bad)return{cls:"bad",t:sec.name+" – heute gesperrt",s:bad.txt};
+    return{cls:"ok",t:sec.name,s:`Kantonale Regeln ${state.canton}, Stand ${fmtD(R.updated)} – Schonzeiten pro Art beachten`}}
+  if(!det)return{cls:"warn",t:cname(state.canton)+": nationale Mindestregeln",s:"Keine kantonalen Daten geladen – vor Ort prüfen"};
   if(state.secAuto&&state.pos&&h&&h.kind==="none")return{cls:"none",t:"Kein SO-Fischereigewässer hier",s:h.near?`Nächstes: ${secById(h.near.f.id).name}, ${fmtM(h.near.d)}`:""};
   const st=secStatus(sec);const bad=st.find(x=>x.lvl==="bad"),warn=st.find(x=>x.lvl==="warn");
   const s=(state.secAuto&&h&&h.id===sec.id?`ca. ${fmtM(h.d)} entfernt`:(state.secAuto?"":"manuell gewählt"));
@@ -399,42 +439,48 @@ function renderTop(){
   $("#tbCanton").textContent=state.canton;
   const x=hereSummary();
   let t=x.t,s=x.s,cls=x.cls;
-  if(!state.pos&&(state.secAuto||state.cantonAuto)&&isDetailed(state.canton)){s=state.geoErr||"Standort wird gesucht …"}
+  if(!state.pos&&(state.secAuto||state.cantonAuto)&&isSO()){s=state.geoErr||"Standort wird gesucht …"}
   const h=state.here;if(cls!=="bad"&&h&&h.alts&&h.alts.length&&!h.pinned&&state.secAuto)s="Mehrere Gewässer nah – tippen zum Wählen";
   $("#tbTxt").textContent=t;$("#tbSub").textContent=s;
   $("#tbDot").className="dot "+(cls==="none"?"":cls);
   $("#topbar").classList.toggle("bad",cls==="bad");
 }
+function cmSpecies(c){const R=RULES[c];const ks=[];Object.keys(R.sp).forEach(k=>{(k==="Forelle"?FOR_ALIAS:[k]).forEach(x=>{if(!ks.includes(x))ks.push(x)})});
+  ["Bachforelle","Seeforelle","Saibling","Äsche","Hecht","Felchen","Egli (Flussbarsch)"].forEach(x=>{if(!ks.includes(x))ks.push(x)});return SPECIES.filter(x=>ks.includes(x))}
 function rulesTableFor(sec){
-  const det=isDetailed(state.canton);
-  const list=det?["Bachforelle","Saibling","Äsche","Hecht","Felchen","Barbe","Egli (Flussbarsch)"]:["Bachforelle","Seeforelle","Saibling","Äsche","Hecht","Felchen","Egli (Flussbarsch)"];
+  const det=isSO(),cm=isCM();
+  const list=cm?cmSpecies(state.canton):det?["Bachforelle","Saibling","Äsche","Hecht","Felchen","Barbe","Egli (Flussbarsch)"]:["Bachforelle","Seeforelle","Saibling","Äsche","Hecht","Felchen","Egli (Flussbarsch)"];
   const now=new Date();
   return`<table><tr><th>Art</th><th>Mass</th><th>Schonzeit</th><th>Limite</th></tr>${list.map(sp=>{
     const r=ruleFor(sec,sp);if(sp==="Barbe"&&!(det&&sec.regime==="BLSO"))return"";
-    const mass=r.prot?"geschützt":(r.slot?fmtSlot(r.slot):"–");
-    const sz=r.prot?"ganzjährig":(r.schon?fmtR(r.schon):(r.weeks?`mind. ${r.weeks} Wo.`:"–"));
-    const lim=r.day?`${r.day}/Tag${r.year&&sec.kind==="patent"?`<br>${r.year}/Jahr`:""}`:"–";
-    const open=!(r.prot||(r.schon&&inRange(now,r.schon[0],r.schon[1])));
-    const pill=r.national?"":`<br><span class="pill ${open?"p-ok":"p-bad"}">${open?"offen":"geschont"}</span>`;
-    return`<tr><td><b>${esc(sp)}</b>${pill}</td><td>${mass}</td><td>${sz}</td><td>${lim}</td></tr>`}).join("")}</table>`;
+    if(cm&&r.pickW)return`<tr><td><b>${esc(sp)}</b></td><td colspan="3" class="mut">je nach Gewässer – oben wählen</td></tr>`;
+    const mass=r.prot?"geschützt":r.chk?"prüfen":(r.slot?fmtSlot(r.slot):(r.keep?"jeder":"–"));
+    const sz=r.prot?"ganzjährig":(r.schon?fmtR(r.schon)+(r.schon2?"<br>"+fmtR(r.schon2):""):(r.weeks?`mind. ${r.weeks} Wo.`:"–"));
+    const lim=r.lims&&r.lims.length?r.lims.map(l=>`${l.n}/${l.per==="Jahr"?"Jahr":"Tag"}${l.sp.length>1?"*":""}`).join("<br>"):r.day?`${r.day}/Tag${r.year&&sec.kind==="patent"?`<br>${r.year}/Jahr`:""}`:"–";
+    const open=!(r.prot||(r.schon&&inRange(now,r.schon[0],r.schon[1]))||(r.schon2&&inRange(now,r.schon2[0],r.schon2[1])));
+    const pill=r.national||r.chk?"":`<br><span class="pill ${open?"p-ok":"p-bad"}">${open?"offen":"geschont"}</span>`;
+    return`<tr><td><b>${esc(sp)}</b>${pill}</td><td>${mass}</td><td>${sz}</td><td>${lim}</td></tr>`}).join("")}</table>${cm?`<p class="mut small">* Limite gilt für mehrere Arten zusammen. Details unter «Regeln».</p>`:""}`;
 }
 function renderHier(){
-  const det=isDetailed(state.canton),sec=currentSec(),x=hereSummary(),st=det?secStatus(sec):[];
+  if(document.activeElement&&document.activeElement.id==="heroCW")return;
+  const det=isSO(),cm=isCM(),sec=currentSec(),x=hereSummary(),st=det||cm?secStatus(sec):[];
   const h=state.here;
   let extra="",altHtml="";
   if(det&&h&&h.schonNear&&h.kind!=="schon")extra+=`<li>Schonstrecke ${esc(h.schonNear.f.id)} in ca. ${fmtM(h.schonNear.d)}: ${esc(h.schonNear.f.t)}</li>`;
   if(det&&state.secAuto&&h&&h.alts&&h.alts.length)altHtml=`<div class="d" style="margin-top:10px">${h.pinned?"Von dir gewählt. ":""}Mehrere Gewässer nah beieinander – an welchem fischst du?</div><div class="chips" style="margin-top:8px">${h.alts.map(a=>`<button type="button" data-alt="${esc(a.f.id)}">${esc(secById(a.f.id).name)} · ${fmtM(a.d)}</button>`).join("")}</div>`;
-  $("#hereHero").innerHTML=`<div class="hero ${x.cls}"><div class="t">${esc(x.t)}</div><div class="d">${esc(det?(sec.desc||""):"Für "+cname(state.canton)+" sind erst die nationalen Mindestvorgaben des Bundes hinterlegt.")}</div>
+  if(cm){const R=RULES[state.canton];altHtml=`<label for="heroCW" style="margin-top:10px">An welchem Gewässer fischst du?</label><select id="heroCW"><option value="">– Gewässer wählen –</option>${R.w.map(([id,l])=>`<option value="${esc(id)}"${id===sec.id?" selected":""}>${esc(l)}</option>`).join("")}</select>`}
+  $("#hereHero").innerHTML=`<div class="hero ${x.cls}"><div class="t">${esc(x.t)}</div><div class="d">${esc(det?(sec.desc||""):cm?(sec.id?cname(state.canton):"Wähle unten das Gewässer – dann zeigt die App die passenden Masse, Schonzeiten und Limiten."):"Für "+cname(state.canton)+" sind nur die nationalen Mindestvorgaben des Bundes geladen.")}</div>
     ${st.length||extra?`<ul>${st.map(s=>`<li>${esc(s.txt)}</li>`).join("")}${extra}</ul>`:""}
     ${state.pos?`<div class="d" style="margin-top:8px">📍 Standort ±${Math.round(state.pos.acc)} m${h&&h.d!=null&&h.id?` · ${fmtM(h.d)} zur Gewässerlinie`:""}</div>`:""}${altHtml}</div>`;
-  const notes=det?(sec.notes||[]):[];
-  $("#hereRules").innerHTML=`<div class="card"><h2>${det?"Regeln hier":"Nationale Mindestvorgaben"}</h2>${rulesTableFor(sec)}
-     <p class="mut small">${det?"Geschützt: "+esc((R_SO().protected||[]).join(", "))+".":"Quelle: Verordnung zum Bundesgesetz über die Fischerei (VBGF). Dein Kanton kann strengere Masse, Schonzeiten, Fanglimiten und geschützte Arten haben – das gilt dann."}</p></div>
+  const notes=det?(sec.notes||[]):cm?(RULES[state.canton].notes||[]):[];
+  const CR=cm?RULES[state.canton]:null;
+  $("#hereRules").innerHTML=`<div class="card"><h2>${det||cm?"Regeln hier":"Nationale Mindestvorgaben"}</h2>${rulesTableFor(sec)}
+     <p class="mut small">${det?"Geschützt: "+esc((R_SO().protected||[]).join(", "))+".":cm?`${CR.prot&&CR.prot.length?"Geschützt: "+esc(CR.prot.join(", "))+". ":""}Stand ${esc(fmtD(CR.updated))} – ohne Gewähr, verbindlich sind die amtlichen Vorschriften.`:"Quelle: Verordnung zum Bundesgesetz über die Fischerei (VBGF). Dein Kanton kann strengere Masse, Schonzeiten, Fanglimiten und geschützte Arten haben – das gilt dann."}</p></div>
     ${notes.length?`<div class="card"><h2>Besonderheiten</h2><ul>${notes.map(n=>`<li>${esc(n)}</li>`).join("")}</ul></div>`:""}
     ${det?`<div class="card"><h2>Überall in SO</h2><ul><li>Widerhaken verboten</li><li>Drillinge verboten – ausser Aare A1–A6</li><li>Max. 2 Ruten, je max. 2 Köder; immer beaufsichtigen</li><li>Fischpässe und Umgehungsgerinne: Fangen verboten</li></ul></div>`:""}`;
   $("#btnGeo").classList.toggle("hide",!!state.pos||watchId!=null);
   $("#geoMsg").textContent=state.geoErr||"";
-  $("#selCanton").value=state.canton;$("#cbCantonAuto").checked=state.cantonAuto;
+  fillCantons();$("#selCanton").value=state.canton;$("#cbCantonAuto").checked=state.cantonAuto;
   $("#secPick").classList.toggle("hide",!det);
   if(det){const opts=SECTIONS.map(s=>`<option value="${s.id}">${esc(s.name)} – ${esc(s.desc)}</option>`);
     if(!SECTIONS.some(s=>s.id===state.sec))opts.unshift(`<option value="${esc(state.sec)}">${esc(sec.name)}</option>`);
@@ -443,12 +489,12 @@ function renderHier(){
 
 /* ================= RENDER: FANG ================= */
 let tick=null;
-function ctxLabel(){const det=isDetailed(state.canton);return det?currentSec().name:cname(state.canton)+" (national)"}
+function ctxLabel(){return isSO()?currentSec().name:isCM()?(currentSec().id?currentSec().name:cname(state.canton)):cname(state.canton)+" (national)"}
 function renderSess(){
   const s=state.sess,box=$("#sessBox");clearInterval(tick);
   if(!s){box.innerHTML=`<p class="mut small" style="margin-top:0">Starte hier und gleichzeitig in der offiziellen App («Start Fischen»).</p><button class="pri full" id="btnStart">▶ Start Fischen – ${esc(ctxLabel())}</button>`;
-    $("#btnStart").onclick=()=>{state.sess={sec:state.sec,canton:state.canton,start:Date.now()};save();renderSess()};return}
-  box.innerHTML=`<div class="mut small">${esc(s.canton&&s.canton!=="SO"?cname(s.canton):secById(s.sec).name)} seit ${new Date(s.start).toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"})}</div><div class="big timer" id="tmr"></div><button class="bad full" id="btnStop">■ Stop Fischen</button>`;
+    $("#btnStart").onclick=()=>{state.sess={sec:state.sec,cw:isCM()?cwOf(state.canton):null,canton:state.canton,start:Date.now()};save();renderSess()};return}
+  box.innerHTML=`<div class="mut small">${esc(s.canton&&s.canton!=="SO"?cname(s.canton)+(s.cw?" · "+cwLabel(s.canton,s.cw):""):secById(s.sec).name)} seit ${new Date(s.start).toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"})}</div><div class="big timer" id="tmr"></div><button class="bad full" id="btnStop">■ Stop Fischen</button>`;
   const up=()=>{const m=Math.floor((Date.now()-s.start)/6e4);const el=$("#tmr");if(el)el.textContent=`${Math.floor(m/60)} h ${p2(m%60)} min`};up();tick=setInterval(up,15000);
   $("#btnStop").onclick=()=>{const mins=Math.max(1,Math.round((Date.now()-s.start)/6e4));const ss=store.get("sessions",[]);ss.push({sec:s.sec,canton:s.canton||"SO",start:s.start,mins});store.set("sessions",ss);state.sess=null;save();renderSess();renderStats();
     $("#afterSave").innerHTML=`<div class="verdict v-ok"><div class="big">Angeldauer ${Math.floor(mins/60)} h ${mins%60} min</div><div class="ln">Jetzt auch in der offiziellen App «Stop Fischen» drücken.</div></div>`};
@@ -476,7 +522,7 @@ function saveFang(){
     state.log.unshift(f);const ok=save()!==false;
     const t=now.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
     const so=state.canton==="SO";
-    const txt=`${now.toLocaleDateString("de-CH")} ${t}\n${so?(sec.kind==="patent"?"Gewässer: "+sec.id:"Revier: "+sec.id):"Kanton: "+cname(state.canton)}\nArt: ${sp}${len!=null?`\nLänge: ${len} cm`:""}${n>1?`\nAnzahl: ${n}`:""}`;
+    const txt=`${now.toLocaleDateString("de-CH")} ${t}\n${so?(sec.kind==="patent"?"Gewässer: "+sec.id:"Revier: "+sec.id):"Kanton: "+cname(state.canton)+(sec.kind==="cw"&&sec.id?"\nGewässer: "+sec.name:"")}\nArt: ${sp}${len!=null?`\nLänge: ${len} cm`:""}${n>1?`\nAnzahl: ${n}`:""}`;
     $("#afterSave").innerHTML=`<div class="verdict ${kept?"v-ok":"v-warn"}"><div class="ln">${kept?"Gespeichert als behaltener Fang.":"Gespeichert als zurückgesetzt."}</div></div>
       ${kept&&so?`<div class="mut small" style="margin-top:10px">Jetzt in der offiziellen App eintragen:</div><div class="copybox">${esc(txt)}</div><button class="full" id="btnCopy" style="margin-top:8px">Text kopieren</button>`:""}`;
     const bc=$("#btnCopy");if(bc)bc.onclick=async()=>{try{await navigator.clipboard.writeText(txt);bc.textContent="Kopiert ✓"}catch(e){bc.textContent="Kopieren nicht möglich – bitte abtippen"}};
@@ -496,7 +542,7 @@ function renderStats(){
   $("#statYear").textContent=y;
   const by={};season.forEach(f=>by[f.art]=(by[f.art]||0)+(f.n||1));
   $("#statSeason").innerHTML=`<div><b>${sum(season)}</b>Fische total</div><div><b>${countYear("Bachforelle")}/20</b>Bachforellen SO-Patent</div><div><b>${(mins/60).toFixed(1)} h</b>Angelzeit</div><div><b>${mins?(sum(season)/(mins/60)).toFixed(2):"–"}</b>Fische pro Stunde</div>${Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([a,n])=>`<div><b>${n}</b>${esc(a)}</div>`).join("")}`;
-  $("#logList").innerHTML=state.log.length?state.log.slice(0,300).map(f=>`<div class="it"><div class="row" style="align-items:center"><div style="flex:3"><b>${esc(f.art)}</b>${f.len!=null?` · ${f.len} cm`:""}${f.n>1?` · ${f.n} Stk.`:""} <span class="pill ${f.kept?"p-ok":"p-mut"}">${f.kept?"behalten":"zurück"}</span><div class="mut small">${new Date(f.ts).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"})} · ${esc((f.canton||"SO")==="SO"?f.sec:cname(f.canton))}${f.note?" · "+esc(f.note):""}</div></div><button style="flex:0 0 auto;min-height:40px;padding:6px 12px" data-del="${f.id}" aria-label="Löschen">✕</button></div></div>`).join(""):`<p class="mut">Noch keine Fänge erfasst.</p>`;
+  $("#logList").innerHTML=state.log.length?state.log.slice(0,300).map(f=>`<div class="it"><div class="row" style="align-items:center"><div style="flex:3"><b>${esc(f.art)}</b>${f.len!=null?` · ${f.len} cm`:""}${f.n>1?` · ${f.n} Stk.`:""} <span class="pill ${f.kept?"p-ok":"p-mut"}">${f.kept?"behalten":"zurück"}</span><div class="mut small">${new Date(f.ts).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"})} · ${esc((f.canton||"SO")==="SO"?f.sec:cname(f.canton)+(cwLabel(f.canton,f.sec)?" · "+cwLabel(f.canton,f.sec):""))}${f.note?" · "+esc(f.note):""}</div></div><button style="flex:0 0 auto;min-height:40px;padding:6px 12px" data-del="${f.id}" aria-label="Löschen">✕</button></div></div>`).join(""):`<p class="mut">Noch keine Fänge erfasst.</p>`;
 }
 function toCSV(){const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;return[["datum","zeit","kanton","gewaesser","art","laenge_cm","anzahl","behalten","notiz","lat","lon"].join(";")].concat(state.log.map(f=>{const d=new Date(f.ts);return[d.toLocaleDateString("de-CH"),d.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"}),f.canton||"SO",f.sec,f.art,f.len??"",f.n||1,f.kept?"ja":"nein",f.note,f.lat??"",f.lon??""].map(q).join(";")})).join("\n")}
 function exportCSV(){const csv="﻿"+toCSV();try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=`faenge_${dayKey(new Date())}.csv`;document.body.appendChild(a);a.click();a.remove()}catch(e){}
@@ -508,9 +554,20 @@ function importCSV(file){const r=new FileReader();r.onload=()=>{const lines=Stri
 
 /* ================= RENDER: REGELN ================= */
 function renderRegeln(){
-  const det=isDetailed(state.canton),R=R_SO(),P=R.prices||{};
+  const det=isSO(),R=R_SO(),P=R.prices||{};
   let h=`<div class="card"><h2>Aktuelle Hinweise</h2>${NEWS.length?NEWS.map(n=>`<p><span class="pill p-warn">${esc(n.date)}</span> ${esc(n.text)}</p>`).join(""):"<p class='mut'>Keine.</p>"}<p class="mut small">Verfügungen ändern sich – im Zweifel auf so.ch/fischerei prüfen.</p></div>`;
-  if(!det){const C=RULES.CH;
+  if(isCM()){const c=state.canton,CR=RULES[c],wl=id=>cwLabel(c,id)||id;
+    const rows=[];cmSpecies(c).forEach(sp=>{
+      if((CR.prot||[]).includes(sp)){rows.push([sp,"alle","geschützt","ganzjährig"]);return}
+      (cmEntries(c,sp)||[]).forEach(e=>{rows.push([sp,e.w?e.w.map(wl).join(", "):"übrige",e.prot?"geschützt":e.chk===false?"prüfen":e.slot?fmtSlot(e.slot):e.keep?"jeder behalten":"–",e.prot?"ganzjährig":(e.schon?fmtR(e.schon):"–")+(e.schon2?", "+fmtR(e.schon2):""),e.t])})});
+    h=`<div class="card"><h2>${esc(cname(c))}</h2><p class="small">Kantonale Regeln, Stand <b>${esc(fmtD(CR.updated))}</b>. Gewählt: <b>${esc(cwLabel(c,cwOf(c))||"kein Gewässer")}</b></p><p class="mut small">Ohne Gewähr. Verbindlich sind die amtlichen Vorschriften – vor allem für Pacht-, Privat- und Grenzgewässer.</p></div>
+    ${(CR.closed||[]).length?`<div class="card"><h2>Gesperrte Zeiten pro Gewässer</h2><ul>${CR.closed.map(cl=>`<li><b>${esc(cl.w.map(wl).join(", "))}</b>: geschlossen ${fmtR([cl.from,cl.to])} – ${esc(cl.t)}</li>`).join("")}</ul></div>`:""}
+    <div class="card"><h2>Masse & Schonzeiten</h2><table><tr><th>Art</th><th>Gewässer</th><th>Mass</th><th>Schonzeit</th></tr>${rows.map(r=>`<tr><td><b>${esc(r[0])}</b></td><td>${esc(r[1])}${r[4]?`<div class="mut small">${esc(r[4])}</div>`:""}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join("")}</table><p class="mut small">Arten ohne Eintrag: nationale Mindestvorgaben (VBGF).</p></div>
+    ${(CR.lim||[]).length?`<div class="card"><h2>Fanglimiten</h2><ul>${CR.lim.map(l=>`<li><b>${l.n} pro ${l.per==="Jahr"?"Jahr":"Tag"}</b>: ${esc(l.t)}${l.w?` <span class="mut small">(${esc(l.w.map(wl).join(", "))})</span>`:""}</li>`).join("")}</ul></div>`:""}
+    ${(CR.prot||[]).length?`<div class="card"><h2>Geschützte Arten</h2><p>${esc(CR.prot.join(", "))}</p></div>`:""}
+    ${(CR.notes||[]).length?`<div class="card"><h2>Weitere Vorschriften</h2><ul>${CR.notes.map(n=>`<li>${esc(n)}</li>`).join("")}</ul></div>`:""}
+    <div class="card"><h2>Quellen</h2><ul>${(CR.src||[]).map(([t,u])=>`<li><a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a></li>`).join("")}</ul></div>`;
+  } else if(!det){const C=RULES.CH;
     h=`<div class="card"><h2>${esc(cname(state.canton))}</h2><div class="verdict v-warn"><div class="ln">Für diesen Kanton sind erst die <b>nationalen Mindestvorgaben</b> hinterlegt. Kantonale Masse, Schonzeiten, Fanglimiten, Patentgewässer und Schongebiete können strenger sein und gehen vor. Prüfe die kantonale Fischereiverordnung bzw. die Fischerei-Broschüre deines Kantons.</div></div></div>
     <div class="card"><h2>Nationale Mindestmasse</h2><table><tr><th>Art</th><th>Mindestmass</th><th>Schonzeit (mind.)</th></tr>${Object.keys(C.sizes).map(sp=>`<tr><td>${esc(sp)}</td><td>${C.sizes[sp]} cm</td><td>${C.weeks[sp]?esc(C.weeks[sp])+" Wochen":"–"}</td></tr>`).join("")}</table>
     <p class="mut small">Bachforelle in grösseren stehenden Gewässern unter 800 m ü. M.: ${C.troutLake} cm. Krebse: Edelkrebs 12 cm, Dohlen- und Steinkrebs 9 cm, Schonzeit mind. 40 Wochen. Die Schonzeiten legt der Kanton auf die Laichzeit fest. Quelle: Verordnung zum Bundesgesetz über die Fischerei (VBGF).</p></div>`;
@@ -536,7 +593,7 @@ function renderRegeln(){
     <p class="small">Regelstand: <b>${esc(DATA_META.updated)}</b> (v${DATA_META.version})${DATA_META.checked?" · geprüft "+new Date(DATA_META.checked).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"}):""}</p>
     <p class="small">Gewässerdaten SO: ${GEO.official?`<b>offiziell</b>, geladen ${new Date(GEO.date).toLocaleDateString("de-CH")}`:"<b>noch nicht geladen</b> – grobe Ersatzlinien aktiv"}</p>
     <button class="full" id="btnRefresh">Jetzt alles aktualisieren</button>
-    <p class="mut small" style="margin-top:12px">Quellen: Gewässer © Kanton Solothurn, AWJF (geo.so.ch, Open Data) · Karte © swisstopo · Kantonserkennung: geo.admin.ch · Regeln SO: «Auszug aus den Fischereivorschriften ab 01.03.2026» (AWJF) · National: VBGF. Ohne Gewähr – verbindlich sind die amtlichen Vorschriften.</p>`;
+    <p class="mut small" style="margin-top:12px">Quellen: Gewässer © Kanton Solothurn, AWJF (geo.so.ch, Open Data) · Karte © swisstopo · Kantonserkennung: geo.admin.ch · Regeln SO: «Auszug aus den Fischereivorschriften ab 01.03.2026» (AWJF) · übrige Kantone: kantonale Verordnungen, siehe Kantonsseite · National: VBGF. Ohne Gewähr – verbindlich sind die amtlichen Vorschriften.</p>`;
   $("#btnRefresh").onclick=async e=>{const b=e.target;b.textContent="Aktualisiere …";const[a,g]=await Promise.all([fetchUpdates(true),refreshGeo(true)]);b.textContent=(a==="offline"&&g==="offline")?"Keine Verbindung":"Aktualisiert ✓";renderRegeln()};
 }
 
@@ -639,7 +696,10 @@ document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>show(b.dataset.
 $("#tbStatus").onclick=()=>show("hier");
 $("#hereHero").onclick=e=>{const b=e.target.closest("[data-alt]");if(!b||!state.pos)return;state.pin={id:b.dataset.alt,lat:state.pos.lat,lon:state.pos.lon};state.sec=b.dataset.alt;save();updateHere();toast(secById(b.dataset.alt).name+" gewählt")};
 $("#tbCanton").onclick=()=>{show("hier");setTimeout(()=>$("#selCanton").focus(),100)};
-$("#selCanton").innerHTML=CANTONS.map(([c,n])=>`<option value="${c}">${esc(n)}${isDetailed(c)?"":" – national"}</option>`).join("");
+let _cSig="";function fillCantons(){const sig=CANTONS.map(([c])=>hasCM(c)||isDetailed(c)?1:0).join("");if(sig===_cSig)return;_cSig=sig;
+  $("#selCanton").innerHTML=CANTONS.map(([c,n])=>`<option value="${c}">${esc(n)}${isDetailed(c)||hasCM(c)?"":" – nur national"}</option>`).join("")}
+fillCantons();
+$("#hereHero").onchange=e=>{if(e.target.id!=="heroCW")return;state.cw=Object.assign({},state.cw,{[state.canton]:e.target.value});save();renderAll();if(e.target.value)toast(cwLabel(state.canton,e.target.value)+" gewählt")};
 $("#selCanton").onchange=e=>{state.canton=e.target.value;state.cantonAuto=false;save();toast("Kanton manuell gewählt – automatische Erkennung aus");onCantonChanged()};
 $("#cbCantonAuto").onchange=e=>{state.cantonAuto=e.target.checked;save();if(state.cantonAuto&&state.pos){lastIdent=null;identifyCanton(state.pos.lat,state.pos.lon)}};
 $("#selSec").onchange=e=>{state.sec=e.target.value;state.secAuto=false;save();renderAll()};

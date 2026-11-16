@@ -1,0 +1,399 @@
+{
+"ZH": {
+  "updated": "2026-01-01",
+  "src": [
+    ["Fischereireglement Zürich (LS 923.12), Änderung in Kraft ab 1.1.2026", "https://www.notes.zh.ch/appl/zhlex_r.nsf/WebView/48A4C553CF678D4AC1258D9500465B88/$File/923.12.pdf"],
+    ["Ausführungsbestimmungen Zürichsee und Obersee (LS 923.721), Änderung in Kraft ab 1.1.2026", "https://www.notes.zh.ch/appl/zhlex_r.nsf/WebView/68E4A5E47CF28E5BC1258DA70021F932/$File/923.721_13.7.07_132.pdf"],
+    ["Kanton Zürich: Äschenfangverbot für alle Zürcher Gewässer bis Ende September 2029", "https://zh.ch/de/umwelt-tiere/tiere/fischerei.html"]
+  ],
+  "w": [
+    ["zuerichsee", "Zürichsee und Obersee"],
+    ["greifen", "Greifensee, Pfäffikersee (Patentseen)"],
+    ["rhein", "Rhein (Pachtreviere)"],
+    ["f", "Pachtrevier Kategorie F (Fluss)"],
+    ["g", "Pachtrevier Kategorie G (gemischt)"],
+    ["b", "Pachtrevier Kategorie B (Bach)"],
+    ["weiher", "Weiher / Kleinseen (Pacht)"]
+  ],
+  "closed": [
+    {"w": ["g", "b"], "from": [10, 16], "to": [3, 15], "t": "Kategorie G und B: Fischen nur während der Forellensaison (16.3.–15.10.)"}
+  ],
+  "sp": {
+    "Forelle": [
+      {"w": ["zuerichsee", "greifen"], "slot": [[40, null]], "schon": [[10, 1], [12, 25]]},
+      {"w": ["rhein"], "slot": [[35, null]], "schon": [[10, 16], [3, 15]]},
+      {"w": ["f"], "slot": [[28, null]], "schon": [[10, 16], [3, 15]]},
+      {"slot": [[25, null]], "schon": [[10, 16], [3, 15]]}
+    ],
+    "Äsche": [{"prot": true, "t": "Äschenfangverbot in allen Zürcher Gewässern bis Ende September 2029"}],
+    "Saibling": [{"w": ["zuerichsee"], "slot": [[25, null]], "schon": [[10, 1], [12, 25]]}],
+    "Felchen": [{"slot": [[25, null]], "schon": [[11, 20], [12, 31]]}],
+    "Hecht": [
+      {"w": ["zuerichsee"], "t": "Kein Mindestmass im Zürichsee-Reglement"},
+      {"slot": [[45, null]], "schon": [[3, 1], [4, 30]]}
+    ],
+    "Zander": [{"slot": [[40, null]], "schon": [[4, 1], [5, 31]]}],
+    "Barbe": [{"w": ["f", "g", "b"], "slot": [[30, null]]}]
+  },
+  "prot": ["Nase", "Lachs", "Bachneunauge", "Bitterling", "Strömer"],
+  "lim": [
+    {"n": 4, "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle"], "w": ["zuerichsee"], "t": "Forellen pro Tag (Zürichsee)"},
+    {"n": 5, "sp": ["Saibling"], "w": ["zuerichsee"], "t": "Seesaiblinge pro Tag (Zürichsee)"},
+    {"n": 2, "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle"], "w": ["greifen", "rhein", "f", "g", "b", "weiher"], "t": "Forellen pro Tag"},
+    {"n": 10, "sp": ["Felchen"], "t": "Felchen pro Tag"},
+    {"n": 5, "sp": ["Hecht"], "t": "Hechte pro Tag"},
+    {"n": 50, "sp": ["Egli (Flussbarsch)"], "t": "Egli pro Tag"}
+  ],
+  "notes": [
+    "Einzelhaken mit Widerhaken nur mit Sachkundenachweis; Mehrfachhaken immer ohne Widerhaken.",
+    "Freiangelrecht vom Ufer am Zürich-, Greifen-, Pfäffiker- und Türlersee (eingeschränkte Geräte, Haken ohne Widerhaken).",
+    "Fliessgewässer und Kleinseen sind meist verpachtet – Karte beim Revierpächter.",
+    "Stein- und Dohlenkrebs ganzjährig geschützt; Edelkrebs ab 12 cm, Schonzeit 1.10.–15.7."
+  ]
+},
+"SH": {
+  "updated": "2026-10-23",
+  "src": [
+    ["Verordnung über die Fischerei Schaffhausen (SHR 923.101), Stand 23.10.2026", "https://www.lexfind.ch/tol/14638/de"]
+  ],
+  "w": [
+    ["rhein", "Rhein"],
+    ["bach", "Bäche"],
+    ["uebrige", "Übrige Gewässer"]
+  ],
+  "sp": {
+    "Forelle": [
+      {"w": ["bach"], "slot": [[22, null]], "schon": [[10, 1], [2, 29]]},
+      {"slot": [[30, null]], "schon": [[10, 1], [2, 29]]}
+    ],
+    "Regenbogenforelle": [
+      {"w": ["bach"], "slot": [[22, null]], "schon": [[10, 1], [2, 29]]},
+      {"slot": [[30, null]], "schon": [[10, 1], [2, 29]]}
+    ],
+    "Äsche": [{"prot": true, "t": "Äschen ganzjährig geschont"}],
+    "Felchen": [{"slot": [[25, null]], "schon": [[11, 15], [12, 31]]}],
+    "Hecht": [{"slot": [[45, null]], "schon": [[3, 1], [4, 30]], "t": "Schonzeit nur unterhalb des Rheinfalls"}],
+    "Zander": [{"slot": [[40, null]], "schon": [[4, 1], [5, 31]]}],
+    "Egli (Flussbarsch)": [{"slot": [[15, null]]}],
+    "Barbe": [{"slot": [[30, null]]}],
+    "Schleie": [{"slot": [[25, null]]}]
+  },
+  "prot": ["Nase", "Lachs", "Bachneunauge", "Bitterling", "Strömer"],
+  "notes": [
+    "Pachtfischerei: lebende Köderfische und Angeln mit Widerhaken verboten.",
+    "Patentfischerei: nur vom Ufer, 1 Rute mit einfacher Angel, kein Spinnfischen, keine Köderfische.",
+    "Fangzeiten Pacht: 1.4.–30.9. 4–23 Uhr, 1.10.–31.3. 6–19 Uhr.",
+    "Krebsfang verboten."
+  ]
+},
+"TG": {
+  "updated": "2023-01-01",
+  "src": [
+    ["Fischereiverordnung Thurgau (RB 923.11), Stand 1.1.2023", "https://www.rechtsbuch.tg.ch/api/de/versions/2593/pdf_file_with_annexes"],
+    ["Bestimmungen Sportfischerei Bodensee-Obersee 2024 (TG)", "https://jfv.tg.ch/public/upload/assets/158511/Bestimmungen_Sportfischerei_Bodensee-Obersee_2024.pdf?fp=1"],
+    ["Vereinbarung TG/SG über die Grenzgewässer", "https://www.lexfind.ch/tol/24463/de"]
+  ],
+  "w": [
+    ["obersee", "Bodensee-Obersee"],
+    ["untersee", "Untersee und Seerhein"],
+    ["rhein", "Rhein"],
+    ["grenz", "Sitter und Thur, Grenzstrecken TG/SG"],
+    ["uebrige", "Übrige Gewässer (Thur, Murg u.a.)"]
+  ],
+  "sp": {
+    "Forelle": [
+      {"w": ["obersee"], "slot": [[50, null]], "schon": [[11, 1], [1, 10]]},
+      {"w": ["untersee"], "t": "Eigene Unterseefischereiordnung (CH/Baden-Württemberg) beachten"},
+      {"w": ["grenz"], "slot": [[25, null]], "schon": [[10, 1], [3, 15]]},
+      {"slot": [[25, null]], "schon": [[10, 1], [2, 29]]}
+    ],
+    "Äsche": [
+      {"w": ["obersee"], "slot": [[35, null]], "schon": [[2, 1], [4, 30]]},
+      {"w": ["rhein"], "prot": true, "t": "Äschen-Fangverbot im Rhein (TG/SH, verlängert)"},
+      {"w": ["grenz"], "slot": [[30, null]], "schon": [[1, 1], [4, 30]]},
+      {"slot": [[35, null]], "schon": [[2, 1], [4, 20]]}
+    ],
+    "Felchen": [{"w": ["obersee"], "prot": true, "t": "Felchen im Bodensee-Obersee ganzjährig geschont"}],
+    "Saibling": [{"w": ["obersee"], "schon": [[11, 1], [12, 31]]}],
+    "Hecht": [
+      {"w": ["obersee"], "t": "Keine Schonzeit, kein Mindestmass im Obersee"},
+      {"slot": [[50, null]], "schon": [[2, 16], [4, 15]]}
+    ],
+    "Zander": [{"w": ["obersee"], "slot": [[40, null]], "schon": [[4, 1], [5, 31]]}],
+    "Egli (Flussbarsch)": [
+      {"w": ["obersee"], "schon": [[4, 20], [5, 10]]},
+      {"slot": [[15, null]]}
+    ],
+    "Barbe": [{"slot": [[35, null]]}],
+    "Karpfen": [{"w": ["obersee"], "slot": [[25, null]]}],
+    "Schleie": [{"w": ["obersee"], "slot": [[20, null]]}],
+    "Aal": [{"w": ["obersee"], "slot": [[50, null]]}]
+  },
+  "prot": ["Nase", "Lachs", "Bachneunauge", "Bitterling", "Strömer"],
+  "lim": [
+    {"n": 30, "sp": ["Egli (Flussbarsch)"], "w": ["obersee"], "t": "Egli pro Tag (Obersee)"},
+    {"n": 5, "sp": ["Saibling"], "w": ["obersee"], "t": "Seesaiblinge pro Tag (Obersee)"}
+  ],
+  "notes": [
+    "Widerhaken verboten – Ausnahmen Bodensee-Obersee sowie Untersee mit Sachkundenachweis.",
+    "Nachtfischverbot 24–6 Uhr (Ausnahmen Bodensee/Untersee).",
+    "Lebende Köderfische verboten.",
+    "Freiangelei vom Ufer am Bodensee-Obersee, Untersee und Rhein.",
+    "Obersee: Seeforellen-Schongebiete (Goldach-, Steinachmündung, Luxburger Bucht, Güttingen) 1.11.–31.1. gesperrt."
+  ]
+},
+"SG": {
+  "updated": "2026-04-01",
+  "src": [
+    ["Fischereiverordnung St. Gallen (sGS 854.11), Stand 1.4.2026", "https://www.gesetzessammlung.sg.ch/api/de/versions/3883/pdf_file_with_annexes"],
+    ["Ausführungsbestimmungen Walensee (2010)", "https://www.lexfind.ch/tol/15960/de"],
+    ["Ausführungsbestimmungen Zürichsee und Obersee, ab 1.1.2026", "https://www.notes.zh.ch/appl/zhlex_r.nsf/WebView/68E4A5E47CF28E5BC1258DA70021F932/$File/923.721_13.7.07_132.pdf"],
+    ["Ausführungsbestimmungen Linthkanal, Stand 1.1.2025", "https://www.lexfind.ch/tolv/249148/de"],
+    ["Bestimmungen Sportfischerei Bodensee-Obersee 2024", "https://jfv.tg.ch/public/upload/assets/158511/Bestimmungen_Sportfischerei_Bodensee-Obersee_2024.pdf?fp=1"]
+  ],
+  "w": [
+    ["alpenrhein", "Alpenrhein"],
+    ["bodensee", "Bodensee-Obersee"],
+    ["zuerichsee", "Zürichsee / Obersee"],
+    ["walensee", "Walensee"],
+    ["linth", "Linthkanal"],
+    ["uebrige", "Übrige Gewässer"]
+  ],
+  "sp": {
+    "Bachforelle": [
+      {"w": ["alpenrhein"], "slot": [[25, null]], "schon": [[10, 1], [1, 31]]},
+      {"w": ["bodensee"], "slot": [[50, null]], "schon": [[11, 1], [1, 10]]},
+      {"w": ["zuerichsee", "walensee"], "slot": [[40, null]], "schon": [[10, 1], [12, 25]]},
+      {"w": ["linth"], "slot": [[32, null]], "schon": [[10, 1], [1, 31]]},
+      {"slot": [[25, null]], "schon": [[10, 1], [2, 29]]}
+    ],
+    "Seeforelle": [
+      {"w": ["alpenrhein"], "slot": [[60, null]], "schon": [[10, 1], [1, 31]], "t": "Ab 60 cm zusätzlich geschont 15.7.–30.9."},
+      {"w": ["bodensee"], "slot": [[50, null]], "schon": [[11, 1], [1, 10]]},
+      {"w": ["zuerichsee", "walensee"], "slot": [[40, null]], "schon": [[10, 1], [12, 25]]},
+      {"w": ["linth"], "slot": [[32, null]], "schon": [[10, 1], [1, 31]]},
+      {"slot": [[60, null]], "schon": [[10, 1], [2, 29]]}
+    ],
+    "Regenbogenforelle": [
+      {"w": ["alpenrhein"], "slot": [[25, null]], "schon": [[10, 1], [1, 31]]},
+      {"w": ["uebrige"], "slot": [[25, null]], "schon": [[10, 1], [2, 29]], "t": "Gilt für die Tieflandgewässer im Rheintal"}
+    ],
+    "Saibling": [
+      {"w": ["bodensee"], "schon": [[11, 1], [12, 31]]},
+      {"w": ["zuerichsee"], "slot": [[25, null]], "schon": [[10, 1], [12, 25]]},
+      {"w": ["walensee"], "schon": [[10, 1], [12, 25]], "t": "Kein Mindestmass im Walensee"},
+      {"slot": [[22, null]], "schon": [[10, 1], [1, 31]]}
+    ],
+    "Äsche": [
+      {"w": ["zuerichsee"], "prot": true, "t": "Im Zürichsee/Obersee ganzjährig geschützt"},
+      {"w": ["walensee"], "slot": [[32, null]], "schon": [[2, 1], [5, 31]]},
+      {"w": ["linth"], "slot": [[32, null]], "schon": [[1, 1], [5, 31]]},
+      {"slot": [[35, null]], "schon": [[2, 1], [4, 30]]}
+    ],
+    "Felchen": [
+      {"w": ["bodensee"], "prot": true, "t": "Felchen im Bodensee-Obersee ganzjährig geschont"},
+      {"w": ["zuerichsee"], "slot": [[25, null]], "schon": [[11, 20], [12, 31]]},
+      {"w": ["walensee"], "slot": [[28, null]], "schon": [[11, 20], [12, 31]], "t": "Blalig (Grossfelchen); Albeli ohne Mindestmass"},
+      {"w": ["linth"], "slot": [[25, null]], "schon": [[12, 1], [1, 31]]},
+      {"slot": [[30, null]], "schon": [[11, 1], [1, 10]]}
+    ],
+    "Hecht": [
+      {"w": ["alpenrhein", "bodensee"], "t": "Kein Mindestmass, keine Schonzeit"},
+      {"w": ["walensee"], "slot": [[45, null]], "schon": [[4, 1], [5, 31]]},
+      {"slot": [[50, null]], "schon": [[3, 1], [4, 30]]}
+    ],
+    "Zander": [
+      {"w": ["bodensee"], "slot": [[40, null]], "schon": [[4, 1], [5, 31]]},
+      {"slot": [[40, null]]}
+    ],
+    "Egli (Flussbarsch)": [{"w": ["bodensee"], "schon": [[4, 20], [5, 10]]}],
+    "Aal": [{"slot": [[50, null]]}]
+  },
+  "prot": ["Strömer", "Nase", "Lachs", "Bachneunauge", "Bitterling"],
+  "lim": [
+    {"n": 6, "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle", "Saibling", "Äsche", "Felchen"], "t": "Edelfische (Äsche, Felchen, Forellen, Saiblinge) pro Tag"},
+    {"n": 4, "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle"], "w": ["zuerichsee", "walensee"], "t": "Forellen pro Tag"},
+    {"n": 10, "sp": ["Felchen"], "w": ["zuerichsee"], "t": "Felchen pro Tag (Zürichsee)"},
+    {"n": 5, "sp": ["Felchen"], "w": ["walensee"], "t": "Blalig pro Tag (Walensee)"},
+    {"n": 5, "sp": ["Saibling"], "w": ["zuerichsee", "bodensee"], "t": "Seesaiblinge pro Tag"},
+    {"n": 5, "sp": ["Hecht"], "w": ["zuerichsee", "walensee"], "t": "Hechte pro Tag"},
+    {"n": 50, "sp": ["Egli (Flussbarsch)"], "w": ["zuerichsee"], "t": "Egli pro Tag (Zürichsee)"},
+    {"n": 30, "sp": ["Egli (Flussbarsch)"], "w": ["bodensee"], "t": "Egli pro Tag (Bodensee)"}
+  ],
+  "notes": [
+    "Widerhaken verboten; mit Sachkundenachweis in Seen und Stauseen beim Hegenen- und Schleppangeln erlaubt.",
+    "In Fliessgewässern während der Forellenschonzeit: keine Löffel, Spinner, Köderfische, keine Grundfischerei.",
+    "Nachtfischverbot: Sommerzeit 23–4 Uhr, sonst 19–6 Uhr.",
+    "Lebende Köderfische verboten.",
+    "Zusätzlich geschützt: Schneider, Moderlieschen, Stein- und Dohlenkrebs, Bach- und Teichmuschel. Edelkrebs ab 12 cm, Schonzeit 1.10.–31.7."
+  ]
+},
+"AR": {
+  "updated": "2016-09-30",
+  "src": [
+    ["Fischereiverordnung Appenzell A.Rh. (bGS 527.2), Stand 30.9.2016", "https://ar.lexwork.naz.ch/de/dta/527.2.pdf"],
+    ["Fischen in Appenzell Ausserrhoden (Amt für Umwelt)", "https://ar.ch/verwaltung/departement-bau-und-volkswirtschaft/amt-fuer-umwelt/fischerei/fischen-in-appenzell-ausserrhoden/"]
+  ],
+  "w": [["pacht", "Pachtreviere (alle Gewässer)"]],
+  "closed": [{"w": ["pacht"], "from": [9, 16], "to": [3, 31], "t": "Fischereisaison 1.4.–15.9."}],
+  "sp": {
+    "Forelle": [{"slot": [[22, null]], "schon": [[9, 16], [3, 31]]}]
+  },
+  "prot": [],
+  "notes": [
+    "Alle Gewässer sind verpachtet (26 Reviere) – Tages- oder Jahreskarte beim Revierpächter.",
+    "Fischen nachts, an Sonn- und anerkannten Feiertagen verboten.",
+    "Krebse: Schonzeit 16.9.–30.6.",
+    "Necker, Sitter, Goldach (Grenzgewässer) werden von Nachbarkantonen verwaltet."
+  ]
+},
+"AI": {
+  "updated": "2023-03-14",
+  "src": [
+    ["Standeskommissionsbeschluss über die Fischerei Appenzell I.Rh. (GS 923.013), Stand 14.3.2023", "https://ai.clex.ch/frontend/structured_documents/4149/download_pdf_file_and_annex.pdf"]
+  ],
+  "w": [
+    ["bach", "Bäche (Sitter, Schwendebach u.a.)"],
+    ["faehlen", "Fählensee, Sämtisersee"],
+    ["seealp", "Seealpsee, Zuflüsse der Bergseen, Seealpsee-Ausfluss bis Wasserfall Chobel"]
+  ],
+  "closed": [
+    {"w": ["bach"], "from": [9, 17], "to": [4, 7], "t": "Saison Bäche 8.4.–16.9. (Wochen-/Tagespatent ab 15.5.)"},
+    {"w": ["faehlen", "seealp"], "from": [10, 1], "to": [4, 7], "t": "Saison Bergseen 8.4.–30.9."}
+  ],
+  "sp": {
+    "Forelle": [
+      {"w": ["faehlen"], "slot": [[28, null]]},
+      {"w": ["seealp"], "slot": [[24, null]]},
+      {"slot": [[26, null]]}
+    ]
+  },
+  "prot": [],
+  "lim": [
+    {"n": 5, "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle", "Saibling", "Äsche"], "t": "Fische pro Tag (Saisonpatent; Wochen-/Tagespatent 3)"}
+  ],
+  "notes": [
+    "Amerikanischer Seesaibling (Namaycush): kein Mindestmass, muss getötet werden, zählt nicht zur Tageslimite.",
+    "Fischverbot: Schwarz bis Bahnbrücke Neffenmoos, Mühlelibach, Schwendebach Chobel–Blüemlisalp, Zuflüsse Sämtisersee.",
+    "Fliegenstrecke: Schwendebach ab Brücke Blüemlisalp bis Sitter (ARA Appenzell).",
+    "Jeder Fang sofort mit Strecke, Zeit, Länge und Art in die Statistik eintragen."
+  ]
+},
+"GL": {
+  "updated": "2014-09-01",
+  "src": [
+    ["Fischereivorschriften Glarus (GS VI E/31/3), Stand 1.9.2014", "https://gesetze.gl.ch/frontend/versions/1558/download_pdf_file?locale=de"],
+    ["Ausführungsbestimmungen Walensee (2010)", "https://www.lexfind.ch/tol/15960/de"],
+    ["Ausführungsbestimmungen Linthkanal, Stand 1.1.2025", "https://www.lexfind.ch/tolv/249148/de"]
+  ],
+  "w": [
+    ["kloen", "Klöntalersee"],
+    ["walensee", "Walensee"],
+    ["linth", "Linthkanal"],
+    ["talalp", "Talalpsee, Oberblegisee, Obersee"],
+    ["berg", "Bergseen mit Zuflüssen, Klön und genannte Bergbäche"],
+    ["uebrige", "Übrige Gewässer"]
+  ],
+  "closed": [
+    {"w": ["berg"], "from": [10, 1], "to": [4, 30], "t": "Saison 1.5.–30.9."},
+    {"w": ["talalp"], "from": [1, 1], "to": [4, 30], "t": "Saison 1.5.–31.12."},
+    {"w": ["kloen"], "from": [1, 1], "to": [3, 31], "t": "Saison 1.4.–31.12."},
+    {"w": ["uebrige"], "from": [10, 1], "to": [3, 31], "t": "Saison 1.4.–30.9."}
+  ],
+  "sp": {
+    "Forelle": [
+      {"w": ["kloen"], "slot": [[35, null]], "schon": [[10, 1], [3, 31]]},
+      {"w": ["walensee"], "slot": [[40, null]], "schon": [[10, 1], [12, 25]]},
+      {"w": ["linth"], "slot": [[32, null]], "schon": [[10, 1], [1, 31]]},
+      {"slot": [[23, null]], "schon": [[10, 1], [3, 31]]}
+    ],
+    "Saibling": [
+      {"w": ["walensee"], "schon": [[10, 1], [12, 25]], "t": "Kein Mindestmass im Walensee"},
+      {"slot": [[23, null]], "schon": [[10, 1], [3, 31]]}
+    ],
+    "Äsche": [
+      {"w": ["walensee"], "slot": [[32, null]], "schon": [[2, 1], [5, 31]]},
+      {"w": ["linth"], "slot": [[32, null]], "schon": [[1, 1], [5, 31]]},
+      {"slot": [[32, null]], "schon": [[1, 1], [4, 30]]}
+    ],
+    "Felchen": [
+      {"w": ["walensee"], "slot": [[28, null]], "schon": [[11, 20], [12, 31]]},
+      {"w": ["linth"], "slot": [[25, null]], "schon": [[12, 1], [1, 31]]},
+      {"slot": [[25, null]], "schon": [[11, 20], [12, 31]]}
+    ],
+    "Hecht": [
+      {"w": ["walensee"], "slot": [[45, null]], "schon": [[4, 1], [5, 31]]},
+      {"w": ["talalp"], "schon": [[3, 1], [4, 30]], "t": "Kein Schonmass in Oberblegisee und Obersee"},
+      {"slot": [[45, null]], "schon": [[3, 1], [4, 30]]}
+    ],
+    "Egli (Flussbarsch)": [{"slot": [[15, null]]}]
+  },
+  "prot": [],
+  "lim": [
+    {"n": 6, "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle", "Saibling", "Äsche"], "w": ["kloen", "talalp", "berg", "uebrige"], "t": "Edelfische pro Tag (davon max. 1 Äsche)"},
+    {"n": 1, "sp": ["Äsche"], "w": ["kloen", "talalp", "berg", "uebrige"], "t": "Äsche pro Tag"},
+    {"n": 15, "sp": ["Felchen"], "w": ["kloen", "talalp", "berg", "uebrige"], "t": "Felchen pro Tag"},
+    {"n": 4, "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle"], "w": ["walensee"], "t": "Forellen pro Tag (Walensee)"},
+    {"n": 5, "sp": ["Felchen"], "w": ["walensee"], "t": "Blalig pro Tag (Walensee)"},
+    {"n": 5, "sp": ["Hecht"], "w": ["walensee"], "t": "Hechte pro Tag (Walensee)"}
+  ],
+  "notes": [
+    "Nur Angeln ohne Widerhaken – Ausnahme Hegenen- und Schleppangeln im Klöntalersee (und Walensee mit Sachkundenachweis).",
+    "Nachtfischverbot: Sommerzeit 23–4 Uhr, sonst 20–6 Uhr.",
+    "Krebsfang und lebende Köderfische verboten.",
+    "Freiangelrecht vom Ufer am Walensee und Klöntalersee.",
+    "Stand der kantonalen Vorschriften 2014 – vor dem Fischen auf gl.ch prüfen."
+  ]
+},
+"GR": {
+  "updated": "2026-01-01",
+  "src": [
+    ["Fischereibetriebsvorschriften Graubünden 2026 (FBV)", "https://www.gr.ch/DE/institutionen/verwaltung/diem/ajf/recht/Documents/Vorschriften%20und%20Karten/FBV%202026%20DE.pdf"]
+  ],
+  "w": [
+    ["fluss", "Fliessgewässer (Grundmass)"],
+    ["fenster", "Fliessgewässer mit Fangfenster (Vorderrhein 103–108, Moesa 804–806, Inn 405–413 u.a.)"],
+    ["alpenrhein", "Alpenrhein (301–305)"],
+    ["moesa_inn", "Moesa-Einzugsgebiet, Inn unterhalb S-chanf (Äsche geschützt)"],
+    ["see", "Seen"]
+  ],
+  "closed": [
+    {"w": ["fluss", "fenster", "moesa_inn"], "from": [9, 16], "to": [4, 30], "t": "Saison Fliessgewässer 1.5.–15.9. (einzelne Strecken abweichend, z.B. Oberengadiner Inn ab 15.6.)"},
+    {"w": ["see"], "from": [11, 1], "to": [4, 30], "t": "Saison Seen 1.5.–31.10. (einzelne Seen abweichend)"},
+    {"w": ["alpenrhein"], "from": [10, 1], "to": [1, 31], "t": "Alpenrhein: Saison ab 1.2. (302–303) bzw. 1.3. (304–305) bis 30.9.; Teilstrecken im April gesperrt"}
+  ],
+  "sp": {
+    "Forelle": [
+      {"w": ["fenster", "alpenrhein"], "slot": [[26, 34], [50, null]], "t": "Ab 50 cm in grossen Flüssen ab 15.7. geschont"},
+      {"w": ["see"], "slot": [[24, null]]},
+      {"slot": [[24, null]], "t": "Gewässerspezifische Masse gemäss Anhang 1 FBV beachten"}
+    ],
+    "Regenbogenforelle": [
+      {"w": ["see"], "slot": [[24, null]]},
+      {"w": ["alpenrhein"], "slot": [[26, null]]},
+      {"t": "Kein Mindestmass in Fliessgewässern"}
+    ],
+    "Äsche": [
+      {"w": ["moesa_inn"], "prot": true, "t": "Im Moesa-Einzugsgebiet und Inn unterhalb S-chanf geschützt"},
+      {"w": ["alpenrhein"], "slot": [[35, null]], "schon": [[10, 1], [4, 30]]},
+      {"slot": [[32, null]], "schon": [[9, 16], [6, 14]]}
+    ],
+    "Saibling": [{"slot": [[24, null]], "t": "Seesaibling; in einzelnen Seen ohne Mindestmass"}]
+  },
+  "prot": ["Nase", "Strömer", "Aal"],
+  "lim": [
+    {"n": 4, "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle", "Saibling", "Äsche"], "w": ["fluss", "fenster", "alpenrhein", "moesa_inn"], "t": "Edelfische pro Tag (Fliessgewässer)"},
+    {"n": 2, "sp": ["Äsche"], "w": ["fluss", "fenster", "alpenrhein"], "t": "Äschen pro Tag"},
+    {"n": 6, "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle", "Saibling", "Äsche"], "t": "Edelfische pro Tag (gesamt, Seen)"},
+    {"n": 60, "per": "Jahr", "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle", "Saibling", "Äsche"], "w": ["fluss", "fenster", "alpenrhein", "moesa_inn"], "t": "Edelfische pro Saison (Fliessgewässer)"},
+    {"n": 10, "per": "Jahr", "sp": ["Äsche"], "t": "Äschen pro Saison"}
+  ],
+  "notes": [
+    "Widerhaken in Graubünden verboten (auch mitführen).",
+    "Nur 1 Rute; max. 3 Hakenspitzen pro Köder.",
+    "Nachtfischverbot 23–5 Uhr.",
+    "Ganzjährig geschützt: Nase, Groppe, Strömer, Aal, Bartgrundel, Dohlen- und Edelkrebs.",
+    "Viele Gewässer haben eigene Masse – interaktive Fischereikarte des AJF prüfen."
+  ]
+}
+}

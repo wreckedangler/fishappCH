@@ -1,0 +1,292 @@
+{
+"AG": {
+  "updated": "2026-05-01",
+  "src": [
+    ["Aargauische Fischereiverordnung (AFV, SAR 935.211), Stand 1.5.2026", "https://gesetzessammlungen.ag.ch/api/de/versions/3942/pdf_file_with_annexes"],
+    ["Übereinkunft über den Fischfang im Hallwilersee (AG/LU, 2021)", "https://www.lexfind.ch/tol/33688/de"],
+    ["Vereinbarung Aare-Grenzstrecke AG/SO (2008)", "https://www.lexfind.ch/tol/15869/de"]
+  ],
+  "w": [
+    ["fluss", "Rhein, Aare, Reuss, Limmat"],
+    ["aare_so", "Aare Grenzstrecke AG/SO (Murgenthal–Aarburg)"],
+    ["hallwil", "Hallwilersee"],
+    ["suhre", "Suhre, Aabach"],
+    ["bach", "Übrige Fliessgewässer (Bäche)"],
+    ["weiher", "Weiher und Kleinseen"]
+  ],
+  "closed": [
+    {"w": ["bach"], "from": [10, 1], "to": [2, 29], "t": "In den übrigen Fliessgewässern Angeln nur 1.3.–30.9."}
+  ],
+  "sp": {
+    "Forelle": [
+      {"w": ["aare_so"], "slot": [[28, null]], "schon": [[10, 1], [3, 15]]},
+      {"w": ["hallwil"], "slot": [[50, null]], "schon": [[9, 16], [12, 25]]},
+      {"w": ["fluss"], "slot": [[28, null]], "schon": [[10, 1], [2, 29]]},
+      {"slot": [[22, null]], "schon": [[10, 1], [2, 29]]}
+    ],
+    "Äsche": [
+      {"w": ["aare_so"], "slot": [[36, null]], "schon": [[1, 1], [5, 15]]},
+      {"prot": true, "t": "Äsche im Aargau ganzjährig geschont"}
+    ],
+    "Felchen": [
+      {"w": ["hallwil"], "slot": [[25, null]], "schon": [[12, 1], [2, 10]]},
+      {"slot": [[25, null]], "schon": [[10, 1], [12, 31]]}
+    ],
+    "Hecht": [
+      {"w": ["aare_so"], "slot": [[45, null]], "schon": [[3, 1], [4, 30]]},
+      {"slot": [[50, null]], "schon": [[2, 1], [4, 30]]}
+    ],
+    "Zander": [{"w": ["hallwil"], "slot": [[50, null]], "schon": [[4, 1], [5, 31]]}],
+    "Egli (Flussbarsch)": [{"slot": [[15, null]]}],
+    "Barbe": [
+      {"w": ["fluss", "aare_so"], "slot": [[35, null]]},
+      {"slot": [[30, null]]}
+    ],
+    "Karpfen": [{"w": ["hallwil"], "slot": [[35, null]]}, {"slot": [[30, null]]}],
+    "Schleie": [{"slot": [[25, null]]}]
+  },
+  "prot": ["Nase", "Lachs", "Strömer", "Bachneunauge", "Bitterling"],
+  "lim": [
+    {"n": 6, "sp": ["Bachforelle", "Seeforelle", "Hecht"], "w": ["fluss"], "t": "Forellen und Hechte zusammen pro Tag"},
+    {"n": 6, "sp": ["Bachforelle", "Seeforelle"], "w": ["aare_so"], "t": "Forellen pro Tag"},
+    {"n": 2, "sp": ["Äsche"], "w": ["aare_so"], "t": "Äschen pro Tag"},
+    {"n": 5, "sp": ["Hecht"], "w": ["aare_so"], "t": "Hechte pro Tag"},
+    {"n": 1, "sp": ["Bachforelle", "Seeforelle"], "w": ["hallwil"], "t": "Forelle pro Tag"},
+    {"n": 25, "sp": ["Felchen"], "w": ["hallwil"], "t": "Felchen pro Tag"},
+    {"n": 30, "sp": ["Egli (Flussbarsch)"], "w": ["hallwil"], "t": "Egli pro Tag"},
+    {"n": 3, "sp": ["Hecht"], "w": ["hallwil"], "t": "Hechte pro Tag"}
+  ],
+  "notes": [
+    "Die meisten Gewässer sind verpachtet – Fischerkarte beim jeweiligen Revier/Pächter lösen.",
+    "Widerhaken nur bei Hegenen- und Schleppangelfischerei erlaubt.",
+    "1.3.–30.9. in Rhein, Aare, Reuss, Limmat max. 2 Ruten; sonst 1 Rute (max. 5 Angeln).",
+    "Lebende Köderfische nur in Weihern/Kleinseen bis 30 ha.",
+    "Laichgebiete von Äsche und Forelle: Betreten Dezember–April verboten; Nase April–Mai."
+  ]
+},
+"BE": {
+  "updated": "2026-01-01",
+  "src": [
+    ["Direktionsverordnung über die Fischerei (FiDV, BSG 923.111.1), Anhang 1, Stand 1.1.2026", "https://www.belex.sites.be.ch/api/annex_document_dictionaries/67434"],
+    ["FiDV Bern, Stand 1.1.2026 (Fangmengen, Geräte)", "https://www.belex.sites.be.ch/api/de/versions/3323/pdf_file_with_annexes"]
+  ],
+  "w": [
+    ["brienz", "Brienzersee"],
+    ["thun", "Thunersee"],
+    ["biel", "Bielersee"],
+    ["aare_ob", "Aare Räterichsboden–Brienzersee, Kander, Lombach, Lütschinen"],
+    ["interlaken", "Aare Interlaken inkl. Schifffahrtskanal"],
+    ["aare_thun", "Aare Thunersee-Ausfluss–Engehalde (Bern)"],
+    ["aare_bern", "Aare Engehalde–Stauwehr Wohlensee"],
+    ["aare_wohlen", "Aare unterhalb Wohlensee–Bielersee"],
+    ["aare_biel", "Aare Bielersee–Murgenthal (inkl. Stauseen), Zihl bei Nidau"],
+    ["altaare", "Alte Aare"],
+    ["schuess", "Schüss"],
+    ["birs", "Birs"],
+    ["guerbe", "Gürbe"],
+    ["emme_o", "Emme oberhalb Heidbühlbrücke (Eggiwil), Ilfis"],
+    ["emme_u", "Emme unterhalb Heidbühlbrücke"],
+    ["saane", "Saane (FR/BE–Aare), Sense, Schwarzwasser, Simme, Zulg"],
+    ["klein", "Kleine Gewässer Oberland/Berner Jura (Engstligen, Kiene, Kirel, Sorne, Suld, Urbach u.a.)"],
+    ["pacht", "Staatliche Pacht- und private Fischgewässer"],
+    ["uebrige", "Übrige Patentgewässer"]
+  ],
+  "sp": {
+    "Forelle": [
+      {"w": ["brienz", "thun", "biel"], "slot": [[45, null]], "schon": [[9, 1], [1, 31]]},
+      {"w": ["aare_ob"], "slot": [[24, null]], "schon": [[10, 1], [3, 15]], "t": "Im September nur 24–45 cm"},
+      {"w": ["interlaken"], "slot": [[30, 37], [45, null]], "schon": [[10, 1], [3, 15]], "t": "16.3.–31.8.: 30–37 cm oder ab 45 cm; im September 30–45 cm"},
+      {"w": ["aare_thun"], "slot": [[34, 40], [50, null]], "schon": [[10, 1], [3, 15]], "t": "Fangfenster 34–40 cm oder ab 50 cm (16.3.–30.9.)"},
+      {"w": ["aare_bern"], "slot": [[34, null]], "schon": [[10, 1], [3, 15]]},
+      {"w": ["aare_wohlen"], "slot": [[30, null]], "schon": [[10, 1], [3, 15]]},
+      {"w": ["aare_biel"], "slot": [[38, null]], "schon": [[10, 1], [3, 15]]},
+      {"w": ["altaare"], "slot": [[26, null]], "schon": [[10, 1], [3, 15]]},
+      {"w": ["schuess"], "slot": [[26, null]], "schon": [[10, 1], [3, 15]], "t": "Schüss ab KW Bözingen bis Bielersee: im September nur 26–45 cm"},
+      {"w": ["birs"], "slot": [[25, 32], [40, null]], "schon": [[10, 1], [3, 15]], "t": "Fangfenster 25–32 cm oder ab 40 cm (16.3.–30.9.)"},
+      {"w": ["guerbe"], "slot": [[28, null]], "schon": [[10, 1], [3, 15]]},
+      {"w": ["emme_o"], "slot": [[26, null]], "schon": [[10, 1], [3, 15]]},
+      {"w": ["emme_u"], "slot": [[30, null]], "schon": [[10, 1], [3, 15]]},
+      {"w": ["klein"], "slot": [[22, null]], "schon": [[10, 1], [3, 15]], "t": "Urbach, Reichenbach: im September nur 22–45 cm"},
+      {"slot": [[24, null]], "schon": [[10, 1], [3, 15]]}
+    ],
+    "Äsche": [
+      {"w": ["aare_thun", "aare_bern", "aare_wohlen", "altaare", "saane"], "slot": [[36, null]], "schon": [[1, 1], [9, 30]], "t": "Nur mit Äschen-Sonderbewilligung (Jahrespatent): 1 pro Tag, 5 pro Jahr"},
+      {"w": ["interlaken"], "slot": [[40, null]], "schon": [[1, 1], [9, 30]], "t": "Nur mit Äschen-Sonderbewilligung"},
+      {"w": ["pacht"], "slot": [[30, null]], "schon": [[1, 1], [9, 30]]},
+      {"prot": true, "t": "In den übrigen Patentgewässern ganzjährig geschont"}
+    ],
+    "Felchen": [
+      {"w": ["brienz"], "slot": [[18, null]], "schon": [[11, 1], [12, 31]]},
+      {"w": ["thun"], "slot": [[25, null]], "schon": [[10, 1], [12, 31]]},
+      {"w": ["biel"], "slot": [[23, null]], "schon": [[11, 1], [12, 31]]},
+      {"slot": [[25, null]], "schon": [[11, 1], [12, 31]]}
+    ],
+    "Saibling": [
+      {"w": ["thun"], "slot": [[22, null]], "schon": [[10, 1], [12, 31]]},
+      {"slot": [[22, null]], "schon": [[11, 1], [12, 31]]}
+    ],
+    "Hecht": [
+      {"w": ["interlaken", "aare_thun", "saane", "guerbe", "schuess"], "schon": [[3, 1], [4, 30]], "t": "Kein Mindestmass (Aare Brienzersee bis Neubrücke, Saane, Gürbe, Schüss)"},
+      {"slot": [[45, null]], "schon": [[3, 1], [4, 30]]}
+    ],
+    "Zander": [{"schon": [[4, 1], [5, 31]]}],
+    "Egli (Flussbarsch)": [{"slot": [[15, null]]}]
+  },
+  "prot": ["Bachneunauge", "Strömer", "Bitterling", "Nase", "Aal"],
+  "lim": [
+    {"n": 6, "sp": ["Bachforelle", "Seeforelle", "Saibling"], "t": "Forellen und Saiblinge pro Tag"},
+    {"n": 3, "sp": ["Bachforelle", "Seeforelle"], "w": ["brienz", "thun", "biel"], "t": "Forellen pro Tag aus Brienzer-, Thuner- und Bielersee"},
+    {"n": 5, "sp": ["Hecht"], "t": "Hechte pro Tag"},
+    {"n": 25, "sp": ["Felchen"], "t": "Felchen pro Tag (Bielersee max. 20, Thunersee max. 15)"},
+    {"n": 20, "sp": ["Felchen"], "w": ["biel"], "t": "Felchen pro Tag aus dem Bielersee"},
+    {"n": 15, "sp": ["Felchen"], "w": ["thun"], "t": "Felchen pro Tag aus dem Thunersee"},
+    {"n": 100, "sp": ["Egli (Flussbarsch)"], "t": "Flussbarsche pro Tag"},
+    {"n": 5, "sp": ["Zander"], "t": "Zander pro Tag"},
+    {"n": 1, "sp": ["Äsche"], "t": "Äsche pro Tag (nur mit Sonderbewilligung)"},
+    {"n": 150, "per": "Jahr", "sp": ["Bachforelle", "Seeforelle", "Saibling"], "t": "Forellen und Saiblinge pro Jahr"},
+    {"n": 50, "per": "Jahr", "sp": ["Bachforelle"], "t": "Bachforellen pro Jahr"},
+    {"n": 5, "per": "Jahr", "sp": ["Äsche"], "t": "Äschen pro Jahr"}
+  ],
+  "notes": [
+    "Widerhaken verboten – Ausnahme mit Sachkundenachweis in stehenden Gewässern (Brienzer-, Thuner-, Bielersee, Bergseen, Stauseen, Zihlkanal). In Fliessgewässern immer verboten.",
+    "Edelfisch-Fliessgewässer: 1 Rute mit max. 2 Ködern; gemischte Fliessgewässer und Seen: 2 Ruten.",
+    "Lebende Köderfische verboten.",
+    "Dohlen-, Steinkrebs, Schlammpeitzger ganzjährig geschützt; Edelkrebs ab 12 cm, Schonzeit 20.9.–30.6.",
+    "Grenzgewässer (z. B. Aare BE/SO, Sense/Saane BE/FR) haben teils eigene Regeln."
+  ]
+},
+"BL": {
+  "updated": "2011-04-01",
+  "src": [
+    ["Verordnung zum Fischereigesetz Basel-Landschaft (SGS 530.11), aktuell publizierte Fassung Stand 1.4.2011 – Totalrevision des Gesetzes 2026 in Arbeit", "https://www.lexfind.ch/tol/2233/de"],
+    ["Übereinkunft Birs BL/SO (2008)", "https://www.lexfind.ch/tol/15772/de"]
+  ],
+  "w": [
+    ["rhein", "Rhein, Ergolzmündung bis Eisenbahnbrücke, Birsmündung bis Brücke Birsfelden"],
+    ["birs_so", "Birs Grenzstrecke BL/SO (Metallwerkabsturz–Nepomukbrücke Dornach)"],
+    ["ausnahme", "Moosee Grellingen, Ergolz Mündung–Hülftenpritsche, Birs Mündung–Wuhr Neuewelt"],
+    ["uebrige", "Übrige Gewässer"]
+  ],
+  "closed": [
+    {"w": ["uebrige", "birs_so"], "from": [10, 15], "to": [2, 29], "t": "Generelles Fischfangverbot 15.10.–Ende Februar"}
+  ],
+  "sp": {
+    "Bachforelle": [
+      {"w": ["rhein"], "slot": [[28, null]], "schon": [[10, 1], [2, 29]]},
+      {"slot": [[26, null]], "schon": [[10, 15], [2, 29]]}
+    ],
+    "Seeforelle": [{"w": ["rhein"], "slot": [[35, null]], "schon": [[10, 1], [2, 29]]}],
+    "Äsche": [
+      {"slot": [[35, null]], "schon": [[2, 1], [4, 30]], "w": ["rhein", "birs_so"]},
+      {"prot": true, "t": "In den übrigen Gewässern nicht freigegeben"}
+    ],
+    "Barbe": [
+      {"w": ["rhein"], "slot": [[35, null]]},
+      {"slot": [[35, null]], "schon": [[5, 1], [6, 15]]}
+    ],
+    "Egli (Flussbarsch)": [{"w": ["rhein"], "slot": [[18, null]]}],
+    "Felchen": [{"w": ["rhein"], "slot": [[30, null]], "schon": [[10, 15], [12, 31]]}],
+    "Hecht": [{"w": ["rhein"], "slot": [[50, null]], "schon": [[2, 15], [5, 15]]}],
+    "Karpfen": [{"w": ["rhein"], "slot": [[35, null]]}],
+    "Schleie": [{"w": ["rhein"], "slot": [[25, null]], "schon": [[5, 15], [6, 30]]}],
+    "Zander": [{"w": ["rhein"], "slot": [[45, null]], "schon": [[4, 1], [5, 31]]}],
+    "Aal": [{"w": ["rhein"], "slot": [[50, null]]}],
+    "Alet": [{"t": "Kein Mindestmass, keine Schonzeit"}],
+    "Rotauge": [{"t": "Kein Mindestmass, keine Schonzeit"}],
+    "Brachsmen": [{"t": "Kein Mindestmass, keine Schonzeit"}],
+    "Regenbogenforelle": [{"t": "Kein Mindestmass, keine Schonzeit"}],
+    "Saibling": [{"t": "Kein Mindestmass, keine Schonzeit"}],
+    "Wels": [{"t": "Kein Mindestmass, keine Schonzeit"}]
+  },
+  "prot": ["Nase", "Lachs", "Strömer", "Bachneunauge", "Bitterling"],
+  "lim": [
+    {"n": 4, "sp": ["Bachforelle", "Seeforelle"], "w": ["birs_so"], "t": "Forellen pro Tag"},
+    {"n": 4, "sp": ["Äsche"], "w": ["birs_so"], "t": "Äschen pro Tag"}
+  ],
+  "notes": [
+    "Widerhaken verboten (ausser schwere Setzangelfischerei); pro Rute max. 1 Haken bzw. Kunstköder mit max. 2 Haken.",
+    "Nachtfischverbot: Sommerzeit 24–5 Uhr, Winterzeit 22–6 Uhr.",
+    "Nicht genannte Arten sind ganzjährig geschont.",
+    "Die meisten Bäche sind Pachtgewässer – Karte beim Pächter.",
+    "Hinweis: Das Fischereirecht BL wird 2026 total revidiert; Werte können sich ändern."
+  ]
+},
+"BS": {
+  "updated": "2026-01-01",
+  "src": [
+    ["Fischereiverordnung Basel-Stadt (SG 912.510), Anhang, in Kraft seit 1.1.2026", "https://www.gesetzessammlung.bs.ch/api/annex_document_dictionaries/16816"]
+  ],
+  "w": [
+    ["rhein", "Rhein"],
+    ["wiese", "Wiese, Riehenteich, Birs"]
+  ],
+  "sp": {
+    "Äsche": [{"slot": [[35, null]], "schon": [[2, 1], [4, 30]]}],
+    "Forelle": [
+      {"w": ["wiese"], "slot": [[26, null]], "schon": [[10, 1], [2, 29]]},
+      {"slot": [[35, null]], "schon": [[10, 1], [2, 29]]}
+    ],
+    "Barbe": [{"slot": [[35, null]], "schon": [[5, 1], [6, 15]]}],
+    "Egli (Flussbarsch)": [{"slot": [[18, null]]}],
+    "Hecht": [
+      {"w": ["wiese"], "slot": [[50, null]]},
+      {"slot": [[50, null]], "schon": [[2, 15], [5, 15]]}
+    ],
+    "Karpfen": [{"slot": [[35, null]]}],
+    "Schleie": [{"slot": [[25, null]], "schon": [[5, 15], [6, 30]]}],
+    "Zander": [
+      {"w": ["wiese"], "slot": [[45, null]]},
+      {"slot": [[45, null]], "schon": [[4, 1], [5, 31]]}
+    ]
+  },
+  "prot": ["Strömer", "Bitterling", "Bachneunauge", "Nase", "Lachs"],
+  "notes": [
+    "Zusätzlich geschützt: Schneider, Groppe, Moderlieschen, Steinbeisser, sowie alle Flusskrebse.",
+    "Trüsche: ab 50 cm, Schonzeit 1.11.–Ende Februar.",
+    "Rhein: Fischereikarte beim Amt für Umwelt und Energie oder in der App «myfish»; Wiese und Birs sind Pachtgewässer.",
+    "Seit 1.1.2026: Bleiverbot in der Fischerei, Nachtfischverbot aufgehoben."
+  ]
+},
+"JU": {
+  "updated": "2026-03-01",
+  "src": [
+    ["Règlement sur l'exercice de la pêche 2026–2029 (Jura), gültig 1.3.2026–28.2.2030", "https://rsju.jura.ch/fr/viewdocument.html?idn=9554&id=39338&v=1&Download=1"]
+  ],
+  "w": [
+    ["doubs", "Doubs"],
+    ["allaine", "Allaine"],
+    ["birse", "Birse und Sorne"],
+    ["b1", "Birse interkantonaler Abschnitt (B1)"],
+    ["scheulte", "Scheulte"]
+  ],
+  "closed": [
+    {"w": ["doubs", "allaine", "birse", "scheulte"], "from": [10, 1], "to": [2, 29], "t": "Fischen nur vom ersten Samstag im März bis 30. September (Hecht/Egli im Winter nur Doubs-Abschnitt D2)"},
+    {"w": ["b1"], "from": [10, 1], "to": [3, 15], "t": "Forellen im Abschnitt B1 nur 16.3.–30.9."}
+  ],
+  "sp": {
+    "Forelle": [
+      {"w": ["doubs"], "slot": [[30, 35], [55, null]]},
+      {"w": ["scheulte"], "slot": [[40, null]]},
+      {"slot": [[25, 32], [40, null]]}
+    ],
+    "Barbe": [{"slot": [[35, null]], "schon": [[5, 15], [7, 15]]}],
+    "Äsche": [{"prot": true, "t": "Äschen dürfen im Jura nicht entnommen werden"}],
+    "Hecht": [{"w": ["scheulte"], "prot": true, "t": "In der Scheulte nur Forellen erlaubt"}, {"t": "Kein Mindestmass im Reglement"}],
+    "Egli (Flussbarsch)": [{"w": ["scheulte"], "prot": true, "t": "In der Scheulte nur Forellen erlaubt"}, {"t": "Kein Mindestmass im Reglement"}]
+  },
+  "prot": [],
+  "lim": [
+    {"n": 3, "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle"], "t": "Forellen pro Tag (alle Gewässer zusammen)"},
+    {"n": 2, "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle"], "w": ["doubs", "scheulte"], "t": "Forellen pro Tag am Doubs und an der Scheulte"},
+    {"n": 3, "sp": ["Barbe"], "t": "Barben pro Tag"},
+    {"n": 20, "per": "Jahr", "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle"], "t": "Forellen pro Jahr (Jahrespatent, je Gewässer; Scheulte 5)"}
+  ],
+  "notes": [
+    "Widerhaken in allen Gewässern verboten.",
+    "Erlaubt sind nur: Forelle, Hecht, Egli und Cypriniden (ausser Blageon; am Doubs auch ohne Toxostome). Scheulte: nur Forelle.",
+    "Krebse dürfen nicht gefangen werden.",
+    "Fischzeiten: Winter 6–20 Uhr, Sommer 5–24 Uhr.",
+    "Wochenpatent: 5 Forellen pro Gewässer und Saison (Scheulte 2)."
+  ]
+}
+}

@@ -438,8 +438,8 @@ function currentSec(){
   return secById(state.sec)}
 function secStatus(sec,d=new Date()){
   const out=[];
-  if(isCM()){((RULES[state.canton]||{}).closed||[]).forEach(cl=>{if(sec.id&&cl.w.includes(sec.id)&&inRange(d,cl.from,cl.to))out.push({lvl:"bad",txt:"Heute geschlossen: "+cl.t})});return out}
-  if(!isSO())return out;
+  if(sec.kind==="cw"){((RULES[state.canton]||{}).closed||[]).forEach(cl=>{if(sec.id&&cl.w.includes(sec.id)&&inRange(d,cl.from,cl.to))out.push({lvl:"bad",txt:"Heute geschlossen: "+cl.t})});return out}
+  if(!isDetailed("SO"))return out;
   if(sec.kind==="schon")out.push({lvl:"bad",txt:"Schonstrecke – Fischen verboten"});
   if(sec.closed&&inRange(d,sec.closed.from,sec.closed.to))out.push({lvl:"bad",txt:sec.closed.why});
   NEWS.forEach(n=>{if((n.secs||[]).includes(sec.id))out.push({lvl:"bad",txt:`Verfügung vom ${n.date}: Fischereiverbot bis auf Widerruf`})});
@@ -854,7 +854,6 @@ function popupFor(f){
 }
 function drawGeo(){
   if(!map)return;if(gLayer)gLayer.remove();gLayer=L.layerGroup().addTo(map);
-  if(state.canton!=="SO"){return}
   const order={privat:0,pacht:1,patent:2,schon:3};
   [...GEO.features].sort((a,b)=>order[kindOf(a.art)]-order[kindOf(b.art)]).forEach(f=>{
     const latlngs=f.l.map(l=>l.map(([lo,la])=>[la,lo]));
@@ -923,6 +922,8 @@ Object.assign(XSRC,{
   {url:AQ(VDB,197),map:p=>({id:"F"+p.OBJECTID,art:"Frei",name:"Freie Strecke "+(p.NOMPARCOURSLIBRE||""),t:p.DEFINITION||"",x:["Parcours libre: Fischen ohne Patent nach kantonaler Regelung."]})},
   {url:AQ(VDB,194),map:p=>({id:"S"+p.OBJECTID,art:"Schon",name:"Schongebiet "+(p.NOMRIVIERE||"")+(p.NORESERVE?" (Nr. "+p.NORESERVE+")":""),t:p.DEFINITION||"",x:["Réserve de pêche – Fischen verboten"]})}]}
 });
+const XBOX={TG:[8.66,47.37,9.5,47.7],BE:[6.86,46.32,8.46,47.35],VS:[6.77,45.85,8.48,46.66],FR:[6.74,46.43,7.38,47.01],GL:[8.87,46.79,9.26,47.18],SH:[8.4,47.55,8.88,47.81],VD:[6.06,46.18,7.25,46.99],ZH:[8.35,47.15,8.99,47.7],AG:[7.71,47.13,8.46,47.63]};
+function xInView(){if(!map)return[];const b=map.getBounds();return Object.keys(XSRC).filter(c=>{const x=XBOX[c];return!x||(x[0]<b.getEast()&&x[2]>b.getWest()&&x[1]<b.getNorth()&&x[3]>b.getSouth())})}
 const XGEO={};let xLayer=null;
 function xg(c){return XGEO[c]||(XGEO[c]={feats:{},seen:new Set(),boxes:[],busy:false,all:false,fail:0})}
 function xAdd(c,fc,mapf){const G=xg(c),tol=5/111320;
@@ -934,18 +935,18 @@ function xAdd(c,fc,mapf){const G=xg(c),tol=5/111320;
     const f=G.feats[m.id]||(G.feats[m.id]=Object.assign(m,{l:[],poly}));
     L.forEach(l=>{if(l&&l.length>1)f.l.push(dp(l,tol).map(c=>[+c[0].toFixed(5),+c[1].toFixed(5)]))})});
 }
-async function loadX(){
-  const c=state.canton,src=XSRC[c];if(!src||!map||!navigator.onLine)return;
-  const G=xg(c);if(G.busy||Date.now()-G.fail<30000)return;
+function loadX(){if(!map||!navigator.onLine)return;xInView().forEach(loadXc)}
+async function loadXc(c){
+  const src=XSRC[c],G=xg(c);if(G.busy||Date.now()-G.fail<30000)return;
   let b=null;
   if(src.bbox){if(map.getZoom()<src.minZoom)return;const mb=map.getBounds().pad(.3);b={s:+mb.getSouth().toFixed(4),w:+mb.getWest().toFixed(4),n:+mb.getNorth().toFixed(4),e:+mb.getEast().toFixed(4)};
     if(G.boxes.some(o=>o.s<=b.s&&o.w<=b.w&&o.n>=b.n&&o.e>=b.e))return}
-  else if(G.all)return;
-  G.busy=true;renderSheet();
+  else{if(G.all||map.getZoom()<9)return}
+  G.busy=true;if(!mapSel)renderSheet();
   try{const res=await Promise.all(src.layers.map(l=>fetch(l.url(b)).then(r=>{if(!r.ok)throw 0;return r.json()}).then(j=>[l,j])));
     res.forEach(([l,j])=>xAdd(c,j,l.map));if(b)G.boxes.push(b);else G.all=true}catch(e){G.fail=Date.now()}
-  G.busy=false;if(state.canton===c){drawX();renderSheet();drawSel()}
-  if(XSRC[state.canton]&&(state.canton!==c||src.bbox))setTimeout(loadX,50);
+  G.busy=false;drawX();if(!mapSel)renderSheet();drawSel();
+  if(src.bbox)setTimeout(()=>{if(xInView().includes(c))loadXc(c)},50);
 }
 function styleX(f){const k=kindOf(f.art);
   if(k==="schon")return{color:"#a8261c",weight:3,opacity:1,fillOpacity:.22};
@@ -954,15 +955,14 @@ function styleX(f){const k=kindOf(f.art);
   return{color:"#f08c00",weight:4,opacity:.9,fillOpacity:.2}}
 function drawX(){
   if(!map)return;if(xLayer){xLayer.remove();xLayer=null}
-  const G=XGEO[state.canton];if(!G||!XSRC[state.canton])return;
   xLayer=L.layerGroup().addTo(map);
-  Object.values(G.feats).sort((a,b)=>(a.art==="Schon")-(b.art==="Schon")).forEach(f=>{const st=Object.assign({interactive:false},styleX(f));
+  [].concat(...Object.values(XGEO).map(G=>Object.values(G.feats))).sort((a,b)=>(a.art==="Schon")-(b.art==="Schon")).forEach(f=>{const st=Object.assign({interactive:false},styleX(f));
     f.l.forEach(l=>{const ll=l.map(([lo,la])=>[la,lo]);L.polyline(f.poly?ll.concat([ll[0]]):ll,{pane:"casing",renderer:casR,color:"#fff",weight:st.weight+4,opacity:.9,interactive:false,lineCap:"round"}).addTo(xLayer);(f.poly?L.polygon(ll,st):L.polyline(ll,st)).addTo(xLayer)})});
 }
 function inRing(x,y,r){let c=false;for(let i=0,j=r.length-1;i<r.length;j=i++){if((r[i][1]>y)!==(r[j][1]>y)&&x<(r[j][0]-r[i][0])*(y-r[i][1])/(r[j][1]-r[i][1])+r[i][0])c=!c}return c}
 function xDist(lat,lon,f){if(f.poly&&f.l.some(r=>inRing(lon,lat,r)))return 0;return distToLines(lat,lon,f.l)}
-function xNearest(lat,lon,tol){const G=XGEO[state.canton];if(!G||!XSRC[state.canton])return null;let best=null;
-  for(const f of Object.values(G.feats)){const d=xDist(lat,lon,f)-(f.art==="Schon"?3:0);if(d<=tol&&(!best||d<best.d))best={f,d}}return best}
+function xNearest(lat,lon,tol){let best=null;
+  for(const c of Object.keys(XGEO))for(const f of Object.values(XGEO[c].feats)){const d=xDist(lat,lon,f)-(f.art==="Schon"?3:0);if(d<=tol&&(!best||d<best.d))best={f,d,c}}return best}
 function xPill(f){const k=kindOf(f.art);return k==="schon"?`<span class="pill p-bad">Schongebiet</span>`:k==="privat"?`<span class="pill p-warn">Privates Fischereirecht</span>`:k==="frei"?`<span class="pill p-ok">Freiangelrecht</span>`:k==="patent"?`<span class="pill p-ok">Patentgewässer</span>`:k==="revier"?`<span class="pill p-mut">Fischereirevier</span>`:`<span class="pill p-warn">Pachtgewässer</span>`}
 /* ---- Karte: Auswahl per Antippen, Bestätigen im Blatt unten ---- */
 let mapSel=null,selLayer=null;
@@ -970,7 +970,7 @@ function drawSel(){
   if(!map)return;if(selLayer){selLayer.remove();selLayer=null}
   const parts=[];
   const id=mapSel&&mapSel.t==="sec"?mapSel.id:(!mapSel&&isSO()?state.sec:null);
-  const f=id&&state.canton==="SO"?GEO.features.find(x=>x.id===id):null;
+  const f=id?GEO.features.find(x=>x.id===id):null;
   if(f){const ll=f.l.map(l=>l.map(([lo,la])=>[la,lo]));
     parts.push(L.polyline(ll,{color:"#ffd43b",weight:18,opacity:.95,interactive:false,lineCap:"round"}));
     parts.push(L.polyline(ll,Object.assign({},styleFor(f),{weight:8,dashArray:null,interactive:false,lineCap:"round"})))}
@@ -1016,7 +1016,7 @@ function renderSheet(){
     const f=GEO.features.find(x=>x.id===mapSel.id)||{t:""},sec=secById(mapSel.id),st=secStatus(sec),k=sec.kind;
     const pill=k==="schon"?`<span class="pill p-bad">Fischen verboten</span>`:st.some(x=>x.lvl==="bad")?`<span class="pill p-bad">heute gesperrt</span>`:k==="patent"?`<span class="pill p-ok">heute offen</span>`:`<span class="pill p-warn">nicht mit Patent</span>`;
     const r=k!=="schon"?soRule(sec,"Bachforelle"):null;
-    const chosen=state.sec===sec.id&&!state.secAuto;
+    const chosen=state.canton==="SO"&&state.sec===sec.id&&!state.secAuto;
     h=`<div class="sh-h"><div><div class="sh-t">${esc(sec.name)}</div>${pill}</div>${close}</div>
       <div class="sh-d">${esc(f.t)}</div>
       ${st.length?`<ul class="sh-l">${st.map(s=>`<li>${esc(s.txt)}</li>`).join("")}</ul>`:""}
@@ -1041,15 +1041,14 @@ function renderSheet(){
     const x=hereSummary();
     h=`<div class="sh-h"><div><div class="sh-t"><span class="sh-dot ${x.cls}"></span>${esc(x.t)}</div></div></div>
       <div class="sh-d">${esc(state.pos?(x.s||""):(state.geoErr||"Standort wird gesucht …"))}</div>
-      ${isSO()?`<div class="sh-d">Tippe auf eine Linie, um einen Abschnitt zu wählen.</div>`
-        :isCM()?(nearW&&state.pos?`<div class="sh-d">In der Nähe: <b>${esc(nearW.name||(nearW.lake?"See":"Bach ohne Namen"))}</b>. Tippe auf die Karte, um ein anderes Gewässer zu wählen.</div>`:`<div class="sh-d">Tippe auf einen Fluss oder See, um ihn zu wählen.</div>`)+cwSelect(state.canton,cwOf(state.canton)||(nearW&&state.pos?matchW(state.canton,nearW).sug:""))+`<button type="button" class="pri full" data-sh="okc">Gewässer bestätigen</button>`
+      ${isSO()?`<div class="sh-d">Tippe auf eine Linie oder Fläche, um sie zu wählen.</div>`
+        :isCM()?(nearW&&state.pos?`<div class="sh-d">In der Nähe: <b>${esc(nearW.name||(nearW.lake?"See":"Bach ohne Namen"))}</b>. Tippe auf die Karte, um ein anderes Gewässer zu wählen.</div>`:`<div class="sh-d">Tippe auf eine Linie, Fläche oder ein Gewässer, um es zu wählen.</div>`)+cwSelect(state.canton,cwOf(state.canton)||(nearW&&state.pos?matchW(state.canton,nearW).sug:""))+`<button type="button" class="pri full" data-sh="okc">Gewässer bestätigen</button>`
         :`<div class="sh-d">Tippe auf die Karte, um einen Kanton zu wählen.</div>`}
-      ${(()=>{const src=XSRC[state.canton];if(!src)return"";const G=xg(state.canton);
-        if(src.bbox&&map.getZoom()<src.minZoom)return`<div class="sh-d">Näher heranzoomen, um die Fischereigewässer einzublenden.</div>`;
-        if(G.busy)return`<div class="sh-d">Fischereigewässer werden geladen …</div>`;
-        if(Date.now()-G.fail<30000)return`<div class="sh-d">Die Fischereigewässer konnten nicht geladen werden.</div>`;
-        const n=state.pos?xNearest(state.pos.lat,state.pos.lon,150):null;
-        return n?`<div class="sh-d">Am Standort: <b>${esc(n.f.name)}</b></div><button type="button" class="full" data-sh="nearx" data-id="${esc(n.f.id)}">Anzeigen</button>`:`<div class="sh-d">Tippe auf eine farbige Linie oder Fläche für die Angaben des Kantons.</div>`})()}
+      ${(()=>{const v=xInView();
+        if(v.some(c=>xg(c).busy))return`<div class="sh-d">Gewässerzonen werden geladen …</div>`;
+        if(v.some(c=>XSRC[c].bbox&&map.getZoom()<XSRC[c].minZoom))return`<div class="sh-d">Näher heranzoomen: In ${esc(v.filter(c=>XSRC[c].bbox&&map.getZoom()<XSRC[c].minZoom).map(cname).join(" und "))} erscheinen die Reviere erst aus der Nähe.</div>`;
+        const n=state.pos&&!isSO()?xNearest(state.pos.lat,state.pos.lon,150):null;
+        return n?`<div class="sh-d">Am Standort: <b>${esc(n.f.name)}</b></div><button type="button" class="full" data-sh="nearx" data-id="${esc(n.f.id)}" data-c="${n.c}">Anzeigen</button>`:""})()}
       ${isAuto()?"":`<button type="button" class="full" data-sh="auto">Wieder per Standort</button>`}
       ${!state.pos&&watchId==null?`<button type="button" class="full" data-sh="geo">Standort aktivieren</button>`:""}`;
   }
@@ -1058,7 +1057,7 @@ function renderSheet(){
 }
 function sheetAction(a){
   if(a==="close")mapSel=null;
-  else if(a==="ok"&&mapSel){state.sec=mapSel.id;state.secAuto=false;state.pin=null;save();toast(secById(mapSel.id).name+" gewählt")}
+  else if(a==="ok"&&mapSel){if(state.canton!=="SO"){state.canton="SO";state.cantonAuto=false}state.sec=mapSel.id;state.secAuto=false;state.pin=null;save();toast(secById(mapSel.id).name+" gewählt")}
   else if(a==="rules"){show("hier");return}
   else if(a==="auto"){mapSel=null;setAuto(true);toast("Standort bestimmt Kanton und Gewässer");return}
   else if(a==="geo"){state.geoErr=null;startGeo()}
@@ -1075,13 +1074,11 @@ function sheetAction(a){
 }
 async function mapTap(e){
   const lat=e.latlng.lat,lon=e.latlng.lng;
-  if(state.canton==="SO"&&GEO.features.length){
-    const tol=40075016*Math.cos(lat*Math.PI/180)/Math.pow(2,map.getZoom()+8)*26;
-    let best=null;for(const f of GEO.features){const d=distToLines(lat,lon,f.l)-(f.art==="Schon"?3:0);if(d<=tol&&(!best||d<best.d))best={f,d}}
-    if(best){mapSel={t:"sec",id:best.f.id};renderSheet();drawSel();return}
-  }
-  const xb=xNearest(lat,lon,40075016*Math.cos(lat*Math.PI/180)/Math.pow(2,map.getZoom()+8)*26);
-  if(xb){mapSel={t:"x",code:state.canton,id:xb.f.id};renderSheet();drawSel();return}
+  const tol=40075016*Math.cos(lat*Math.PI/180)/Math.pow(2,map.getZoom()+8)*26;
+  let best=null;for(const f of GEO.features){const d=distToLines(lat,lon,f.l)-(f.art==="Schon"?3:0);if(d<=tol&&(!best||d<best.d))best={f,d}}
+  const xb=xNearest(lat,lon,tol);
+  if(best&&(!xb||best.d<=xb.d)){mapSel={t:"sec",id:best.f.id};renderSheet();drawSel();return}
+  if(xb){mapSel={t:"x",code:xb.c,id:xb.f.id};renderSheet();drawSel();return}
   const sel={t:"canton",code:null,lat,lon,loading:true};mapSel=sel;renderSheet();drawSel();
   const tolm=Math.max(25,40075016*Math.cos(lat*Math.PI/180)/Math.pow(2,map.getZoom()+8)*26);
   const u=`https://api3.geo.admin.ch/rest/services/api/MapServer/identify?geometry=${lon},${lat}&geometryType=esriGeometryPoint&layers=all:ch.swisstopo.swissboundaries3d-kanton-flaeche.fill&sr=4326&tolerance=0&returnGeometry=false&lang=de`;
@@ -1108,14 +1105,14 @@ function initMap(){
     const draw=()=>{const cur=map.hasLayer(topo)?"topo":"luft";d.innerHTML=`<button type="button" data-b="luft" class="${cur==="luft"?"on":""}">Luftbild</button><button type="button" data-b="topo" class="${cur==="topo"?"on":""}">Karte</button>`};draw();
     d.onclick=e=>{const b=e.target.closest("[data-b]");if(!b)return;const t=b.dataset.b==="topo";map.removeLayer(t?luft:topo);(t?topo:luft).addTo(map);store.set("base",t?"topo":"luft");draw()};return d};Bs.addTo(map);
   const Lg=L.control({position:"bottomleft"});Lg.onAdd=()=>{const d=L.DomUtil.create("div","lg");L.DomEvent.disableClickPropagation(d);
-    const full=state.canton==="SO"?`<div><i style="background:#12b886"></i>Patent – heute offen</div><div><i style="background:repeating-linear-gradient(90deg,#ff6b6b 0 4px,transparent 4px 9px)"></i>Patent – heute gesperrt</div><div><i style="background:#7a0019;height:7px"></i>Schonstrecke – verboten</div><div><i style="background:#f08c00"></i>Pacht – nicht mit Patent</div><div><i style="background:#7d8b88"></i>Privat</div><div><i style="background:#1971c2;width:10px;height:10px;border-radius:50%"></i>Meine Fänge</div>`:XSRC[state.canton]?`<div><i style="background:#12b886"></i>Patentgewässer / frei</div><div><i style="background:#f08c00"></i>Pachtgewässer / Revier</div><div><i style="background:#a8261c"></i>Schongebiet</div><div><i style="background:#7d8b88"></i>Privates Fischereirecht</div><div><i style="background:#12b886"></i>Freiangelrecht</div><div><i style="background:#1971c2;width:10px;height:10px;border-radius:50%"></i>Meine Fänge</div><div>${XSRC[state.canton].attr}</div>`:`<div style="max-width:200px;line-height:1.4">Für diesen Kanton gibt es keine eingezeichneten Abschnitte. Tippe auf einen Fluss oder See, um ihn zu wählen.</div>`;
+    const full=`<div><i style="background:#12b886"></i>Patentgewässer / frei</div><div><i style="background:repeating-linear-gradient(90deg,#ff6b6b 0 4px,transparent 4px 9px)"></i>Patent – heute gesperrt (SO)</div><div><i style="background:#a8261c;height:6px"></i>Schonstrecke / Schongebiet</div><div><i style="background:#f08c00"></i>Pacht / Revier</div><div><i style="background:#7d8b88"></i>Privat</div><div><i style="background:#ffd43b;height:6px"></i>Gewählt</div><div><i style="background:#1971c2;width:10px;height:10px;border-radius:50%"></i>Meine Fänge</div><div style="max-width:210px;line-height:1.35;margin-top:4px;color:#5a6a6c">Zonen vorhanden für SO, BE, VS, FR, VD, GL, ZH, AG, TG, SH. Geodaten © jeweiliger Kanton.</div>`;
     let open=store.get("legendOpen",false);const draw=()=>{d.innerHTML=open?full+`<div style="text-align:right;font-weight:700">Schliessen</div>`:`<b>Legende</b>`};draw();
     d.style.cursor="pointer";d.onclick=()=>{open=!open;store.set("legendOpen",open);draw()};return d};Lg.addTo(map);map._legend=Lg;
   const Me=L.control({position:"bottomright"});Me.onAdd=()=>{const b=L.DomUtil.create("button","mebtn");b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>';b.setAttribute("aria-label","Zu meinem Standort");b.title="Zu meinem Standort";L.DomEvent.on(b,"click",e=>{L.DomEvent.stop(e);follow=true;if(state.pos)map.setView([state.pos.lat,state.pos.lon],16);else{startGeo();toast("Standort wird gesucht …")}});return b};Me.addTo(map);
   map.on("dragstart",()=>{follow=false});
   map.on("click",mapTap);
-  $("#mapSheet").onclick=e=>{const b=e.target.closest("[data-sh]");if(!b)return;if(b.dataset.sh==="nearx"){mapSel={t:"x",code:state.canton,id:b.dataset.id};renderSheet();drawSel();return}sheetAction(b.dataset.sh)};
-  map.on("moveend",()=>{loadX();if(!mapSel&&XSRC[state.canton])renderSheet()});
+  $("#mapSheet").onclick=e=>{const b=e.target.closest("[data-sh]");if(!b)return;if(b.dataset.sh==="nearx"){mapSel={t:"x",code:b.dataset.c,id:b.dataset.id};renderSheet();drawSel();return}sheetAction(b.dataset.sh)};
+  map.on("moveend",()=>{loadX();if(!mapSel)renderSheet()});
   if(state.pos)map.setView([state.pos.lat,state.pos.lon],14);else map.setView([47.30,7.75],10);
   drawGeo();drawX();loadX();drawCatches();updateMe();renderSheet();drawSel();
   setTimeout(()=>map.invalidateSize(),60);

@@ -78,6 +78,8 @@ Alle Handys übernehmen es beim nächsten Öffnen.
 | `sw.js` | Offline-Betrieb |
 | `manifest.webmanifest`, `icon.svg` | Installation als App |
 
+Fotos der Fischarten: Wikimedia Commons, freie Lizenzen (Urheber und Lizenz in der App beim jeweiligen Foto).
+
 Quellen Regeln SO: «Auszug aus den Fischereivorschriften ab 01.03.2026» und
 «Neuerungen Fischereigesetzgebung SO 2026» (AWJF). National: Verordnung zum
 Bundesgesetz über die Fischerei (VBGF).

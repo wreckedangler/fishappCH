@@ -1,13 +1,15 @@
 // Fischer-Begleiter Service Worker
-const APP = "fb-app-v5";      // eigene Dateien: Netz zuerst, sonst Cache
+const APP = "fb-app-v6";      // eigene Dateien: Netz zuerst, sonst Cache
 const LIB = "fb-lib-v1";      // Kartenbibliothek: Cache zuerst
 const TILES = "fb-tiles-v1";  // Kartenkacheln: Cache zuerst, begrenzt
 const MAX_TILES = 600;
+const IMG = "fb-img-v1";     // Fischfotos (Wikimedia): Cache zuerst
+
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./data/updates.json"];
 
 self.addEventListener("install", e => e.waitUntil(caches.open(APP).then(c => c.addAll(FILES)).then(() => self.skipWaiting())));
 self.addEventListener("activate", e => e.waitUntil(
-  caches.keys().then(keys => Promise.all(keys.filter(k => ![APP, LIB, TILES].includes(k)).map(k => caches.delete(k)))).then(() => self.clients.claim())
+  caches.keys().then(keys => Promise.all(keys.filter(k => ![APP, LIB, TILES, IMG].includes(k)).map(k => caches.delete(k)))).then(() => self.clients.claim())
 ));
 
 async function trim(name, max) {
@@ -42,5 +44,6 @@ self.addEventListener("fetch", e => {
   if (url.origin === location.origin) return e.respondWith(networkFirst(req));
   if (url.hostname === "unpkg.com") return e.respondWith(cacheFirst(req, LIB));
   if (url.hostname === "wmts.geo.admin.ch") return e.respondWith(cacheFirst(req, TILES, MAX_TILES));
+  if (url.hostname === "upload.wikimedia.org" || url.hostname === "thumb.wikimedia.org") return e.respondWith(cacheFirst(req, IMG, 80));
   // geo.so.ch und api3.geo.admin.ch: direkt ans Netz (App speichert die Daten selbst)
 });

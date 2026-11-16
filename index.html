@@ -544,11 +544,11 @@ function renderRegeln(){
 let map=null,gLayer=null,meMarker=null,meCircle=null,catchLayer=null,follow=false;
 function styleFor(f){
   const k=kindOf(f.art);
-  if(k==="schon")return{color:"#d62828",weight:7,opacity:.95};
+  if(k==="schon")return{color:"#7a0019",weight:9,opacity:1};
   if(k==="pacht")return{color:"#f08c00",weight:3,opacity:.85};
   if(k==="privat")return{color:"#7d8b88",weight:3,opacity:.8,dashArray:"6 6"};
   const sec=secById(f.id),bad=secStatus(sec).some(x=>x.lvl==="bad");
-  return{color:bad?"#e03131":"#12b886",weight:6,opacity:.95,dashArray:bad?"10 8":null};
+  return{color:bad?"#ff6b6b":"#12b886",weight:6,opacity:.95,dashArray:bad?"2 10":null,lineCap:"round"};
 }
 function popupFor(f){
   const sec=secById(f.id),st=secStatus(sec),k=sec.kind;
@@ -590,7 +590,10 @@ function initMap(){
   const luft=L.tileLayer("https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swissimage/default/current/3857/{z}/{x}/{y}.jpeg",{maxNativeZoom:19,maxZoom:19,attribution:"© swisstopo"});
   catchLayer=L.layerGroup().addTo(map);
   L.control.layers({"Landeskarte":topo,"Luftbild":luft},{"Meine Fänge":catchLayer},{position:"topright"}).addTo(map);
-  const Lg=L.control({position:"bottomleft"});Lg.onAdd=()=>{const d=L.DomUtil.create("div","lg");d.innerHTML=state.canton==="SO"?`<div><i style="background:#12b886"></i>Patent – heute offen</div><div><i style="background:#e03131"></i>Patent – heute gesperrt</div><div><i style="background:#d62828;height:6px"></i>Schonstrecke (verboten)</div><div><i style="background:#f08c00"></i>Pacht (nicht mit Patent)</div><div><i style="background:#7d8b88"></i>Privat</div>`:`Gewässerdaten bisher nur für SO`;return d};Lg.addTo(map);map._legend=Lg;
+  const Lg=L.control({position:"bottomleft"});Lg.onAdd=()=>{const d=L.DomUtil.create("div","lg");L.DomEvent.disableClickPropagation(d);
+    const full=state.canton==="SO"?`<div><i style="background:#12b886"></i>Patent – heute offen</div><div><i style="background:repeating-linear-gradient(90deg,#ff6b6b 0 4px,transparent 4px 9px)"></i>Patent – heute gesperrt</div><div><i style="background:#7a0019;height:7px"></i>Schonstrecke – verboten</div><div><i style="background:#f08c00"></i>Pacht – nicht mit Patent</div><div><i style="background:#7d8b88"></i>Privat</div><div><i style="background:#1971c2;width:10px;height:10px;border-radius:50%"></i>Meine Fänge</div>`:`Gewässerdaten bisher nur für SO`;
+    let open=store.get("legendOpen",false);const draw=()=>{d.innerHTML=open?full+`<div style="text-align:right;font-weight:700">▾ schliessen</div>`:`<b>Legende ▸</b>`};draw();
+    d.style.cursor="pointer";d.onclick=()=>{open=!open;store.set("legendOpen",open);draw()};return d};Lg.addTo(map);map._legend=Lg;
   const Me=L.control({position:"bottomright"});Me.onAdd=()=>{const b=L.DomUtil.create("button","mebtn");b.innerHTML="📍";b.title="Zu meinem Standort";L.DomEvent.on(b,"click",e=>{L.DomEvent.stop(e);follow=true;if(state.pos)map.setView([state.pos.lat,state.pos.lon],16);else{startGeo();toast("Standort wird gesucht …")}});return b};Me.addTo(map);
   map.on("dragstart",()=>{follow=false});
   map.on("popupopen",e=>{const b=e.popup.getElement().querySelector("[data-pick]");if(b)b.onclick=()=>{state.sec=b.dataset.pick;state.secAuto=false;save();map.closePopup();toast("Abschnitt gewählt – automatische Wahl aus");renderAll();show("hier")}});

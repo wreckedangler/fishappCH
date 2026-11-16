@@ -1,70 +1,70 @@
 # Fischer-Begleiter 🎣
 
-Eine Begleit-App fürs Fischen in der Schweiz. Standorterkennung, Mindestmasse,
-Schonzeiten, geschützte Arten, Fangerfassung und Statistik – offline nutzbar,
-ohne App Store. Kanton **Solothurn** ist vollständig hinterlegt; weitere Kantone
-folgen.
+Begleit-App fürs Fischen in der Schweiz – läuft im Browser, installierbar aufs
+Handy, ohne App Store.
+
+**App öffnen:** https://wreckedangler.github.io/fishappCH/
 
 > Inoffizielles Hilfsmittel, ohne Gewähr. Verbindlich sind die amtlichen
-> Vorschriften (z. B. so.ch/fischerei). Die App ersetzt die offizielle
-> Fangstatistik **nicht**.
+> Vorschriften. Die App ersetzt die offizielle Fangstatistik **nicht**.
 
-## Auf dem Handy installieren
+## Funktionen
 
-1. Diese Seite über GitHub Pages öffnen (siehe unten).
-2. In Chrome (Android) bzw. Safari (iOS) das Menü öffnen → **„Zum
-   Startbildschirm hinzufügen"**.
-3. Fertig – die App startet mit eigenem Icon und funktioniert offline.
+- **Automatische Standorterkennung:** Kanton (via geo.admin.ch) und – in
+  Solothurn – der genaue Patentabschnitt, Pachtrevier oder die Schonstrecke.
+  Liegen mehrere Gewässer nah beieinander, fragt die App nach und merkt sich
+  die Wahl.
+- **Karte** (swisstopo Landeskarte/Luftbild) mit allen offiziellen
+  Fischereigewässern des Kantons Solothurn: Patentstrecken (offen/gesperrt),
+  Schonstrecken, Pacht- und Privatgewässer; Antippen zeigt Beschreibung und
+  Regeln. Eigene Fangorte als Ebene.
+- **Statusleiste:** zeigt jederzeit, ob am aktuellen Ort heute gefischt
+  werden darf.
+- **Fangerfassung** mit Schnellwahl der Art, sofortiger Prüfung von Mass,
+  Schonzeit, Schutzstatus, Tages- und Jahreslimiten; Text zum Übertragen in
+  die offizielle App.
+- **Statistik**, Angelzeit-Uhr, CSV-Export/Import.
+- **Alle 26 Kantone:** Solothurn vollständig; übrige Kantone vorerst mit den
+  nationalen Mindestvorgaben des Bundes (VBGF), klar gekennzeichnet.
 
-## Als Website bereitstellen (GitHub Pages)
+## Installieren
 
-1. Repository auf GitHub anlegen und diese Dateien pushen (siehe `PUSH.md`).
-2. Im Repo: **Settings → Pages → Branch: `main`, Ordner `/ (root)` → Save**.
-3. Nach ein paar Minuten ist die App erreichbar unter
-   `https://<dein-name>.github.io/<repo>/`.
+Seite in Chrome (Android) bzw. Safari (iOS) öffnen → Menü →
+**„Zum Startbildschirm hinzufügen"**. Standortzugriff erlauben.
 
-## Regeln aktualisieren (ohne Neu-Installation)
+## Woher die Daten kommen und wie sie aktuell bleiben
 
-Die Regelwerte liegen in **`data/updates.json`**. Die App lädt diese Datei bei
-jedem Start (sobald online) und übernimmt neue Werte automatisch – inklusive
-Mindestmasse, Schonzeiten und geschützte Arten je Kanton.
+| Daten | Quelle | Aktualisierung |
+|---|---|---|
+| Gewässer, Schonstrecken SO | Kanton Solothurn, AWJF – `ch.so.awjf.gewaesser.patentgewaesser` (geo.so.ch, Open Data) | live vom Kanton, automatisch wöchentlich |
+| Kantonserkennung | swisstopo / geo.admin.ch | live |
+| Karte | swisstopo WMTS | live, Kacheln werden zwischengespeichert |
+| Regeln, Preise, Verfügungen | `data/updates.json` in diesem Repo | bei jedem Start |
 
-So änderst du etwas:
+### Regeln ändern (`data/updates.json`)
 
-1. `data/updates.json` bearbeiten.
-2. Feld **`version`** um 1 erhöhen und **`updated`** auf das neue Datum setzen.
-3. Werte unter `rules` / `news` anpassen und committen.
+1. Werte unter `rules` bzw. `news` anpassen.
+2. `version` um 1 erhöhen, `updated` setzen, committen.
 
-Alle Handys ziehen die Änderung beim nächsten Öffnen nach. Offline gilt die
-zuletzt geladene Version.
+Alle Handys übernehmen es beim nächsten Öffnen.
 
-### Format
-
-- `slot`: erlaubte Längenbereiche in cm, z. B. `[[38, null]]` = ab 38 cm,
+- `slot`: erlaubte Längen in cm, z. B. `[[38, null]]` = ab 38 cm,
   `[[32, 42], [55, null]]` = 32–42 cm oder ab 55 cm.
 - `schon`: Schonzeit `[[Monat, Tag], [Monat, Tag]]`.
-- `secs` (bei `news`): Abschnittscodes `A1`–`A6`, `E`, `EK`, `D`, `LS`, `LT`,
-  `CH`, `B`.
-
-## Weitere Kantone
-
-In `index.html` steht die Liste `CANTONS`. Ein Kanton wird aktiv, sobald sein
-Regelwerk unter `rules` (in `data/updates.json`) und – falls nötig – seine
-Gewässer-Abschnitte im Code hinterlegt sind. Diese werden Runde für Runde aus
-den offiziellen Vorschriften ergänzt.
+- `news[].secs`: Codes der betroffenen Strecken (A1–A6, E, EK, D, LS, LT, CH,
+  B, S1–S8 oder Reviernummern).
+- `rules.CH`: nationale Mindestvorgaben für Kantone ohne Detaildaten.
+- Ein Kanton mit `"detailed": true` gilt als vollständig hinterlegt.
 
 ## Dateien
 
 | Datei | Zweck |
 |---|---|
-| `index.html` | die ganze App (HTML, CSS, Logik) |
-| `data/updates.json` | lebende Regeldaten je Kanton |
-| `manifest.webmanifest` | macht sie installierbar (PWA) |
-| `sw.js` | Service Worker für Offline-Betrieb |
-| `icon.svg` | App-Icon |
+| `index.html` | die ganze App |
+| `data/updates.json` | Regeldaten je Kanton |
+| `sw.js` | Offline-Betrieb |
+| `manifest.webmanifest`, `icon.svg` | Installation als App |
 
-## Quellen (Kanton SO, Stand 01.03.2026)
-
-- Auszug aus den Fischereivorschriften ab 01.03.2026 (AWJF)
-- Neuerungen Fischereigesetzgebung SO 2026 (AWJF)
-- so.ch/fischerei
+Quellen Regeln SO: «Auszug aus den Fischereivorschriften ab 01.03.2026» und
+«Neuerungen Fischereigesetzgebung SO 2026» (AWJF). National: Verordnung zum
+Bundesgesetz über die Fischerei (VBGF).

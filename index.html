@@ -372,7 +372,7 @@ async function refreshGeo(force){
 }
 function distToLines(lat,lon,lines){const R=6371000,k=Math.cos(lat*Math.PI/180);let best=Infinity;
   for(const l of lines){for(let i=0;i<l.length-1;i++){const ax=(l[i][0]-lon)*Math.PI/180*R*k,ay=(l[i][1]-lat)*Math.PI/180*R,bx=(l[i+1][0]-lon)*Math.PI/180*R*k,by=(l[i+1][1]-lat)*Math.PI/180*R;const dx=bx-ax,dy=by-ay,L=dx*dx+dy*dy;let t=L?-(ax*dx+ay*dy)/L:0;t=Math.max(0,Math.min(1,t));const d=Math.hypot(ax+t*dx,ay+t*dy);if(d<best)best=d}}return best}
-function kindOf(art){return{Patent:"patent",Pacht:"pacht",Privat:"privat",Schon:"schon",Frei:"frei"}[art]||"other"}
+function kindOf(art){return{Patent:"patent",Pacht:"pacht",Privat:"privat",Schon:"schon",Frei:"frei",Revier:"revier"}[art]||"other"}
 
 /* ================= REGELN ================= */
 function secById(id){
@@ -897,6 +897,19 @@ Object.assign(XSRC,{
   {url:AGW("ch_ag_geo_aw_fish"),map:AGR},{url:AGW("ch_ag_geo_aw_fisp"),map:AGR},
   {url:AGW("ch_ag_geo_aw_fschonp"),map:(p,x)=>({id:"S"+(x.id||p.bnum+"_"+p.fnr),art:"Schon",name:"Schongebiet (Revier "+p.fnr+")",t:"",x:["Schongebiet nach kantonaler Fischereiverordnung."]})}]}
 });
+const VDB="https://www.ogc.vd.ch/public/rest/services/OGC/wmsVD/MapServer/";
+const GLZ={"1mai_30sept":"1. Mai bis 30. September","1apr_30sept":"1. April bis 30. September","15mai_30sept":"15. Mai bis 30. September","1mai_31dez":"1. Mai bis 31. Dezember","1apr_31dez":"1. April bis 31. Dezember"};
+Object.assign(XSRC,{
+ GL:{attr:"Fischereigewässer © Kanton Glarus",layers:[{url:()=>"https://wfs.geo.gl.ch/?service=WFS&version=1.1.0&request=GetFeature&typeName=ch.gl.inlandwaters.fischereigewaesser&outputFormat=geojson&srsName=EPSG:4326",
+  map:p=>{const z=p.fangzeiten;return{id:"G"+p.t_ili_tid,art:z==="verbot"?"Schon":"Patent",name:p.gewaesser_name||"Gewässer",t:"",x:[z==="verbot"?"Fangverbot":GLZ[z]?"Fangzeit: "+GLZ[z]:""].filter(Boolean)}}}]},
+ SH:{attr:"Fischereireviere © Kanton Schaffhausen",layers:[{url:()=>"https://wfs.geo.sh.ch/wfs?service=WFS&version=1.1.0&request=GetFeature&typeName=sh.administrative_einteilungen.fischereireviere&outputFormat=application/json&srsName=EPSG:4326",
+  map:p=>{const v=/verbot/i.test(p.name||"");return{id:"R"+p.uuid,art:v?"Schon":"Revier",name:p.name||"Fischereirevier",t:p.bemerkung&&p.bemerkung!=="null"?p.bemerkung:"",x:[v?"Fischereiverbot":"Fischereirevier am Rhein – Berechtigung gemäss kantonaler Regelung."]}}}]},
+ VD:{attr:"Carte de pêche © Etat de Vaud",layers:[
+  {url:AQ(VDB,193),map:p=>({id:"C"+p.OBJECTID,art:"Patent",name:p.NOM||"Fliessgewässer",t:p.NOMBV||"",x:["Fischgewässer gemäss kantonaler Fischereikarte"]})},
+  {url:AQ(VDB,196),map:p=>({id:"E"+p.OBJECTID,art:"Patent",name:p.NOM||"See oder Weiher",t:"",x:["Kleiner See oder Weiher gemäss kantonaler Fischereikarte"]})},
+  {url:AQ(VDB,197),map:p=>({id:"F"+p.OBJECTID,art:"Frei",name:"Freie Strecke "+(p.NOMPARCOURSLIBRE||""),t:p.DEFINITION||"",x:["Parcours libre: Fischen ohne Patent nach kantonaler Regelung."]})},
+  {url:AQ(VDB,194),map:p=>({id:"S"+p.OBJECTID,art:"Schon",name:"Schongebiet "+(p.NOMRIVIERE||"")+(p.NORESERVE?" (Nr. "+p.NORESERVE+")":""),t:p.DEFINITION||"",x:["Réserve de pêche – Fischen verboten"]})}]}
+});
 const XGEO={};let xLayer=null;
 function xg(c){return XGEO[c]||(XGEO[c]={feats:{},seen:new Set(),boxes:[],busy:false,all:false,fail:0})}
 function xAdd(c,fc,mapf){const G=xg(c),tol=5/111320;
@@ -930,14 +943,14 @@ function drawX(){
   if(!map)return;if(xLayer){xLayer.remove();xLayer=null}
   const G=XGEO[state.canton];if(!G||!XSRC[state.canton])return;
   xLayer=L.layerGroup().addTo(map);
-  Object.values(G.feats).forEach(f=>{const st=Object.assign({interactive:false},styleX(f));
+  Object.values(G.feats).sort((a,b)=>(a.art==="Schon")-(b.art==="Schon")).forEach(f=>{const st=Object.assign({interactive:false},styleX(f));
     f.l.forEach(l=>{const ll=l.map(([lo,la])=>[la,lo]);(f.poly?L.polygon(ll,st):L.polyline(ll,st)).addTo(xLayer)})});
 }
 function inRing(x,y,r){let c=false;for(let i=0,j=r.length-1;i<r.length;j=i++){if((r[i][1]>y)!==(r[j][1]>y)&&x<(r[j][0]-r[i][0])*(y-r[i][1])/(r[j][1]-r[i][1])+r[i][0])c=!c}return c}
 function xDist(lat,lon,f){if(f.poly&&f.l.some(r=>inRing(lon,lat,r)))return 0;return distToLines(lat,lon,f.l)}
 function xNearest(lat,lon,tol){const G=XGEO[state.canton];if(!G||!XSRC[state.canton])return null;let best=null;
   for(const f of Object.values(G.feats)){const d=xDist(lat,lon,f)-(f.art==="Schon"?3:0);if(d<=tol&&(!best||d<best.d))best={f,d}}return best}
-function xPill(f){const k=kindOf(f.art);return k==="schon"?`<span class="pill p-bad">Schongebiet</span>`:k==="privat"?`<span class="pill p-warn">Privates Fischereirecht</span>`:k==="frei"?`<span class="pill p-ok">Freiangelrecht</span>`:k==="patent"?`<span class="pill p-ok">Patentgewässer</span>`:`<span class="pill p-warn">Pachtgewässer</span>`}
+function xPill(f){const k=kindOf(f.art);return k==="schon"?`<span class="pill p-bad">Schongebiet</span>`:k==="privat"?`<span class="pill p-warn">Privates Fischereirecht</span>`:k==="frei"?`<span class="pill p-ok">Freiangelrecht</span>`:k==="patent"?`<span class="pill p-ok">Patentgewässer</span>`:k==="revier"?`<span class="pill p-mut">Fischereirevier</span>`:`<span class="pill p-warn">Pachtgewässer</span>`}
 /* ---- Karte: Auswahl per Antippen, Bestätigen im Blatt unten ---- */
 let mapSel=null,selLayer=null;
 function drawSel(){
@@ -1077,7 +1090,7 @@ function initMap(){
   catchLayer=L.layerGroup().addTo(map);
   L.control.layers({"Landeskarte":topo,"Luftbild":luft},{"Meine Fänge":catchLayer},{position:"topright"}).addTo(map);
   const Lg=L.control({position:"bottomleft"});Lg.onAdd=()=>{const d=L.DomUtil.create("div","lg");L.DomEvent.disableClickPropagation(d);
-    const full=state.canton==="SO"?`<div><i style="background:#12b886"></i>Patent – heute offen</div><div><i style="background:repeating-linear-gradient(90deg,#ff6b6b 0 4px,transparent 4px 9px)"></i>Patent – heute gesperrt</div><div><i style="background:#7a0019;height:7px"></i>Schonstrecke – verboten</div><div><i style="background:#f08c00"></i>Pacht – nicht mit Patent</div><div><i style="background:#7d8b88"></i>Privat</div><div><i style="background:#1971c2;width:10px;height:10px;border-radius:50%"></i>Meine Fänge</div>`:XSRC[state.canton]?`<div><i style="background:#12b886"></i>Patentgewässer / frei</div><div><i style="background:#f08c00"></i>Pachtgewässer</div><div><i style="background:#a8261c"></i>Schongebiet</div><div><i style="background:#7d8b88"></i>Privates Fischereirecht</div><div><i style="background:#12b886"></i>Freiangelrecht</div><div><i style="background:#1971c2;width:10px;height:10px;border-radius:50%"></i>Meine Fänge</div><div>${XSRC[state.canton].attr}</div>`:`<div style="max-width:200px;line-height:1.4">Für diesen Kanton gibt es keine eingezeichneten Abschnitte. Tippe auf einen Fluss oder See, um ihn zu wählen.</div>`;
+    const full=state.canton==="SO"?`<div><i style="background:#12b886"></i>Patent – heute offen</div><div><i style="background:repeating-linear-gradient(90deg,#ff6b6b 0 4px,transparent 4px 9px)"></i>Patent – heute gesperrt</div><div><i style="background:#7a0019;height:7px"></i>Schonstrecke – verboten</div><div><i style="background:#f08c00"></i>Pacht – nicht mit Patent</div><div><i style="background:#7d8b88"></i>Privat</div><div><i style="background:#1971c2;width:10px;height:10px;border-radius:50%"></i>Meine Fänge</div>`:XSRC[state.canton]?`<div><i style="background:#12b886"></i>Patentgewässer / frei</div><div><i style="background:#f08c00"></i>Pachtgewässer / Revier</div><div><i style="background:#a8261c"></i>Schongebiet</div><div><i style="background:#7d8b88"></i>Privates Fischereirecht</div><div><i style="background:#12b886"></i>Freiangelrecht</div><div><i style="background:#1971c2;width:10px;height:10px;border-radius:50%"></i>Meine Fänge</div><div>${XSRC[state.canton].attr}</div>`:`<div style="max-width:200px;line-height:1.4">Für diesen Kanton gibt es keine eingezeichneten Abschnitte. Tippe auf einen Fluss oder See, um ihn zu wählen.</div>`;
     let open=store.get("legendOpen",false);const draw=()=>{d.innerHTML=open?full+`<div style="text-align:right;font-weight:700">Schliessen</div>`:`<b>Legende</b>`};draw();
     d.style.cursor="pointer";d.onclick=()=>{open=!open;store.set("legendOpen",open);draw()};return d};Lg.addTo(map);map._legend=Lg;
   const Me=L.control({position:"bottomright"});Me.onAdd=()=>{const b=L.DomUtil.create("button","mebtn");b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>';b.setAttribute("aria-label","Zu meinem Standort");b.title="Zu meinem Standort";L.DomEvent.on(b,"click",e=>{L.DomEvent.stop(e);follow=true;if(state.pos)map.setView([state.pos.lat,state.pos.lon],16);else{startGeo();toast("Standort wird gesucht …")}});return b};Me.addTo(map);

@@ -38,6 +38,7 @@ Seite in Chrome (Android) bzw. Safari (iOS) öffnen → Menü →
 | Daten | Quelle | Aktualisierung |
 |---|---|---|
 | Gewässer, Schonstrecken SO | Kanton Solothurn, AWJF – `ch.so.awjf.gewaesser.patentgewaesser` (geo.so.ch, Open Data) | live vom Kanton, automatisch wöchentlich |
+| Fischereigewässer ZH, TG, BE, VS, FR, AG, GL, SH, VD | Geodienste der Kantone (WFS / ArcGIS / WMS), siehe `XSRC` in `index.html` | live vom Kanton beim Öffnen der Karte |
 | Kantonserkennung, Gewässernamen (alle Kantone) | swisstopo / geo.admin.ch (swissBOUNDARIES3D, swissTLM3D Gewässernetz) | live |
 | Karte | swisstopo WMTS | live, Kacheln werden zwischengespeichert |
 | Regeln, Preise, Verfügungen | `data/updates.json` in diesem Repo | App lädt bei jedem Start; Inhalt wird regelmässig gegen die kantonalen Quellen geprüft |

@@ -9,8 +9,6 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <style>
 :root{
  --bg:#f2f4f1;--sf:#fff;--sf2:#f5f7f5;--line:#dce2de;--tx:#12222a;--mut:#5a6a6c;
@@ -216,6 +214,18 @@ button:disabled{opacity:.55;cursor:wait}
 #pickerList button:focus-visible{outline-offset:-3px}
 #mapSheet{max-height:calc(100% - 20px);overflow:auto}
 @media(max-width:480px){#logList .it .row>div:first-child{flex:1 0 100%!important}main{padding-inline:12px}}
+@media(min-width:960px){
+  main:has(#v-stat.on){max-width:1080px}
+  nav{padding-inline:max(12px,calc((100% - 1048px)/2))}
+  #v-stat.on{display:grid;grid-template-columns:3fr 2fr;gap:12px;align-items:start}
+  #v-stat>.seg,#v-stat>.book-overview{grid-column:1/-1}
+  #v-stat>.card{margin:0}
+  #v-stat>.card:has(#logList){grid-column:1;grid-row:3/span 4}
+  #statsDetail,#soCounts,#v-stat>.card:last-child{grid-column:2}
+}
+.entry-menu{flex:0 0 auto}.entry-menu summary{margin:0;padding:10px}
+#sessBox:has(#btnStop){display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#sessBox #btnStop{width:auto;margin-left:auto}#sessBox .timer{font-size:18px}
 </style>
 </head>
 <body>
@@ -235,9 +245,9 @@ button:disabled{opacity:.55;cursor:wait}
   <div class="row" id="hereAct"></div>
   <button class="pri full hide" id="btnGeo" style="margin-top:10px">Standort aktivieren</button>
   <div id="geoMsg" class="mut small" style="margin:6px 4px 0"></div>
-  <div id="hereRules"></div>
+
   <details class="card" id="manCard">
-    <summary style="margin:0;color:var(--tx);font-size:17px;font-weight:650">Ohne Karte wählen</summary>
+    <summary style="margin:0;color:var(--tx);font-size:17px;font-weight:650">Gewässer wählen oder ändern</summary>
     <label for="selCanton">Kanton</label>
     <select id="selCanton"></select>
     <div id="secPick">
@@ -246,6 +256,7 @@ button:disabled{opacity:.55;cursor:wait}
     </div>
     <label class="chk"><input type="checkbox" id="cbCantonAuto"> Kanton und Gewässer automatisch per Standort bestimmen</label>
   </details>
+  <div id="hereRules"></div>
 </section>
 
 <!-- KARTE -->
@@ -260,7 +271,7 @@ button:disabled{opacity:.55;cursor:wait}
 <section class="view" id="v-fang">
   <div class="seg"><button type="button" data-v="fang">Erfassen</button><button type="button" data-v="stat">Fangbuch</button></div>
   <div id="fangCtx"></div>
-  <div class="card"><h2>Angelzeit</h2><div id="sessBox"></div></div>
+
   <div class="card">
     <h2>Fang erfassen</h2>
     <div class="chips" id="spChips"></div>
@@ -290,6 +301,7 @@ button:disabled{opacity:.55;cursor:wait}
     <button class="pri full" id="btnSave" style="margin-top:14px">Fang speichern</button>
     <div id="afterSave" role="status"></div>
   </div>
+  <div class="card"><div id="sessBox"></div></div>
 </section>
 
 <!-- STATISTIK -->
@@ -304,17 +316,19 @@ button:disabled{opacity:.55;cursor:wait}
     </div>
     <div class="book-total"><strong id="fishTotal">0</strong><span>Fische erfasst</span></div>
     <p class="mut small" id="fishOutcome"></p>
-    <dl id="bookMetrics"></dl>
+
   </div>
-  <div class="card"><h2>Fänge nach Fischart</h2><div id="bookSpecies"></div></div>
-  <div class="card"><h2>Fangeinträge</h2><div id="logList" class="list"></div>
+  <div class="card"><h2>Letzte Fänge</h2><div id="logList" class="list"></div>
     <button type="button" id="moreCatches" class="full" hidden>Weitere Einträge anzeigen</button>
   </div>
+  <details class="card" id="statsDetail"><summary>Statistik</summary><dl id="bookMetrics"></dl><h2>Fänge nach Fischart</h2><div id="bookSpecies"></div></details>
   <details class="card" id="soCounts"><summary>Fangzähler Solothurn</summary><div id="bookLimits" class="small"></div></details>
   <div class="card">
     <h2>Daten sichern</h2>
     <p class="mut small">Deine Fänge liegen nur auf diesem Handy. Der CSV-Export sichert die Fangdaten ohne Fotos.</p>
-    <div class="row"><button id="btnExport">Exportieren (CSV)</button><button id="btnImport">Importieren</button></div>
+    <div class="row"><button id="backup">Vollsicherung speichern</button><button id="restore">Sicherung einlesen</button></div>
+    <input type="file" id="backupFile" accept=".json,application/json" hidden>
+    <div class="row" style="margin-top:10px"><button id="btnExport">Exportieren (CSV)</button><button id="btnImport">CSV importieren</button></div>
     <input type="file" id="fileImport" accept=".csv,text/csv" class="hide">
   </div>
 </section>
@@ -521,10 +535,10 @@ function secStatus(sec,d=new Date()){
   if(sec.kind==="privat")out.push({lvl:"warn",txt:"Privatgewässer – das Patent gilt hier nicht"});
   return out;
 }
-function countToday(sp,grp){const t=dayKey(new Date());return state.log.filter(f=>f.day===t&&f.kept&&(grp?TROUT_GROUP.includes(f.art):f.art===sp)).reduce((a,f)=>a+(f.n||1),0)}
+function countToday(sp,grp){const t=dayKey(new Date());return state.log.filter(f=>f.day===t&&f.kept&&(f.canton||"SO")==="SO"&&(grp?TROUT_GROUP.includes(f.art):f.art===sp)).reduce((a,f)=>a+(f.n||1),0)}
 function countYear(sp){const y=String(new Date().getFullYear());return state.log.filter(f=>f.day.startsWith(y)&&f.kept&&f.art===sp&&(f.canton||"SO")==="SO"&&SECTIONS.some(s=>s.id===f.sec)).reduce((a,f)=>a+(f.n||1),0)}
 function check(sec,sp,len,d=new Date()){
-  const r=ruleFor(sec,sp),issues=[],infos=[];
+  const r=ruleFor(sec,sp),issues=[],infos=[],n=Math.max(1,parseInt($("#fAnz").value)||1);
   secStatus(sec,d).forEach(x=>x.lvl==="bad"?issues.push(x.txt):infos.push(x.txt));
   if(r.prot)issues.push(r.note+" – schonend mit nasser Hand zurücksetzen");
   if(r.schon&&inRange(d,r.schon[0],r.schon[1]))issues.push(`${sp}: Schonzeit ${fmtR(r.schon)}`);
@@ -535,17 +549,17 @@ function check(sec,sp,len,d=new Date()){
   else if(r.slot){if(len==null||isNaN(len)){needLen=true;infos.push(`Erlaubt: ${fmtSlot(r.slot)}`)}
     else if(!r.slot.some(([a,b])=>len>=a&&(b==null||len<=b)))issues.push(`${len} cm ist nicht erlaubt – erlaubt: ${fmtSlot(r.slot)}`);
     else infos.push(`Mass ok (${fmtSlot(r.slot)})`)}
-  if(r.day){const c=countToday(sp,r.dayGroup==="trout");if(c>=r.day)issues.push(`Tageslimite erreicht (${c}/${r.day})`);else infos.push(`Heute behalten: ${c}/${r.day}${r.dayGroup==="trout"?" Forellen+Saiblinge":""}`)}
-  if(r.year&&sec.kind==="patent"){const c=countYear(sp);if(c>=r.year)issues.push(`Jahreslimite erreicht (${c}/${r.year})`);else infos.push(`Saison: ${c}/${r.year} Bachforellen`)}
+  if(r.day){const c=countToday(sp,r.dayGroup==="trout");if(c+n>r.day)issues.push(`Tageslimite erreicht (${c+n}/${r.day})`);else infos.push(`Mit diesem Eintrag heute: ${c+n}/${r.day}${r.dayGroup==="trout"?" Forellen+Saiblinge":""}`)}
+  if(r.year&&sec.kind==="patent"){const c=countYear(sp);if(c+n>r.year)issues.push(`Jahreslimite erreicht (${c+n}/${r.year})`);else infos.push(`Mit diesem Eintrag diese Saison: ${c+n}/${r.year} Bachforellen`)}
   if(r.lims){const y=String(d.getFullYear()),t=dayKey(d);r.lims.forEach(l=>{const yr=l.per==="Jahr";
       const c=state.log.filter(f=>f.kept&&f.canton===state.canton&&l.sp.includes(f.art)&&(!l.w||l.w.includes(f.sec))&&(yr?f.day.startsWith(y):f.day===t)).reduce((a,f)=>a+(f.n||1),0);
-      if(c>=l.n)issues.push(`${yr?"Jahres":"Tages"}limite erreicht: ${l.t} (${c}/${l.n})`);else infos.push(`${l.t}: ${c}/${l.n} behalten`)})}
+      if(c+n>l.n)issues.push(`${yr?"Jahres":"Tages"}limite erreicht: ${l.t} (${c+n}/${l.n})`);else infos.push(`${l.t}: ${c+n}/${l.n} behalten`)})}
   if(r.keep)infos.push("Muss behalten werden – Zurücksetzen nicht erlaubt");
   if(r.cm&&!r.slot&&!r.schon&&!r.chk&&!r.note)infos.push("Kein Mindestmass und keine Schonzeit hinterlegt");
   if(r.national){infos.push(r.weeks?`Schonzeit: mind. ${r.weeks} Wochen – Daten legt der Kanton fest`:"Schonzeit: kantonal prüfen");infos.push("Nur nationale Mindestvorgaben – der Kanton kann strenger sein")}
   if(r.note&&!r.prot)infos.push(r.note);
   needLen=needLen&&issues.length===0;
-  return{ok:issues.length===0&&!needLen,needLen,issues,infos};
+  return{review:!!(r.chk||r.national||r.pickW||unknownWater()),ok:issues.length===0&&!needLen,needLen,issues,infos};
 }
 
 /* ================= STANDORT ================= */
@@ -594,7 +608,9 @@ async function identifyCanton(lat,lon){
 }
 
 /* ================= RENDER: TOPBAR & HIER ================= */
+function unknownWater(){return (!state.pos&&isAuto())||(isSO()&&state.secAuto&&!state.here?.id)}
 function hereSummary(){
+  if(unknownWater())return{cls:"warn",t:"Gewässer noch nicht bestimmt",s:"Gewässer wählen oder Standort verwenden"};
   const det=isSO(),sec=currentSec(),h=state.here;
   if(isCM()){const R=RULES[state.canton];
     if(!sec.id)return{cls:"warn",t:cname(state.canton)+": Gewässer wählen",s:"Masse und Schonzeiten hängen vom Gewässer ab"};
@@ -674,7 +690,7 @@ function openPicker(select,title){
         const current=document.getElementById(select.id);
         dlg.close();
         if(!current || ((select.id==="heroCW"||select.id==="selSec")&&state.canton!==canton))return;
-        if(current.value!==option.value && Array.from(current.options).some(o=>o.value===option.value)){
+        if((current.value!==option.value||select.id==="selSec"||select.id==="selCanton")&&Array.from(current.options).some(o=>o.value===option.value)){
           current.value=option.value;
           current.dispatchEvent(new Event("change",{bubbles:true}));
         }
@@ -708,6 +724,11 @@ function renderHier(){
   $("#hereHero").innerHTML=`<div class="hero ${x.cls}"><div class="t">${esc(x.t)}</div><div class="d">${esc(det?(sec.desc||""):cm?(sec.id?cname(state.canton)+((state.xsel||{})[state.canton]?" · "+state.xsel[state.canton]:""):"Wähle unten das Gewässer – dann zeigt die App die passenden Masse, Schonzeiten und Limiten."):"Für "+cname(state.canton)+" sind nur die nationalen Mindestvorgaben des Bundes geladen.")}</div>
     ${st.length||extra?`<ul>${st.map(s=>`<li>${esc(s.txt)}</li>`).join("")}${extra}</ul>`:""}
     ${state.pos?`<div class="d" style="margin-top:8px">Standort ±${Math.round(state.pos.acc)} m${h&&h.d!=null&&h.id?` · ${fmtM(h.d)} zur Gewässerlinie`:""}</div>`:""}${altHtml}</div>`;
+  if(unknownWater()){
+    $("#hereHero .d").textContent=x.s;
+    $("#hereHero ul")?.remove();
+  }
+  $("#hereRules").hidden=unknownWater()||(cm&&!sec.id);
   const notes=det?(sec.notes||[]):cm?(RULES[state.canton].notes||[]):[];
   const CR=cm?RULES[state.canton]:null;
   $("#hereRules").innerHTML=`<div class="card"><h2>${det||cm?"Regeln hier":"Nationale Mindestvorgaben"}</h2>${rulesTableFor(sec)}
@@ -731,14 +752,15 @@ let tick=null;
 function ctxLabel(){return isSO()?currentSec().name:isCM()?(currentSec().id?currentSec().name:cname(state.canton)):cname(state.canton)+" (national)"}
 function renderSess(){
   const s=state.sess,box=$("#sessBox");clearInterval(tick);
-  if(!s){box.innerHTML=`<p class="mut small" style="margin-top:0">Starte hier und gleichzeitig in der offiziellen App («Start Fischen»).</p><button class="pri full" id="btnStart">Start Fischen – ${esc(ctxLabel())}</button>`;
-    $("#btnStart").onclick=()=>{state.sess={sec:state.sec,cw:isCM()?cwOf(state.canton):null,canton:state.canton,start:Date.now()};save();renderSess()};return}
+  if(!s){box.innerHTML=`<button class="pri full" id="btnStart">Angelzeit starten</button>`;
+    $("#btnStart").onclick=()=>{if(unknownWater()){show("hier");$("#manCard").open=true;return}state.sess={sec:state.sec,cw:isCM()?cwOf(state.canton):null,canton:state.canton,start:Date.now()};save();renderSess()};return}
   box.innerHTML=`<div class="mut small">${esc(s.canton&&s.canton!=="SO"?cname(s.canton)+(s.cw?" · "+cwLabel(s.canton,s.cw):""):secById(s.sec).name)} seit ${new Date(s.start).toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"})}</div><div class="big timer" id="tmr"></div><button class="bad full" id="btnStop">Stop Fischen</button>`;
   const up=()=>{const m=Math.floor((Date.now()-s.start)/6e4);const el=$("#tmr");if(el)el.textContent=`${Math.floor(m/60)} h ${p2(m%60)} min`};up();tick=setInterval(up,15000);
   $("#btnStop").onclick=()=>{const mins=Math.max(1,Math.round((Date.now()-s.start)/6e4));const ss=store.get("sessions",[]);ss.push({sec:s.sec,canton:s.canton||"SO",start:s.start,mins});store.set("sessions",ss);state.sess=null;save();renderSess();renderStats();
     $("#afterSave").innerHTML=`<div class="verdict v-ok"><div class="big">Angeldauer ${Math.floor(mins/60)} h ${mins%60} min</div><div class="ln">Jetzt auch in der offiziellen App «Stop Fischen» drücken.</div></div>`};
 }
 function renderFang(){
+  recentSpecies();
   const x=hereSummary();
   $("#fangCtx").innerHTML=`<div class="hero sm ${x.cls}"><div class="t">${esc(x.t)}</div><div class="d">${esc(x.s||"")}</div></div>`;
   renderSess();liveCheck();
@@ -747,8 +769,11 @@ function setSpecies(sp){$("#fArt").value=sp;syncPickers($("#v-fang"));document.q
 function liveCheck(){
   const sp=$("#fArt").value,len=parseFloat($("#fLen").value);
   const c=check(currentSec(),sp,isNaN(len)?null:len);
-  const cls=c.needLen?"v-warn":c.ok?"v-ok":"v-bad",head=c.needLen?"Länge eingeben":c.ok?"Darf behalten werden":"Nicht behalten";
-  $("#liveCheck").innerHTML=`<div class="verdict ${cls}"><div class="big">${head}</div>${c.issues.map(i=>`<div class="ln">${esc(i)}</div>`).join("")}${c.infos.map(i=>`<div class="ln sec">${esc(i)}</div>`).join("")}</div>${FISH[sp]?`<button type="button" class="full" id="btnFishInfo" style="margin-top:8px;min-height:40px">${esc(sp.replace(" (Flussbarsch)",""))}: Vorkommen, Köder, Tipp</button>`:""}`;
+  const review=c.review&&!c.issues.length;
+  const missing=unknownWater()||(isCM()&&!currentSec().id);
+  const cls=missing||c.needLen||review?"v-warn":c.ok?"v-ok":"v-bad",head=missing?"Gewässer wählen":review?"Amtliche Regel prüfen":c.needLen?"Länge eingeben":c.ok?"Darf behalten werden":"Nicht behalten";
+  const sources=review?(RULES[state.canton]?.src||[]).filter(([,url])=>/^https?:/.test(url)):[];
+  $("#liveCheck").innerHTML=`<div class="verdict ${cls}"><div class="big">${head}</div>${c.issues.map(i=>`<div class="ln">${esc(i)}</div>`).join("")}${c.infos.map(i=>`<div class="ln sec">${esc(i)}</div>`).join("")}${sources.map(([label,url])=>`<div><a href="${esc(url)}" target="_blank" rel="noopener">${esc(label)}</a></div>`).join("")}</div>${FISH[sp]?`<button type="button" class="full" id="btnFishInfo" style="margin-top:8px;min-height:40px">${esc(sp.replace(" (Flussbarsch)",""))}: Vorkommen, Köder, Tipp</button>`:""}`;
   const bi=$("#btnFishInfo");if(bi)bi.onclick=()=>{artOpen=sp;artFilter="alle";$("#artQ").value="";show("arten");setTimeout(()=>{const d=document.querySelector(`#artList details[open]`);if(d)d.scrollIntoView({block:"start"})},50)};
   return c;
 }
@@ -842,6 +867,7 @@ async function showCatchPhoto(key){
 function saveFang(){
   const sec=currentSec(),sp=$("#fArt").value,lv=parseFloat($("#fLen").value),len=isNaN(lv)?null:lv,n=Math.max(1,parseInt($("#fAnz").value)||1);
   const c=check(sec,sp,len);
+  if(unknownWater()||(isCM()&&!sec.id)||ruleFor(sec,sp).pickW){show("hier");$("#manCard").open=true;toast("Bitte zuerst das Gewässer wählen.");return}
   if(c.needLen){$("#afterSave").innerHTML=`<div class="verdict v-warn"><div class="ln">Bitte zuerst die Länge eingeben – sonst kann das Mindestmass nicht geprüft werden.</div></div>`;$("#fLen").focus();return}
   const doSave=async kept=>{
     const now=new Date(),p=state.pos;
@@ -875,6 +901,7 @@ function saveFang(){
     $("#fLen").value="";$("#fAnz").value="1";$("#fNote").value="";liveCheck();renderStats();if(map)drawCatches();toast(kept?"Fang gespeichert":"Als zurückgesetzt gespeichert");
   };
   if(!c.ok)ask(`<h2>Nicht behalten</h2><ul>${c.issues.map(i=>`<li>${esc(i)}</li>`).join("")}</ul><p class="mut small">Fisch schonend zurücksetzen. Als «zurückgesetzt» speichern?</p>`,()=>doSave(false));
+  else if(c.review)ask("<h2>Amtliche Regel geprüft?</h2><p>Als behalten speichern, wenn du die Vorschriften für dieses Gewässer geprüft hast.</p>",()=>doSave(true));
   else doSave(true);
 }
 
@@ -937,13 +964,13 @@ function renderStats(){
   const ranked=[...bySpecies].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],"de"));
   $("#bookSpecies").innerHTML=ranked.map(([art,n])=>`<div class="species-row"><span>${esc(art)}</span><b>${number(n)}</b><progress aria-hidden="true" max="${total}" value="${n}"></progress></div>`).join("")||'<p class="mut small">Noch keine Arten in diesem Zeitraum.</p>';
   $("#soCounts").hidden=!isSO();
-  const troutToday=state.log.filter(f=>(f.canton||"SO")==="SO"&&f.kept&&f.day===today&&TROUT_GROUP.includes(f.art)).reduce((sum,f)=>sum+(f.n||1),0);
-  $("#bookLimits").textContent="Heute: "+troutToday+"/2 Forellen und Saiblinge · Dieses Jahr: "+countYear("Bachforelle")+"/20 Bachforellen im Patentgewässer";
+  const troutToday=countToday("Bachforelle",true);
+  $("#bookLimits").textContent="Heute: "+troutToday+"/"+R_SO().troutDay+" Forellen und Saiblinge · Dieses Jahr: "+countYear("Bachforelle")+"/"+R_SO().troutYear+" Bachforellen im Patentgewässer";
   $("#moreCatches").hidden=catches.length<=bookLimit;
   bookPhotoObserver?.disconnect();
   for(const url of previewUrls)URL.revokeObjectURL(url);
   previewUrls.clear();
-  $("#logList").innerHTML=catches.length?catches.slice(0,bookLimit).map(f=>`<div class="it"><div class="row" style="align-items:center"><div style="flex:3"><b>${esc(f.art)}</b>${f.len!=null?` · ${f.len} cm`:""}${f.n>1?` · ${f.n} Stk.`:""} <span class="pill ${f.kept?"p-ok":"p-mut"}">${f.kept?"behalten":"zurück"}</span><div class="mut small">${new Date(f.ts).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"})} · ${esc((f.canton||"SO")==="SO"?f.sec:cname(f.canton)+(cwLabel(f.canton,f.sec)?" · "+cwLabel(f.canton,f.sec):""))}${f.note?" · "+esc(f.note):""}</div></div>${f.photoKey?`<button type="button" class="book-photo" data-photo="${esc(f.photoKey)}" aria-label="Fangfoto vergrössern: ${esc(f.art)}">Foto laden …</button>`:`<button type="button" data-add-photo="${esc(f.id)}">Foto hinzufügen</button>`}<button class="del" data-del="${f.id}">Löschen</button></div></div>`).join(""):`<p class="mut">Keine Fangeinträge in diesem Zeitraum.</p>`;
+  $("#logList").innerHTML=catches.length?catches.slice(0,bookLimit).map(f=>`<div class="it"><div class="row" style="align-items:center"><div style="flex:3"><b>${esc(f.art)}</b>${f.len!=null?` · ${f.len} cm`:""}${f.n>1?` · ${f.n} Stk.`:""} <span class="pill ${f.kept?"p-ok":"p-mut"}">${f.kept?"behalten":"zurück"}</span><div class="mut small">${new Date(f.ts).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"})} · ${esc((f.canton||"SO")==="SO"?f.sec:cname(f.canton)+(cwLabel(f.canton,f.sec)?" · "+cwLabel(f.canton,f.sec):""))}${f.note?" · "+esc(f.note):""}</div></div>${f.photoKey?`<button type="button" class="book-photo" data-photo="${esc(f.photoKey)}" aria-label="Fangfoto vergrössern: ${esc(f.art)}">Foto laden …</button>`:`<button type="button" data-add-photo="${esc(f.id)}">Foto hinzufügen</button>`}<button type="button" data-edit="${f.id}">Bearbeiten</button><details class="entry-menu"><summary>Mehr</summary><button class="del" data-del="${f.id}">Löschen</button></details></div></div>`).join(""):`<p class="mut">Keine Fangeinträge in diesem Zeitraum.</p>`;
   for(const button of $("#logList").querySelectorAll("[data-photo]")){
     if(bookPhotoObserver)bookPhotoObserver.observe(button);else loadBookPhoto(button);
   }
@@ -951,8 +978,21 @@ function renderStats(){
 function toCSV(){const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;return[["datum","zeit","kanton","gewaesser","art","laenge_cm","anzahl","behalten","notiz","lat","lon"].join(";")].concat(state.log.map(f=>{const d=new Date(f.ts);return[d.toLocaleDateString("de-CH"),d.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"}),f.canton||"SO",f.sec,f.art,f.len??"",f.n||1,f.kept?"ja":"nein",f.note,f.lat??"",f.lon??""].map(q).join(";")})).join("\n")}
 function exportCSV(){const csv="﻿"+toCSV();try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=`faenge_${dayKey(new Date())}.csv`;document.body.appendChild(a);a.click();a.remove()}catch(e){}
   ask(`<h2>Export</h2><p class="small">Falls kein Download startet: Text kopieren und z.B. in eine Notiz einfügen.</p><textarea rows="6" readonly>${esc(toCSV())}</textarea>`,null,false)}
-function importCSV(file){const r=new FileReader();r.onload=()=>{const lines=String(r.result).replace(/^﻿/,"").split(/\r?\n/);const head=(lines.shift()||"").split(";").map(x=>x.replace(/"/g,""));const ix=k=>head.indexOf(k);let n=0;
-  lines.filter(Boolean).forEach(l=>{const c=l.split(";").map(x=>x.replace(/^"|"$/g,"").replace(/""/g,'"'));const g=k=>ix(k)>=0?c[ix(k)]:"";const[dd,mm,yy]=g("datum").split(".");if(!yy)return;const ts=new Date(`${yy}-${p2(mm)}-${p2(dd)}T${g("zeit")||"12:00"}`).getTime();if(isNaN(ts)||state.log.some(f=>f.ts===ts&&f.art===g("art")))return;
+function parseCSV(text){
+  const rows=[];let row=[],field="",quoted=false;
+  text=text.replace(/^\uFEFF/,"");
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(ch==='"'){if(quoted&&text[i+1]==='"'){field+='"';i++}else quoted=!quoted}
+    else if(!quoted&&ch===";"){row.push(field);field=""}
+    else if(!quoted&&(ch==="\r"||ch==="\n")){if(ch==="\r"&&text[i+1]==="\n")i++;row.push(field);rows.push(row);row=[];field=""}
+    else field+=ch;
+  }
+  if(row.length||field){row.push(field);rows.push(row)}
+  return rows;
+}
+function importCSV(file){const r=new FileReader();r.onload=()=>{const rows=parseCSV(String(r.result)),head=rows.shift()||[];const ix=k=>head.indexOf(k);let n=0;
+  rows.forEach(c=>{const g=k=>ix(k)>=0?c[ix(k)]:"";const[dd,mm,yy]=g("datum").split(".");if(!yy)return;const ts=new Date(`${yy}-${p2(mm)}-${p2(dd)}T${g("zeit")||"12:00"}`).getTime();if(isNaN(ts)||state.log.some(f=>f.ts===ts&&f.art===g("art")))return;
     state.log.push({id:ts+Math.random(),ts,day:dayKey(new Date(ts)),canton:g("kanton")||"SO",sec:g("gewaesser")||g("abschnitt"),art:g("art"),len:g("laenge_cm")?parseFloat(g("laenge_cm")):null,n:parseInt(g("anzahl"))||1,kept:g("behalten")==="ja",note:g("notiz"),lat:g("lat")?+g("lat"):null,lon:g("lon")?+g("lon"):null});n++});
   state.log.sort((a,b)=>b.ts-a.ts);save();renderStats();ask(`<h2>Import</h2><p>${n} Fänge importiert.</p>`,null,false)};r.readAsText(file)}
 
@@ -1266,10 +1306,16 @@ function xNearest(lat,lon,tol){let best=null;
 function xPill(f){const k=kindOf(f.art);return k==="schon"?`<span class="pill p-bad">Schongebiet</span>`:k==="privat"?`<span class="pill p-warn">Privates Fischereirecht</span>`:k==="frei"?`<span class="pill p-ok">Freiangelrecht</span>`:k==="patent"?`<span class="pill p-ok">Patentgewässer</span>`:k==="revier"?`<span class="pill p-mut">Fischereirevier</span>`:`<span class="pill p-warn">Pachtgewässer</span>`}
 /* ---- Karte: Auswahl per Antippen, Bestätigen im Blatt unten ---- */
 let mapSel=null,selLayer=null;
+async function identifyJSON(url){
+  const response=await fetch(url);
+  if(!response.ok)throw Error();
+  const data=await response.json();if(!Array.isArray(data.results))throw Error();
+  return data;
+}
 async function waterAt(lat,lon,tolm){
   const d=tolm/111320,dx=d/Math.cos(lat*Math.PI/180),ext=[lon-dx*10,lat-d*10,lon+dx*10,lat+d*10].join(",");
   const u=`https://api3.geo.admin.ch/rest/services/api/MapServer/identify?geometry=${lon},${lat}&geometryType=esriGeometryPoint&layers=all:ch.swisstopo.swisstlm3d-gewaessernetz&sr=4326&tolerance=10&mapExtent=${ext}&imageDisplay=200,200,96&returnGeometry=false&lang=de&limit=10`;
-  const j=await fetch(u).then(r=>r.json());const rs=(j.results||[]).map(x=>x.attributes||x.properties||{});
+  const j=await identifyJSON(u);const rs=(j.results||[]).map(x=>x.attributes||x.properties||{});
   if(!rs.length)return null;
   const pick=rs.find(a=>a.objektart===101&&a.name)||rs.find(a=>a.name)||rs[0];
   const names=String(pick.name||"").split("|").map(x=>x.trim()).filter(Boolean);
@@ -1380,18 +1426,20 @@ function sheetAction(a){
 }
 let tapSeq=0;
 async function mapTap(e){
-  const lat=e.latlng.lat,lon=e.latlng.lng,seq=++tapSeq;
+  const lat=e.latlng.lat,lon=e.latlng.lng,seq=++tapSeq;$("#mapMsg").className="hide";
   const tol=40075016*Math.cos(lat*Math.PI/180)/Math.pow(2,map.getZoom()+8)*26;
   let best=null;for(const f of GEO.features){const d=distToLines(lat,lon,f.l)-(f.art==="Schon"?3:0);if(d<=tol&&(!best||d<best.d))best={f,d}}
   const xb=xNearest(lat,lon,tol);
   if(best&&(!xb||best.d<=xb.d)){mapSel={t:"sec",id:best.f.id};renderSheet();drawSel();return}
   if(xb){mapSel={t:"x",code:xb.c,id:xb.f.id};renderSheet();drawSel();return}
   if(mapSel){mapSel=null;renderSheet();drawSel();return}
-  if(!navigator.onLine){flashHint("Ohne Internet nur eingezeichnete Zonen antippbar",2500);return}
+  if(!navigator.onLine){mapFailure(()=>mapTap(e));return}
   flashHint("Gewässer wird gesucht …");
   const tolm=Math.max(60,tol*1.6);
   const u=`https://api3.geo.admin.ch/rest/services/api/MapServer/identify?geometry=${lon},${lat}&geometryType=esriGeometryPoint&layers=all:ch.swisstopo.swissboundaries3d-kanton-flaeche.fill&sr=4326&tolerance=0&returnGeometry=false&lang=de`;
-  const[cj,w]=await Promise.all([fetch(u).then(r=>r.json()).catch(()=>null),waterAt(lat,lon,tolm).catch(()=>null)]);
+  let cj,w;
+  try{[cj,w]=await Promise.all([identifyJSON(u),waterAt(lat,lon,tolm)])}
+  catch(err){if(seq===tapSeq){flashHint("");mapFailure(()=>mapTap(e))}return}
   if(seq!==tapSeq)return;
   const a=cj&&cj.results&&cj.results[0]&&cj.results[0].attributes,c=a&&CANTONS.some(x=>x[0]===a.ak)?a.ak:null;
   if(!c||!w){flashHint(c?"An dieser Stelle ist kein Gewässer":"Ausserhalb der Schweiz",2000);return}
@@ -1399,10 +1447,26 @@ async function mapTap(e){
   if(c==="SO"&&isDetailed("SO")){flashHint("Kein Fischereigewässer – tippe auf eine farbige Linie",2500);return}
   mapSel={t:"w",code:c,water:w,lat,lon};renderSheet();drawSel();
 }
+function mapFailure(retry){
+  const msg=$("#mapMsg");msg.className="";
+  msg.innerHTML='<div class="card">Kartendienst nicht erreichbar.<div class="row"><button>Erneut versuchen</button><button>Gewässer wählen</button></div></div>';
+  const [again,manual]=msg.querySelectorAll("button");
+  again.onclick=()=>{msg.className="hide";retry()};
+  manual.onclick=()=>{msg.className="hide";show("hier");$("#manCard").open=true;$("#selCantonTrigger").focus()};
+}
 function initMap(){
   const msg=$("#mapMsg");
-  if(!window.L){msg.className="";msg.innerHTML=`<div class="card">Die Karte braucht beim ersten Öffnen eine Internetverbindung. Danach funktionieren Standort und Abschnittserkennung auch offline.</div>`;
-    if(!initMap.waiting){initMap.waiting=true;window.addEventListener("load",()=>{if($("#v-karte").classList.contains("on")){msg.className="hide";initMap()}})}return}
+  if(!window.L){
+    if(initMap.loading)return;
+    initMap.loading=true;msg.className="";msg.textContent="Karte wird geladen …";
+    if(!document.querySelector("#leafletStyle")){
+      const css=document.createElement("link");css.id="leafletStyle";css.rel="stylesheet";css.href="./vendor/leaflet/leaflet.css";document.head.append(css);
+    }
+    const script=document.createElement("script");script.src="./vendor/leaflet/leaflet.js";
+    script.onload=()=>{initMap.loading=false;if($("#v-karte").classList.contains("on"))initMap()};
+    script.onerror=()=>{initMap.loading=false;mapFailure(initMap)};
+    document.head.append(script);return;
+  }
   msg.className="hide";
   if(map){setTimeout(()=>map.invalidateSize(),50);renderSheet();drawSel();return}
   map=L.map("map",{preferCanvas:true,renderer:L.canvas({tolerance:12}),zoomControl:false,maxBounds:[[45.6,5.7],[48.0,10.7]],minZoom:7});
@@ -1415,9 +1479,9 @@ function initMap(){
   const Bs=L.control({position:"topleft"});Bs.onAdd=()=>{const d=L.DomUtil.create("div","mseg");L.DomEvent.disableClickPropagation(d);
     const draw=()=>{const cur=map.hasLayer(topo)?"topo":"luft";d.innerHTML=`<button type="button" data-b="luft" class="${cur==="luft"?"on":""}">Luftbild</button><button type="button" data-b="topo" class="${cur==="topo"?"on":""}">Karte</button>`};draw();
     d.onclick=e=>{const b=e.target.closest("[data-b]");if(!b)return;const t=b.dataset.b==="topo";map.removeLayer(t?luft:topo);(t?topo:luft).addTo(map);store.set("base",t?"topo":"luft");draw()};return d};Bs.addTo(map);
-  const Lg=L.control({position:"bottomleft"});Lg.onAdd=()=>{const d=L.DomUtil.create("div","lg");L.DomEvent.disableClickPropagation(d);
+  const Lg=L.control({position:"bottomleft"});Lg.onAdd=()=>{const d=L.DomUtil.create("button","lg");d.type="button";L.DomEvent.disableClickPropagation(d);
     const full=`<div><i style="background:#12b886"></i>Patentgewässer / frei</div><div><i style="background:repeating-linear-gradient(90deg,#ff6b6b 0 4px,transparent 4px 9px)"></i>Patent – heute gesperrt (SO)</div><div><i style="background:#a8261c;height:6px"></i>Schonstrecke / Schongebiet</div><div><i style="background:#f08c00"></i>Pacht / Revier</div><div><i style="background:#7d8b88"></i>Privat</div><div><i style="background:#ffd43b;height:6px"></i>Gewählt</div><div><i style="background:#1971c2;width:10px;height:10px;border-radius:50%"></i>Meine Fänge</div><div style="max-width:210px;line-height:1.35;margin-top:4px;color:var(--mut)">Zonen vorhanden für SO, BE, VS, FR, VD, GL, ZH, AG, TG, SH. Geodaten © jeweiliger Kanton.</div>`;
-    let open=store.get("legendOpen",false);const draw=()=>{d.innerHTML=open?full+`<div style="text-align:right;font-weight:700">Schliessen</div>`:`<b>Legende</b>`};draw();
+    let open=store.get("legendOpen",false);const draw=()=>{d.setAttribute("aria-expanded",String(open));d.setAttribute("aria-label",open?"Legende schliessen":"Legende öffnen");d.innerHTML=open?full+`<div style="text-align:right;font-weight:700">Schliessen</div>`:`<b>Legende</b>`};draw();
     d.style.cursor="pointer";d.onclick=()=>{open=!open;store.set("legendOpen",open);draw()};return d};Lg.addTo(map);map._legend=Lg;
   const Me=L.control({position:"bottomright"});Me.onAdd=()=>{const b=L.DomUtil.create("button","mebtn");b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>';b.setAttribute("aria-label","Zu meinem Standort");b.title="Zu meinem Standort";L.DomEvent.on(b,"click",e=>{L.DomEvent.stop(e);follow=true;if(state.pos)map.setView([state.pos.lat,state.pos.lon],16);else{startGeo();toast("Standort wird gesucht …")}});return b};Me.addTo(map);
   map.on("dragstart",()=>{follow=false});
@@ -1448,7 +1512,7 @@ function applyData(j){
 }
 async function fetchUpdates(){
   if(!location.protocol.startsWith("http")||!navigator.onLine)return"offline";
-  try{const j=await fetch("./data/updates.json?ts="+Date.now(),{cache:"no-store"}).then(r=>{if(!r.ok)throw 0;return r.json()});
+  try{const j=await fetch("./data/updates.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw 0;return r.json()});
     DATA_META.checked=new Date().toISOString();store.set("data_checked",DATA_META.checked);
     const ch=applyData(j);if(ch){renderAll();if(map)drawGeo()}return ch?"new":"same"}catch(e){return"offline"}
 }
@@ -1456,7 +1520,12 @@ function loadCached(){const c=store.get("data",null);if(c&&c.version>=DATA_META.
 
 /* ================= NAVIGATION & INIT ================= */
 function renderAll(){renderTop();renderHier();if(map&&$("#v-karte").classList.contains("on")){if(mapSel&&mapSel.t==="sec")renderSheet();drawSel()}if($("#v-arten").classList.contains("on"))renderArten();if($("#v-fang").classList.contains("on"))renderFang();if($("#v-regeln").classList.contains("on"))renderRegeln()}
-function show(v){
+function route(){const key=location.hash.slice(1);return key==="fangbuch"?"stat":["fang","karte","arten","regeln"].includes(key)?key:"hier"}
+function show(v,restore=false){
+  if(!restore&&route()!==v){
+    history.replaceState({scroll:scrollY},"",location.href);
+    history.pushState(null,"","#"+(v==="stat"?"fangbuch":v));
+  }
   document.querySelectorAll("section.view").forEach(s=>s.classList.toggle("on",s.id==="v-"+v));
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v||(v==="stat"&&b.dataset.v==="fang")));
   document.querySelectorAll(".seg button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
@@ -1480,13 +1549,13 @@ $("#hereHero").onchange=e=>{if(e.target.id!=="heroCW")return;
 $("#selCanton").onchange=e=>{state.canton=e.target.value;state.cantonAuto=false;save();toast("Kanton manuell gewählt – automatische Erkennung aus");onCantonChanged()};
 $("#cbCantonAuto").onchange=e=>{setAuto(e.target.checked);toast(e.target.checked?"Standort bestimmt Kanton und Gewässer":"Automatik aus – du wählst selbst")};
 $("#hereAct").onclick=e=>{const b=e.target.closest("[data-act]");if(!b)return;if(b.dataset.act==="map")show("karte");else{setAuto(true);toast("Standort bestimmt Kanton und Gewässer")}};
-$("#selSec").onchange=e=>{state.sec=e.target.value;state.secAuto=false;save();renderAll()};
+$("#selSec").onchange=e=>{state.sec=e.target.value;state.secAuto=false;state.cantonAuto=false;save();renderAll()};
 $("#btnGeo").onclick=()=>{state.geoErr=null;startGeo();renderHier()};
-$("#spChips").innerHTML=QUICK.map(s=>`<button type="button" data-sp="${esc(s)}">${esc(s.replace(" (Flussbarsch)",""))}</button>`).join("");
+function recentSpecies(){const recent=[...new Set(state.log.map(f=>f.art))].filter(sp=>SPECIES.includes(sp)).slice(0,3);$("#spChips").innerHTML=recent.map(s=>`<button type="button" data-sp="${esc(s)}">${esc(s.replace(" (Flussbarsch)",""))}</button>`).join("")}
 $("#spChips").onclick=e=>{const b=e.target.closest("[data-sp]");if(b)setSpecies(b.dataset.sp)};
 $("#fArt").innerHTML=SPECIES.map(s=>`<option>${esc(s)}</option>`).join("");
 $("#fArt").onchange=e=>setSpecies(e.target.value);
-$("#fLen").oninput=liveCheck;
+$("#fLen").oninput=$("#fAnz").oninput=liveCheck;
 document.querySelectorAll(".lenrow [data-d]").forEach(b=>b.onclick=()=>{const v=parseFloat($("#fLen").value)||0;$("#fLen").value=Math.max(0,v+parseFloat(b.dataset.d));liveCheck()});
 $("#btnSave").onclick=saveFang;
 $("#takePhoto").onclick=()=>{$("#fPhoto").value="";$("#fPhoto").click()};
@@ -1498,6 +1567,20 @@ $("#artTags").onclick=e=>{const b=e.target.closest("[data-tag]");if(b){artFilter
 $("#artList").addEventListener("toggle",e=>{const d=e.target;if(d.open)artOpen=d.dataset.sp;else if(artOpen===d.dataset.sp)artOpen=null},true);
 $("#artList").onclick=e=>{const b=e.target.closest("[data-catch]");if(!b)return;const sp=b.dataset.catch;if(FISH[sp]&&FISH[sp].koeder){show("fang");setSpecies(sp)}else show("regeln")};
 $("#logList").onclick=e=>{
+  const edit=e.target.closest("[data-edit]");
+  if(edit){
+    const f=state.log.find(f=>String(f.id)===edit.dataset.edit);
+    if(!f)return;
+    ask('<h2>Fang bearbeiten</h2><label for="editSpecies">Fischart</label><select id="editSpecies"></select><label for="editLen">Länge (cm)</label><input id="editLen" type="number" min="0" step="any"><label for="editCount">Anzahl</label><input id="editCount" type="number" min="1"><label for="editNote">Notiz</label><textarea id="editNote"></textarea>',()=>{
+      const len=$("#editLen").valueAsNumber,n=$("#editCount").valueAsNumber;
+      if(!Number.isInteger(n)||n<1||len<0){toast("Bitte gültige Länge und Anzahl eingeben.");return}
+      const log=state.log.map(row=>row.id===f.id?{...row,art:$("#editSpecies").value,len:Number.isFinite(len)?len:null,n,note:$("#editNote").value}:row);
+      if(!store.set("log",log)){toast("Speichern fehlgeschlagen");return}
+      state.log=log;renderStats();if(map)drawCatches();toast("Änderungen gespeichert");
+    });
+    for(const art of new Set([f.art,...SPECIES]))$("#editSpecies").add(new Option(art,art));
+    $("#editLen").value=f.len??"";$("#editCount").value=f.n||1;$("#editNote").value=f.note||"";return;
+  }
   const add=e.target.closest("[data-add-photo]");
   if(add){openGallery(add.dataset.addPhoto);return}
   const photo=e.target.closest("[data-photo]");
@@ -1513,6 +1596,44 @@ $("#logList").onclick=e=>{
     }
   });
 };
+function photoData(blob){return new Promise((resolve,reject)=>{
+  const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(blob);
+})}
+$("#backup").onclick=async()=>{
+  try{
+    const data={format:"fangbuch-v1",log:state.log.slice(),sessions:store.get("sessions",[]),active:state.sess,photos:{}};
+    for(const f of data.log)if(f.photoKey)data.photos[f.photoKey]=await photoData(await accessPhoto("get",f.photoKey));
+    const url=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:"application/json"}));
+    const a=document.createElement("a");a.href=url;a.download="fangbuch-"+dayKey(new Date())+".json";a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);
+  }catch(e){toast("Vollsicherung fehlgeschlagen.")}
+};
+$("#restore").onclick=()=>{$("#backupFile").value="";$("#backupFile").click()};
+async function restoreBackup(file){
+  const added=[];
+  try{
+    const data=JSON.parse(await file.text());
+    const validSession=s=>s&&Number.isFinite(s.start)&&typeof s.sec==="string"&&(!s.canton||typeof s.canton==="string");
+    if(data.format!=="fangbuch-v1"||!Array.isArray(data.log)||!Array.isArray(data.sessions)||!data.sessions.every(s=>validSession(s)&&Number.isFinite(s.mins)&&s.mins>=0)||(data.active&&!validSession(data.active)))throw Error();
+    const imported=[];
+    for(const f of data.log){
+      if(!f||typeof f!=="object"||!Number.isFinite(f.id)||!Number.isFinite(f.ts)||typeof f.day!=="string"||typeof f.art!=="string"||typeof f.sec!=="string"||typeof f.kept!=="boolean"||!Number.isInteger(f.n)||f.n<1||[f.len,f.lat,f.lon].some(v=>v!=null&&!Number.isFinite(v)))throw Error();
+      if(state.log.some(row=>row.id===f.id))continue;
+      if(f.photoKey){
+        const src=data.photos[f.photoKey];if(typeof src!=="string"||!src.startsWith("data:image/jpeg;base64,"))throw Error();
+        const key=crypto.randomUUID();await accessPhoto("put",key,await (await fetch(src)).blob());added.push(key);f.photoKey=key;
+      }
+      imported.push(f);
+    }
+    const old=store.get("sessions",[]),sessions=[...old];
+    const active=state.sess||(!sessions.some(s=>s.start===data.active?.start)&&data.active)||null;
+    for(const s of data.sessions)if(!sessions.some(t=>t.start===s.start))sessions.push(s);
+    const log=[...state.log,...imported].sort((a,b)=>b.ts-a.ts);
+    if(!store.set("sessions",sessions))throw Error();
+    if(!store.set("sess",active)||!store.set("log",log)){store.set("sessions",old);store.set("sess",state.sess);throw Error()}
+    state.log=log;state.sess=active;renderStats();if(map)drawCatches();toast(imported.length+" Fangeinträge ergänzt");
+  }catch(e){for(const key of added)await accessPhoto("delete",key);toast("Sicherung konnte nicht eingelesen werden.")}
+}
+$("#backupFile").onchange=e=>{if(e.target.files[0])restoreBackup(e.target.files[0])};
 $("#btnExport").onclick=exportCSV;$("#btnImport").onclick=()=>$("#fileImport").click();
 $("#fileImport").onchange=e=>{if(e.target.files[0])importCSV(e.target.files[0])};
 document.addEventListener("visibilitychange",()=>{if(document.hidden)stopGeo();else if(state.pos||state.secAuto||state.cantonAuto)startGeo()});
@@ -1521,6 +1642,8 @@ window.addEventListener("online",()=>{fetchUpdates();refreshGeo()});
 loadCached();
 setSpecies("Bachforelle");
 renderAll();renderStats();
+window.addEventListener("popstate",()=>{show(route(),true);window.scrollTo(0,history.state?.scroll||0)});
+show(route(),true);
 startGeo();
 fetchUpdates();refreshGeo();
 if(location.protocol.startsWith("http")&&"serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});

@@ -135,13 +135,13 @@ nav svg{width:24px;height:24px;stroke-width:1.75}
 #map{position:absolute;inset:0;background:#dfe7e4}
 #mapMsg{position:absolute;left:12px;right:12px;top:12px;z-index:500}
 #v-karte .leaflet-bottom{bottom:var(--sheet,0px)}
-#mapSheet{position:absolute;left:10px;right:10px;bottom:10px;z-index:600;max-width:560px;margin:0 auto;background:var(--sf);color:var(--tx);border-radius:18px;padding:14px 16px 16px;box-shadow:0 8px 28px rgba(10,20,24,.3);transform:translateY(calc(100% + 24px));visibility:hidden;transition:transform .22s ease,visibility 0s .22s}
+#mapSheet{position:absolute;left:10px;right:10px;bottom:10px;z-index:600;max-width:560px;margin:0 auto;background:var(--sf);color:var(--tx);border-radius:18px;padding:14px 16px 16px;box-shadow:0 8px 28px rgba(10,20,24,.3);transform:translateY(calc(100% + 24px));visibility:hidden;opacity:0;transition:none}
 #mapSheet{max-height:75%;overflow:auto}
-#mapSheet.on{transform:none;visibility:visible;transition:transform .22s ease}
+#mapSheet.on{transform:none;visibility:visible;opacity:1;transition:opacity .12s ease}
 .sh-h{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .sh-t{font-size:18px;font-weight:700;line-height:1.25;letter-spacing:-.005em;padding-top:4px;min-width:0}
-.sh-x{flex:0 0 36px;width:36px;height:36px;min-height:0;padding:8px;border:0;border-radius:50%;background:var(--sf2);color:var(--mut)}
-.sh-x svg{display:block;width:20px;height:20px}
+:is(.sh-x,.sh-fit){flex:0 0 36px;width:36px;height:36px;min-height:0;padding:8px;border:0;border-radius:50%;background:var(--sf2);color:var(--mut)}
+:is(.sh-x,.sh-fit) svg{display:block;width:20px;height:20px}
 .sh-p{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .sh-d{font-size:14px;line-height:1.45;color:var(--mut);margin-top:8px}
 .sh-d.cl{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
@@ -195,7 +195,7 @@ html{color-scheme:light dark;scroll-padding-block:calc(var(--tb) + 12px) calc(va
 #tbStatus{border:0;background:transparent;color:inherit;text-align:left;padding:0}
 #tbStatus .sub,#tbStatus .txt{display:block}
 .chips button,.seg button,.del,#tbCanton,.mseg button{min-height:44px}
-.sh-x{flex-basis:44px;width:44px;height:44px;padding:12px}
+:is(.sh-x,.sh-fit){flex-basis:44px;width:44px;height:44px;padding:12px}
 details:not(.fish)>summary{padding-block:10px}
 button:disabled{opacity:.55;cursor:wait}
 #map,.fpic img{background:var(--sf2)}
@@ -275,7 +275,8 @@ button:disabled{opacity:.55;cursor:wait}
 #waterFish [data-shore-fish]{margin-top:6px}
 .water-map-label.leaflet-tooltip{border:1px solid rgba(255,255,255,.62);background:#243438;color:#fff;box-shadow:0 1px 3px #0006;padding:2px 6px;border-radius:5px;font:600 12px/1.2 system-ui,sans-serif;white-space:nowrap;pointer-events:none}
 #mapSheet{max-height:min(54%,460px);overscroll-behavior:contain;padding:10px 14px 12px;scrollbar-gutter:auto}
-.sh-x{min-width:44px;min-height:44px;display:grid;place-items:center}
+.sh-controls{display:flex;gap:2px;flex-shrink:0}.sh-controls :is(.sh-x,.sh-fit){flex:none}.sh-district{min-height:44px;margin-top:5px;color:var(--acc);background:var(--sf2)}
+:is(.sh-x,.sh-fit){min-width:44px;min-height:44px;display:grid;place-items:center}
 .sh-section{margin-top:5px;font-size:15px;font-weight:650}
 .sh-more{border-top:1px solid var(--line);margin-top:6px}
 .sh-more summary{cursor:pointer;min-height:44px;display:list-item;align-content:center;font-size:14px;font-weight:600;color:var(--acc)}
@@ -283,6 +284,7 @@ button:disabled{opacity:.55;cursor:wait}
 #mapSheet .sh-a{margin-top:9px}
 #mapSheet .sh-p{margin-top:-3px}
 #mapSheet .sh-warn{color:var(--bad);font-weight:600;font-size:13px;margin:6px 0}
+#map.inspecting-zone .leaflet-zoneCasing-pane,#map.inspecting-zone .leaflet-zoneInk-pane{opacity:.46}
 .leaflet-nationalWater-pane{filter:brightness(0) saturate(100%) invert(49%) sepia(25%) saturate(679%) hue-rotate(153deg)}
 .map-tools{display:flex;gap:6px}.map-tools button{min-height:44px;background:var(--sf);color:var(--tx)}
 #v-karte:has(#shorePanel:not([hidden])) .map-tools{display:none}
@@ -739,9 +741,10 @@ function renderTop(){
   const h=state.here;if(cls!=="bad"&&h&&h.alts&&h.alts.length&&!h.pinned&&state.secAuto)s="Mehrere Gewässer nah – tippen zum Wählen";
   if($("#v-karte").classList.contains("on")){
     const z=mapSel;
-    t=z?(z.name||z.water?.name||"Gewässer"):"Gewässerkarte";
+    t=z?.districtView?"Revier "+z.rev:z?(z.name||z.water?.name||"Gewässer"):"Gewässerkarte";
     s=z?((z.code?cname(z.code):"Solothurn")+(z.rev?" · Revier "+z.rev:"")+" · Kartenauskunft"):"Gewässer suchen oder auf der Karte antippen";
-    cls=z&&restrictedHit(z)?"warn":"none";
+    if(z?.districtView)s=cname(z.code)+" · Revierübersicht";
+    cls=z&&!z.districtView&&restrictedHit(z)?"warn":"none";
     $("#tbCanton").textContent=z?.code||"CH";
     $("#tbCanton").setAttribute("aria-label","Kanton und Gewässer wählen");
   }
@@ -2294,7 +2297,7 @@ function drawSel(){
   const hit=mapSel||confirmed;
   const soId=hit?.t==="sec"?hit.id:(!hit&&isSO()&&!unknownWater()?state.sec:null);
   const zoom=map.getZoom();
-  let parts=hit?.fullParts||hit?.parts||[],identity=hit?.zoneId||"";
+  let parts=hit?.districtView?.parts||hit?.fullParts||hit?.parts||[],identity=hit?.zoneId||"";
   if(soId&&GEO.official){
     const f=hit?.source||GEO.features.find(row=>row.id===soId);
     if(f){parts=[{symbol:soSymbol(f),lines:f.l,polygons:[]}];identity=(hit?.zoneId||"SO/"+soId)+"/"+parts[0].symbol+"/"+GEO.date}
@@ -2303,12 +2306,13 @@ function drawSel(){
     for(const id of g.zones.get(f.zoneId)){const row=g.feats[id];if(row.poly)part.polygons.push(row.l);else part.lines.push(...row.l)}
     parts=[part];
   }
-  const key=[identity,zoom,hit?.group&&!hit.fullParts?hit.id:"",parts.length].join("|");
+  const key=[identity,zoom,!!hit?.districtView,hit?.group&&!hit.fullParts?hit.id:"",parts.length].join("|");
   if(key!==selKey){
     selKey=key;
     if(!selLayer)selLayer=L.layerGroup().addTo(map);else selLayer.clearLayers();
     FishSections.drawSelection(selLayer,parts,zoom);
   }
+  map.getContainer().classList.toggle("inspecting-zone",!!mapSel&&parts.length>0);
   if(Number.isFinite(hit?.lat)&&Number.isFinite(hit?.lon)){
     if(selPin)selPin.setLatLng([hit.lat,hit.lon]);else selPin=FishSections.pin(map,hit.lat,hit.lon);
   }else if(selPin){selPin.remove();selPin=null}
@@ -2319,6 +2323,35 @@ function drawSel(){
       if(mapSel===hit||(!mapSel&&chosenMapHit===hit)){drawSel();renderSheet()}
     });
   }
+}
+function fitSelectedGeometry(){
+  const bounds=L.latLngBounds([]);
+  selLayer?.eachLayer(layer=>{if(layer.getBounds)bounds.extend(layer.getBounds())});
+  if(!bounds.isValid())return;
+  const sheetHeight=$("#mapSheet").offsetHeight,size=map.getSize();
+  map.fitBounds(bounds,{animate:false,maxZoom:17,paddingTopLeft:[20,Math.min(110,size.y*.18)],
+    paddingBottomRight:[20,Math.min(sheetHeight+42,size.y*.62)]});
+}
+async function showMapExtent(hit){
+  const seq=tapSeq;
+  if(hit.group&&!hit.fullParts){
+    try{hit.fullParts=await sectionMap.wholeZone(hit)}catch{hit.partial=true}
+  }
+  if(hit!==mapSel||seq!==tapSeq)return;
+  follow=false;drawSel();renderSheet();fitSelectedGeometry();
+}
+async function toggleDistrict(hit){
+  const seq=tapSeq;
+  if(hit.districtView){
+    const {center,zoom}=hit.districtView;hit.districtView=null;drawSel();renderSheet();
+    map.setView(center,zoom,{animate:false});revealHit();return;
+  }
+  try{
+    const parts=await sectionMap.district(hit);
+    if(mapSel!==hit||seq!==tapSeq)return;
+    hit.districtView={parts,center:map.getCenter(),zoom:map.getZoom()};
+    follow=false;drawSel();renderSheet();fitSelectedGeometry();
+  }catch{if(mapSel===hit&&seq===tapSeq)toast("Die Revierübersicht konnte nicht geladen werden.")}
 }
 let hintT=null,hintMsg="";
 function flashHint(t,ms){hintMsg=t;clearTimeout(hintT);updateHint();if(ms)hintT=setTimeout(()=>{hintMsg="";updateHint()},ms)}
@@ -2342,7 +2375,9 @@ function renderSheet(){
   let h="";
   const incomplete=mapHits.includes(mapSel)&&(!!hitWarning||mapHits.some(restrictedHit));
   const unknownPill='<span class="pill p-warn">Berechtigung ungeklärt</span>';
-  const head=(title,pills)=>`<div class="sh-h"><div class="sh-t">${esc(title)}</div><button type="button" class="sh-x" data-sh="close" aria-label="Schliessen">${XICON}</button></div><div class="sh-p">${pills}</div>`;
+  const canFit=!pendingSelection&&(mapSel?.t==="sec"||mapSel?.t==="x"||mapSel?.parts?.length);
+  const fit=canFit?'<button type="button" class="sh-fit" data-sh="extent" aria-label="Ganzen Abschnitt auf der Karte zeigen" title="Ganzen Abschnitt zeigen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5"/></svg></button>':"";
+  const head=(title,pills)=>`<div class="sh-h"><div class="sh-t">${esc(title)}</div><div class="sh-controls">${fit}<button type="button" class="sh-x" data-sh="close" aria-label="Schliessen">${XICON}</button></div></div><div class="sh-p">${pills}</div>`;
   const chip=c=>`<span class="pill p-mut">${esc(cname(c))}</span>`;
   if(mapSel&&mapSel.t==="sec"){
     const f=GEO.features.find(x=>x.id===mapSel.id)||{t:""},sec=secById(mapSel.id),st=secStatus(sec),k=sec.kind;
@@ -2370,8 +2405,15 @@ function renderSheet(){
     const badge=restrictedHit(z)?`<span class="pill p-bad">${esc(type)}</span>`:z.buried?`<span class="pill p-mut">Eingedolt</span>`:unknownPill;
     const section=[district,z.region&&z.region!==z.name?z.region:""].filter(Boolean).join(" · ");
     h=head(z.name,chip(z.code)+badge)+`<div class="sh-section">${esc(section)}</div>`;
-    h+=`<div class="sh-d">${restrictedHit(z)?"Kartierte Einschränkung · kantonale Vorschriften beachten.":z.buried?"Unterirdischer Abschnitt · Zugang und Berechtigung prüfen.":"Berechtigung für diesen Abschnitt prüfen."}</div>`;
-    if(!restrictedHit(z)&&!z.buried)h+='<div class="sh-a"><button type="button" class="pri" data-sh="zone">Gewässer wählen</button></div>';
+    if(z.districtView){
+      h=head("Revier "+z.rev,chip(z.code)+unknownPill)+'<div class="sh-d">Alle kartierten Gewässer dieses Reviers. Tippe für die örtlichen Vorschriften auf einen Abschnitt.</div>';
+    }else if(restrictedHit(z)||z.buried){
+      h+='<div class="sh-d">'+(restrictedHit(z)?"Kartierte Einschränkung · kantonale Vorschriften beachten.":"Unterirdischer Abschnitt · Zugang und Berechtigung prüfen.")+'</div>';
+    }else if(z.code==="SG"&&!z.water){h+='<div class="sh-d">Markiert ist der angetippte Gewässerabschnitt.</div>'}
+    if(z.hasDistrict){
+      h+='<button type="button" class="sh-district" data-sh="district">'+(z.districtView?"Zum angetippten Abschnitt":"Ganzes Revier "+esc(z.rev)+" zeigen")+'</button>';
+    }
+    if(!restrictedHit(z)&&!z.buried&&!z.districtView)h+='<div class="sh-a"><button type="button" class="pri" data-sh="zone">Gewässer wählen</button></div>';
   } else if(mapSel&&mapSel.t==="w"){
     const c=mapSel.code,w=mapSel.water,chosen=state.canton===c&&(state.xsel||{})[c]===w.name;
     h=head(w.name||(w.lake?"See ohne Namen":"Bach ohne Namen"),`<span class="pill p-mut">${w.lake?"See":"Fliessgewässer"}</span>`+chip(c))+`
@@ -2383,7 +2425,7 @@ function renderSheet(){
   if(h&&mapSel?.partial)h+='<p class="sh-warn">Nur der geladene Teil der Zone ist markiert.</p>';
   if(h&&mapSel?.pointOnly)h+='<p class="sh-d">Der Kartendienst liefert hier nur eine Punktauskunft.</p>';
   if(h&&pendingSelection)h=head(mapSel.name,chip(mapSel.code||"SO"));
-  if(h&&!pendingSelection&&mapHits.includes(mapSel)&&mapHits.length>1){
+  if(h&&!pendingSelection&&!mapSel.districtView&&mapHits.includes(mapSel)&&mapHits.length>1){
     if(!restrictedHit(mapSel)&&mapHits.some(restrictedHit))h+='<p class="sh-warn">Am selben oder unmittelbar benachbarten Ort ist eine Einschränkung kartiert. Schutzgebiet und Geltungsbereich prüfen.</p>';
     h+='<details class="sh-more"><summary>Weitere Abschnitte ('+(mapHits.length-1)+')</summary><div class="chips">'+mapHits.map((z,i)=>z===mapSel?"":`<button type="button" data-sh="hit-${i}">${esc(z.name)} · ${esc(z.code||"SO")} ${esc(z.rev||"")} · ${esc(z.kind)}</button>`).join("")+"</div></details>";
   }
@@ -2421,9 +2463,12 @@ function sheetAction(a){
   if(pendingSelection&&a!=="close")return;
   if(pendingSelection){pendingSelection=false;hitWarning=""}
   ++tapSeq;clearTapPreview();
+  if(a==="extent"&&mapSel){showMapExtent(mapSel);return}
+  if(a==="district"&&mapSel?.hasDistrict){toggleDistrict(mapSel);return}
   if(a.startsWith("hit-")){const z=mapHits[Number(a.slice(4))];if(z){mapSel=z;renderSheet();drawSel();revealHit()}return}
   if(a==="zone"&&mapSel?.t==="zone"&&!restrictedHit(mapSel)&&!mapSel.buried){
     const z=mapSel;
+    if(z.districtView)return;
     const name=(z.water||z.code==="SG"||!z.rev)?z.name:"Revier "+z.rev+(z.region?" · "+z.region:"");
     let group="";
     if(z.code==="ZH"){

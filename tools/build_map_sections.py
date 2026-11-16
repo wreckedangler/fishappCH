@@ -304,6 +304,37 @@ def selection_files(code, records, root):
     return write_asset(root, code + "-groups", index), files
 
 
+def sg_districts(root):
+    # The source identifies a complete fishery district, sometimes containing
+    # many separate streams. Keep each original path and all polygon holes.
+    districts = defaultdict(lambda: defaultdict(lambda: [[], []]))
+    data = json.loads((DATA / "zones-SG.json").read_text(encoding="utf8"))
+    for feature in data["features"]:
+        rev = feature["kind"].removeprefix("Revier ")
+        if not rev.isdigit():
+            continue
+        lines, polygons = districts[rev[:-2] or "0"][rev]
+        lines.extend(feature["lines"])
+        polygons.extend(feature["polygons"])
+    return {key: write_asset(root, "SG-districts-" + key,
+                             {rev: [["Fischereirevier", 0, *paths]] for rev, paths in values.items()})
+            for key, values in districts.items()}
+
+
+def numbered_districts(canton, records, root):
+    districts = defaultdict(lambda: defaultdict(lambda: [[], []]))
+    for meta, _, geom in records:
+        _, kind, rev, _, _, buried, _ = meta
+        if not rev.isdigit():
+            continue
+        lines, polygons = districts[rev][kind, int(buried)]
+        (polygons if geom.geom_type == "Polygon" else lines).append(encoded(geom, 3))
+    shards = defaultdict(dict)
+    for rev, parts in districts.items():
+        shards[rev[:-1] or "0"][rev] = [[kind, buried, *shapes] for (kind, buried), shapes in parts.items()]
+    return {key: write_asset(root, canton + "-districts-" + key, rows) for key, rows in shards.items()}
+
+
 def build(canton, records, root):
     cells, overview, places = defaultdict(Cell), Cell(), {}
     records = list(sections(records))
@@ -336,6 +367,10 @@ def build(canton, records, root):
     result = {key: cell.write(root, canton + "-" + key) for key, cell in sorted(cells.items())}
     result["overview"] = overview.write(root, canton + "-overview")
     result["groups"], result["selections"] = selection_files(canton, records, root)
+    if canton == "SG":
+        result["districts"] = sg_districts(root)
+    elif canton in ("AG", "ZH"):
+        result["districts"] = numbered_districts(canton, records, root)
     result["search"] = write_asset(root, canton + "-search", [v[1] for v in places.values()])
     result["built"] = date.today().isoformat()
     print(canton, len(cells), "cells,", len(overview.rows), "overview reaches", flush=True)

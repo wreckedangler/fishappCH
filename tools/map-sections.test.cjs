@@ -140,3 +140,37 @@ test("Solothurn's two Emme features belong to one patent section and retain both
   assert.ok(data.official);assert.equal(data.precision,1);
   assert.equal(emme.length,1);assert.equal(emme[0].art,"Patent");assert.equal(emme[0].l.length,2);
 });
+
+test("the explicit SG district overview contains all and only its official source paths",async()=>{
+  const {layer}=mapAt(16);
+  const data=JSON.parse(fs.readFileSync(path.join(root,"data","zones-SG.json"),"utf8"));
+  const districts=new Map();
+  for(const row of data.features){
+    const rev=row.kind.replace(/^Revier /,"");
+    if(!/^\d+$/.test(rev))continue;
+    if(!districts.has(rev))districts.set(rev,[[],[]]);
+    const [lines,polygons]=districts.get(rev);
+    lines.push(...row.lines);polygons.push(...row.polygons);
+  }
+  const {SG}=await layer.manifest(),seen=new Set();
+  for(const file of Object.values(SG.districts)){
+    const rows=JSON.parse(fs.readFileSync(path.join(root,"data","sections",file),"utf8"));
+    for(const [rev,parts] of Object.entries(rows)){
+      assert.ok(!seen.has(rev));seen.add(rev);assert.deepEqual(parts,[["Fischereirevier",0,...districts.get(rev)]]);
+    }
+  }
+  assert.equal(seen.size,districts.size);
+  const [overview]=await layer.district({code:"SG",rev:"1495"});
+  assert.equal(overview.lines.length,146);
+});
+
+test("numbered district overviews preserve Aargau protection and Zürich's local water selection",async()=>{
+  const {layer,api}=mapAt(16),ag=await layer.district({code:"AG",rev:"114"});
+  assert.ok(ag.some(p=>p.symbol==="culvert"&&p.lines.length));
+  const protectedAreas=ag.find(p=>p.symbol==="protected").polygons;
+  assert.ok(protectedAreas.some(r=>api.nearest(47.258968,8.172046,r,true).d<2));
+  const zh=(await layer.hits(47.3903922,8.62641163,10)).find(h=>h.water==="Glatt"&&h.rev==="203");
+  assert.ok(zh.hasDistrict);
+  const overview=await layer.district(zh);
+  assert.ok(overview.some(p=>p.lines.length>1));
+});

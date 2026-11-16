@@ -16,7 +16,7 @@ Handy, ohne App Store.
   die Wahl.
 - **Karte und Suche** mit swisstopo-Luftbild und Landeskarte. Benannte Gewässer,
   Orte und Reviere lassen sich suchen. Antippen markiert den amtlich zugeordneten
-  Abschnitt. Schutzflächen bleiben über einer gewählten Strecke sichtbar.
+  Abschnitt. Er lässt sich vollständig ins Bild holen. Für nummerierte Reviere in Aargau, Zürich und St. Gallen zeigt die Revierübersicht auch zugehörige Nebengewässer. Schutzflächen bleiben über einer gewählten Strecke sichtbar.
 - **Statusleiste** zeigt auf der Karte das angetippte Gewässer und auf «Hier» den
   Status des gewählten Gewässers.
 - **Fangerfassung** mit Schnellwahl der Art, sofortiger Prüfung von Mass,

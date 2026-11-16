@@ -110,18 +110,20 @@ const FishSections = (() => {
   }
   function shapePair(owner,latlngs,area,key,zoom,selected=false) {
     const options=brush(key,zoom,selected,area),shape=area?L.polygon:L.polyline;
+    if(selected)shape(latlngs,{...options.edge,color:"#203038",weight:options.edge.weight+2.4,opacity:.92}).addTo(owner);
     return [shape(latlngs,options.edge).addTo(owner),shape(latlngs,options.ink).addTo(owner)];
   }
+  const districtShard=(code,rev)=>rev.slice(0,code==="SG"?-2:-1)||"0";
   function selectionParts(row) {
     const paths=geometry(row);
-    return {symbol:symbol(row.meta[1],row.meta[5]),lines:row.poly?[]:[paths[0]],polygons:row.poly?[paths]:[]};
+    return {symbol:symbol(row.meta[1],row.meta[5]),footprints:row.code==="AG",lines:row.poly?[]:[paths[0]],polygons:row.poly?[paths]:[]};
   }
   function drawSelection(owner,parts,zoom) {
     const hasLines=parts.some(p=>p.lines.length);
     for(const part of parts) {
       if(part.polygons.length){
         const ll=part.polygons.map(rings=>leafletPaths(rings,true));
-        if(hasLines){
+        if(part.footprints&&hasLines){
           // River footprints give width; their survey seams aren't zone borders.
           L.polygon(ll,{...brush(part.symbol,zoom,true).ink,stroke:false}).addTo(owner);
         }else shapePair(owner,ll,true,part.symbol,zoom,true);
@@ -320,16 +322,27 @@ const FishSections = (() => {
       }).catch(e=>{this.catalogues.delete(file);throw e}));
       return this.catalogues.get(file);
     }
-    async wholeZone(hit) {
-      if(!hit.group)return hit.parts;
-      if(this.selectedParts.has(hit.zoneId))return this.selectedParts.get(hit.zoneId);
-      const {file,id}=hit.group;
+    selectionFile(file) {
       if(!this.selectionFiles.has(file)){
         this.selectionFiles.set(file,fetchJSON(file).catch(e=>{this.selectionFiles.delete(file);throw e}));
         if(this.selectionFiles.size>12)this.selectionFiles.delete(this.selectionFiles.keys().next().value);
       }
-      const data=await this.selectionFiles.get(file);
-      const parts=data[id].map(([buried,lines,areas])=>({symbol:symbol(hit.kind,!!buried),
+      return this.selectionFiles.get(file);
+    }
+    async district(hit) {
+      const index=await this.manifest(),key=districtShard(hit.code,hit.rev),file=index[hit.code]?.districts?.[key];
+      if(!file)throw Error("Revierdaten fehlen");
+      const data=await this.selectionFile(file);
+      return data[hit.rev].map(([kind,buried,lines,polygons])=>({
+        symbol:symbol(kind,!!buried),footprints:hit.code==="AG"&&kind==="Fischereirevier",
+        lines:lines.map(decode),polygons:polygons.map(rings=>rings.map(decode))
+      }));
+    }
+    async wholeZone(hit) {
+      if(!hit.group)return hit.parts;
+      if(this.selectedParts.has(hit.zoneId))return this.selectedParts.get(hit.zoneId);
+      const {file,id}=hit.group,data=await this.selectionFile(file);
+      const parts=data[id].map(([buried,lines,areas])=>({symbol:symbol(hit.kind,!!buried),footprints:hit.code==="AG",
         lines:lines.map(decode),polygons:areas.map(rings=>rings.map(decode))}));
       this.selectedParts.set(hit.zoneId,parts);
       if(this.selectedParts.size>20)this.selectedParts.delete(this.selectedParts.keys().next().value);
@@ -368,6 +381,7 @@ const FishSections = (() => {
         hit.group=catalogue?.get(hit.id);
         hit.zoneId=hit.group?hit.code+"/zone/"+hit.group.id:hit.id;
         hit.fullParts=this.selectedParts.get(hit.zoneId);
+        hit.hasDistrict=/^\d+$/.test(hit.rev)&&!!index[hit.code].districts?.[districtShard(hit.code,hit.rev)];
         hit.partial=!catalogue;
       }
       return [...found.values()];

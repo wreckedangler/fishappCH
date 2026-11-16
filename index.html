@@ -108,7 +108,10 @@ details summary{cursor:pointer;color:var(--acc);margin-top:14px;font-size:14.5px
 .stat b{display:block;font-size:24px;line-height:1.2;font-weight:650;color:var(--tx);margin-bottom:2px}
 .big{font-size:30px;font-weight:700}.timer{font-variant-numeric:tabular-nums}
 .hide{display:none!important}
-.catch-photo{display:block;max-width:100%;max-height:55vh;margin:10px auto;object-fit:contain}
+.photo-field{min-width:0;margin:16px 0 0;padding:12px;border:1px solid var(--line);border-radius:var(--rc);background:var(--sf2)}
+.photo-field legend{padding:0 5px;color:var(--mut);font-size:13px;font-weight:600}
+.photo-field .row button{flex:1 1 130px}
+.catch-photo{display:block;border-radius:var(--rc);max-width:100%;max-height:55vh;margin:10px auto;object-fit:contain}
 .copybox{white-space:pre-wrap;background:var(--sf2);border:1px solid var(--line);border-radius:var(--rc);padding:12px;font-size:15px;margin-top:8px}
 .del{flex:0 0 auto!important;min-height:36px;padding:4px 10px;font-size:13px;font-weight:550;color:var(--mut)}
 /* Navigation */
@@ -260,12 +263,18 @@ button:disabled{opacity:.55;cursor:wait}
       <label for="fNote">Notiz (Köder, Wetter …)</label>
       <input id="fNote" type="text" placeholder="z.B. Spinner, trüb">
     </details>
-    <label for="fPhoto">Fangfoto (optional)</label>
-    <input id="fPhoto" type="file" accept="image/*" capture="environment">
+    <fieldset class="photo-field">
+      <legend>Fangfoto (optional)</legend>
+      <div class="row">
+        <button id="takePhoto" type="button">Foto aufnehmen</button>
+        <button id="choosePhoto" type="button">Aus Galerie wählen</button>
+      </div>
+      <input id="fPhoto" type="file" accept="image/*" capture="environment" hidden>
     <div id="photoDraft" class="hide">
       <img id="photoPreview" class="catch-photo" alt="Vorschau des Fangfotos">
       <button type="button" id="removePhoto">Foto entfernen</button>
     </div>
+    </fieldset>
     <button class="pri full" id="btnSave" style="margin-top:14px">Fang speichern</button>
     <div id="afterSave" role="status"></div>
   </div>
@@ -312,6 +321,7 @@ button:disabled{opacity:.55;cursor:wait}
   <button data-v="regeln"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>Regeln</button>
 </nav>
 
+<input id="galleryPhoto" type="file" accept="image/*" hidden>
 <div id="toast" role="status"></div>
 <dialog id="picker" aria-labelledby="pickerTitle">
   <div class="picker-head"><h2 id="pickerTitle"></h2><button type="button" id="pickerClose">Schliessen</button></div>
@@ -741,10 +751,8 @@ function resetPhoto(){
   $("#photoDraft").classList.add("hide");
   $("#btnSave").disabled=false;
 }
-async function preparePhoto(file){
-  if(!file)return;
-  const revision=++photoRevision,url=URL.createObjectURL(file);
-  $("#btnSave").disabled=true;
+async function compressPhoto(file){
+  const url=URL.createObjectURL(file);
   try{
     const img=new Image();img.src=url;await img.decode();
     const scale=Math.min(1,1600/Math.max(img.width,img.height));
@@ -754,6 +762,15 @@ async function preparePhoto(file){
     canvas.getContext("2d").drawImage(img,0,0,canvas.width,canvas.height);
     const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/jpeg",0.82));
     if(!blob)throw new Error();
+    return blob;
+  }finally{URL.revokeObjectURL(url)}
+}
+async function preparePhoto(file){
+  if(!file)return;
+  const revision=++photoRevision;
+  $("#btnSave").disabled=true;
+  try{
+    const blob=await compressPhoto(file);
     if(revision!==photoRevision)return;
     if(draftPhoto)URL.revokeObjectURL(draftPhoto.url);
     draftPhoto={blob,url:URL.createObjectURL(blob)};
@@ -762,9 +779,31 @@ async function preparePhoto(file){
   }catch(e){
     if(revision===photoRevision){resetPhoto();toast("Foto konnte nicht geöffnet werden. Bitte erneut auswählen.")}
   }finally{
-    URL.revokeObjectURL(url);
     if(revision===photoRevision)$("#btnSave").disabled=false;
   }
+}
+async function attachCatchPhoto(id,file){
+  if(!file)return;
+  let storedKey;
+  try{
+    const blob=await compressPhoto(file);
+    const key=crypto.randomUUID();
+    await accessPhoto("put",key,blob);
+    storedKey=key;
+    const entry=state.log.find(f=>String(f.id)===id);
+    if(!entry||entry.photoKey)return;
+    const log=state.log.map(f=>f===entry?{...f,photoKey:key}:f);
+    if(!store.set("log",log))throw new Error();
+    state.log=log;storedKey=null;
+    renderStats();toast("Foto zum Fang hinzugefügt");
+  }catch(e){toast("Foto konnte nicht gespeichert werden. Bitte erneut versuchen.")}
+  finally{if(storedKey)await accessPhoto("delete",storedKey)}
+}
+function openGallery(id){
+  const input=$("#galleryPhoto");
+  input.value="";
+  input.onchange=()=>id==null?preparePhoto(input.files[0]):attachCatchPhoto(id,input.files[0]);
+  input.click();
 }
 async function showCatchPhoto(key){
   try{
@@ -783,7 +822,7 @@ function saveFang(){
     const now=new Date(),p=state.pos;
     const f={id:Date.now(),ts:now.getTime(),day:dayKey(now),canton:state.canton,sec:sec.id,art:sp,len,n,kept,note:$("#fNote").value.trim(),lat:p?+p.lat.toFixed(5):null,lon:p?+p.lon.toFixed(5):null};
     const photo=draftPhoto;
-    $("#btnSave").disabled=$("#fPhoto").disabled=$("#removePhoto").disabled=true;
+    $("#btnSave").disabled=$("#takePhoto").disabled=$("#choosePhoto").disabled=$("#fPhoto").disabled=$("#removePhoto").disabled=true;
     try{
       if(photo){
         f.photoKey=crypto.randomUUID();
@@ -799,7 +838,7 @@ function saveFang(){
       $("#afterSave").textContent="Fang konnte nicht gespeichert werden. Bitte Gerätespeicher prüfen und erneut versuchen.";
       return;
     }finally{
-      $("#btnSave").disabled=$("#fPhoto").disabled=$("#removePhoto").disabled=false;
+      $("#btnSave").disabled=$("#takePhoto").disabled=$("#choosePhoto").disabled=$("#fPhoto").disabled=$("#removePhoto").disabled=false;
     }
     resetPhoto();
     const t=now.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
@@ -824,7 +863,7 @@ function renderStats(){
   $("#statYear").textContent=y;
   const by={};season.forEach(f=>by[f.art]=(by[f.art]||0)+(f.n||1));
   $("#statSeason").innerHTML=`<div><b>${sum(season)}</b>Fische total</div><div><b>${countYear("Bachforelle")}/20</b>Bachforellen SO-Patent</div><div><b>${(mins/60).toFixed(1)} h</b>Angelzeit</div><div><b>${mins?(sum(season)/(mins/60)).toFixed(2):"–"}</b>Fische pro Stunde</div>${Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([a,n])=>`<div><b>${n}</b>${esc(a)}</div>`).join("")}`;
-  $("#logList").innerHTML=state.log.length?state.log.slice(0,300).map(f=>`<div class="it"><div class="row" style="align-items:center"><div style="flex:3"><b>${esc(f.art)}</b>${f.len!=null?` · ${f.len} cm`:""}${f.n>1?` · ${f.n} Stk.`:""} <span class="pill ${f.kept?"p-ok":"p-mut"}">${f.kept?"behalten":"zurück"}</span><div class="mut small">${new Date(f.ts).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"})} · ${esc((f.canton||"SO")==="SO"?f.sec:cname(f.canton)+(cwLabel(f.canton,f.sec)?" · "+cwLabel(f.canton,f.sec):""))}${f.note?" · "+esc(f.note):""}</div></div>${f.photoKey?`<button type="button" data-photo="${esc(f.photoKey)}">Foto ansehen</button>`:""}<button class="del" data-del="${f.id}">Löschen</button></div></div>`).join(""):`<p class="mut">Noch keine Fänge erfasst.</p>`;
+  $("#logList").innerHTML=state.log.length?state.log.slice(0,300).map(f=>`<div class="it"><div class="row" style="align-items:center"><div style="flex:3"><b>${esc(f.art)}</b>${f.len!=null?` · ${f.len} cm`:""}${f.n>1?` · ${f.n} Stk.`:""} <span class="pill ${f.kept?"p-ok":"p-mut"}">${f.kept?"behalten":"zurück"}</span><div class="mut small">${new Date(f.ts).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"})} · ${esc((f.canton||"SO")==="SO"?f.sec:cname(f.canton)+(cwLabel(f.canton,f.sec)?" · "+cwLabel(f.canton,f.sec):""))}${f.note?" · "+esc(f.note):""}</div></div>${f.photoKey?`<button type="button" data-photo="${esc(f.photoKey)}">Foto ansehen</button>`:`<button type="button" data-add-photo="${esc(f.id)}">Foto hinzufügen</button>`}<button class="del" data-del="${f.id}">Löschen</button></div></div>`).join(""):`<p class="mut">Noch keine Fänge erfasst.</p>`;
 }
 function toCSV(){const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;return[["datum","zeit","kanton","gewaesser","art","laenge_cm","anzahl","behalten","notiz","lat","lon"].join(";")].concat(state.log.map(f=>{const d=new Date(f.ts);return[d.toLocaleDateString("de-CH"),d.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"}),f.canton||"SO",f.sec,f.art,f.len??"",f.n||1,f.kept?"ja":"nein",f.note,f.lat??"",f.lon??""].map(q).join(";")})).join("\n")}
 function exportCSV(){const csv="﻿"+toCSV();try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=`faenge_${dayKey(new Date())}.csv`;document.body.appendChild(a);a.click();a.remove()}catch(e){}
@@ -1367,6 +1406,8 @@ $("#fArt").onchange=e=>setSpecies(e.target.value);
 $("#fLen").oninput=liveCheck;
 document.querySelectorAll(".lenrow [data-d]").forEach(b=>b.onclick=()=>{const v=parseFloat($("#fLen").value)||0;$("#fLen").value=Math.max(0,v+parseFloat(b.dataset.d));liveCheck()});
 $("#btnSave").onclick=saveFang;
+$("#takePhoto").onclick=()=>{$("#fPhoto").value="";$("#fPhoto").click()};
+$("#choosePhoto").onclick=()=>openGallery(null);
 $("#fPhoto").onchange=e=>preparePhoto(e.target.files[0]);
 $("#removePhoto").onclick=resetPhoto;
 $("#artQ").oninput=renderArten;
@@ -1374,6 +1415,8 @@ $("#artTags").onclick=e=>{const b=e.target.closest("[data-tag]");if(b){artFilter
 $("#artList").addEventListener("toggle",e=>{const d=e.target;if(d.open)artOpen=d.dataset.sp;else if(artOpen===d.dataset.sp)artOpen=null},true);
 $("#artList").onclick=e=>{const b=e.target.closest("[data-catch]");if(!b)return;const sp=b.dataset.catch;if(FISH[sp]&&FISH[sp].koeder){show("fang");setSpecies(sp)}else show("regeln")};
 $("#logList").onclick=e=>{
+  const add=e.target.closest("[data-add-photo]");
+  if(add){openGallery(add.dataset.addPhoto);return}
   const photo=e.target.closest("[data-photo]");
   if(photo){showCatchPhoto(photo.dataset.photo);return}
   const id=e.target.closest("[data-del]")?.dataset.del;

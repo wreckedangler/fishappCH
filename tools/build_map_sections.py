@@ -1,7 +1,7 @@
 """Build the mobile map from public cantonal geometries (Python, Shapely 2, pyproj).
 
 Run after build_zone_index.py for an SG/GR refresh. An optional --cache directory
-holds only the original AG GeoPackages and paginated ZH GeoJSON downloads.
+holds original datasets for repeatable local builds.
 The browser uses one overview per canton and requests detail cells on demand.
 """
 import argparse
@@ -24,6 +24,8 @@ import shapely
 from shapely.geometry import LineString, MultiLineString, Polygon, shape
 
 from build_zone_index import DATA, encode_path
+from build_map_overview import build as build_overview
+from luzern_map import features_in_metres as luzern
 
 TO_METRES = Transformer.from_crs(4326, 2056, always_xy=True).transform
 TO_DEGREES = Transformer.from_crs(2056, 4326, always_xy=True).transform
@@ -260,6 +262,8 @@ def zone_groups(code, records):
                 klass = art or only(kinds[rev, number, part])
                 target = official if klass else touching
                 target[kind, rev, number, part, klass].append(fid)
+        elif code == "LU" and kind != "Gewässer":
+            official[kind, rev, identity].append(fid)
         elif name and (code == "GR" or rev) and not any(word in name.lower() for word in ("zuflüsse", "inkl.", "einzugsgebiet")):
             touching[kind, rev, name, region, detail, rule].append(fid)
         elif code == "SG" and geom.geom_type == "Polygon":
@@ -345,6 +349,11 @@ def build(canton, records, root):
         hydronym = name or (region if canton == "SG" else "")
         major = hydronym.casefold() in {"aare", "rhein", "reuss", "limmat", "glatt", "thur", "sitter", "linth", "wigger", "suhre", "vorderrhein", "hinterrhein", "zürich-obersee"}
         zoom = 8 if size >= 6000 or major else 9 if size >= 2300 else 10 if size >= 850 else 11 if size >= 330 else 12
+        if canton == "LU":
+            if kind == "Gewässer" and not poly:
+                zoom = 12 if name and size >= 350 else 13 if name or size >= 850 else 14
+            else:
+                zoom = min(10, zoom)
         if buried:
             zoom = 14
         geom = encoded(g, 1)
@@ -354,7 +363,7 @@ def build(canton, records, root):
         for x in range(floor(w * 5), floor(e * 5) + 1):
             for y in range(floor(s * 8), floor(n * 8) + 1):
                 cells[f"{x}_{y}"].add(meta, fid, zoom, size, bounds, geom)
-        if zoom <= 11:
+        if zoom <= 11 or (not buried and kind != "Gewässer"):
             overview.add(meta, fid, zoom, size, bounds, encoded(g, 12))
         title = name or region
         if title:
@@ -369,7 +378,7 @@ def build(canton, records, root):
     result["groups"], result["selections"] = selection_files(canton, records, root)
     if canton == "SG":
         result["districts"] = sg_districts(root)
-    elif canton in ("AG", "ZH"):
+    elif canton in ("AG", "ZH", "LU"):
         result["districts"] = numbered_districts(canton, records, root)
     result["search"] = write_asset(root, canton + "-search", [v[1] for v in places.values()])
     result["built"] = date.today().isoformat()
@@ -388,8 +397,10 @@ def main():
         cache.mkdir(exist_ok=True, parents=True)
         solothurn(cache)
         manifest = {code: build(code, records, root) for code, records in
-                    (("AG", aargau(cache)), ("ZH", zurich(cache)), ("SG", eastern("SG")), ("GR", eastern("GR")))}
+                    (("AG", aargau(cache)), ("ZH", zurich(cache)), ("SG", eastern("SG")), ("GR", eastern("GR")),
+                     ("LU", luzern(cache, TO_METRES)))}
     (root / "index.json").write_text(compact_json(manifest), encoding="utf8")
+    build_overview()
     current = {name for cells in manifest.values() for v in cells.values()
                for name in (v.values() if isinstance(v, dict) else [v])}
     for f in root.glob("*-*.json"):

@@ -1,12 +1,13 @@
 /* Search the local fishery data and the official Swiss place-name index independently. */
 const FishMapSearch=(()=>{
   const normal=value=>String(value).toLocaleLowerCase("de-CH").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ß/g,"ss");
+  const cantons=new Set("ag ai ar be bl bs fr ge gl gr ju lu ne nw ow sg sh so sz tg ti ur vd vs zg zh".split(" "));
   function rank(rows,query,center){
     const text=normal(query),words=text.split(/[^a-z0-9]+/).filter(Boolean),matches=[],seen=new Set();
     if(!words.length)return [];
     for(const [name,rev,kind,lat,lon,code] of rows){
       const title=normal(name),hay=normal([name,rev&&"Revier "+rev,kind,code].join(" ")),id=[name,rev,code,kind].join("|");
-      if(!words.every(w=>/^\d+$/.test(w)?hay.split(/[^a-z0-9]+/).includes(w):hay.includes(w))||seen.has(id))continue;
+      if(!words.every(w=>cantons.has(w)?w===normal(code):/^\d+$/.test(w)?hay.split(/[^a-z0-9]+/).includes(w):hay.includes(w))||seen.has(id))continue;
       seen.add(id);
       const distance=(lat-center.lat)**2+((lon-center.lng)*.68)**2;
       const score=title===text?0:title.startsWith(words[0])?1:2;

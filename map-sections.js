@@ -1,9 +1,17 @@
 /* Official section geometry, shared by the canvas, water labels and tap selection. */
 const FishSections = (() => {
   const directory = "./data/sections/";
-  const credits = {AG:"© AGIS", ZH:"© GIS-ZH", SG:"© ANJF/AREG SG", GR:"© Kanton GR"};
+  const credits = {AG:"© AGIS", ZH:"© GIS-ZH", SG:"© ANJF/AREG SG", GR:"© Kanton GR", LU:"© Geoinformation Kanton Luzern"};
   const intersects = (a,b) => a[0]<=b[2] && a[2]>=b[0] && a[1]<=b[3] && a[3]>=b[1];
   const bbox = b => [b.getWest(),b.getSouth(),b.getEast(),b.getNorth()];
+  function subPixel(bounds,zoom){
+    const [w,s,e,n]=bounds,pixel=360/(256*2**zoom);
+    return zoom<=11&&Math.max(e-w,(n-s)/Math.cos(s*Math.PI/180))<pixel*1.5;
+  }
+  function shortMark([x,y],zoom){
+    const d=360/(256*2**zoom)*.55;
+    return [L.latLng(y,x-d),L.latLng(y,x+d)];
+  }
   function tapBox(lat,lon,metres) {
     const dy=metres/111000,dx=dy/Math.cos(lat*Math.PI/180);
     return [lon-dx,lat-dy,lon+dx,lat+dy];
@@ -64,24 +72,27 @@ const FishSections = (() => {
     }
     return {...point,d:Math.sqrt(best)};
   }
-  function restriction(kind) {return /schon|verbot|nationalpark/i.test(kind)}
+  function localCondition(kind) {return ["Besondere Vorschrift","Reservatzone","Ruhezone A","Ruhezone B","Keine Patentausgabe"].includes(kind)}
+  function restriction(kind) {return localCondition(kind)||/schon|verbot|nationalpark/i.test(kind)}
+  function visibleAt(row,zoom) {return row.zoom<=zoom||(!row.meta[5]&&row.meta[1]!=="Gewässer")}
   function symbol(kind,buried=false,closed=false) {
-    if(/naturköder/i.test(kind))return "condition";
+    if(localCondition(kind)||/naturköder/i.test(kind))return "condition";
     if(restriction(kind))return "protected";
     if(closed)return "closed";
     if(buried)return "culvert";
     if(/privat/i.test(kind))return "private";
     if(["Patent","Frei"].includes(kind))return "permit";
-    if(["Pacht","Revier","Fischereirevier"].includes(kind))return "district";
+    if(["Pacht","Revier","Fischereirevier","Patentgebiet"].includes(kind))return "district";
     if(/bewilligung/i.test(kind))return "condition";
     if(["Fischgewässer","Gewässer"].includes(kind))return "water";
     return "unknown";
   }
   const symbols={
     water:{label:"Gewässer · Berechtigung ungeklärt",color:"#4a89a4"},
-    district:{label:"Pachtgewässer / Revier",color:"#e99a35"},
-    permit:{label:"Patentgewässer / Freiangelrecht",color:"#079875"},
-    private:{label:"Privates Fischereirecht",color:"#8b7d99",dash:"7 4"},
+    district:{label:"Revier / Pacht- oder Patentgebiet",color:"#e99a35"},
+    open:{label:"Fangsaison heute offen · Berechtigung prüfen",color:"#039873"},
+    permit:{label:"Patent- / Freiangelgewässer · Tagesstatus ungeklärt",color:"#b98342"},
+    private:{label:"Privates Fischereirecht",color:"#7055a5",dash:"7 4"},
     unknown:{label:"Unbekannte Einordnung",color:"#7b8c92",dash:"3 4"},
     culvert:{label:"Eingedolter Abschnitt",color:"#7b8c92",dash:"7 5"},
     condition:{label:"Besondere Vorschrift",color:"#a66bc4"},
@@ -90,7 +101,7 @@ const FishSections = (() => {
   };
   const highlight="#ffd43b";
   function initPanes(map) {
-    const levels={zoneCasing:384,zoneInk:392,chosenEdge:426,chosenInk:428,
+    const levels={zoneCasing:384,zoneInk:392,openEdge:394,openInk:396,chosenEdge:426,chosenInk:428,
       ruleEdge:438,ruleInk:440,chosenRuleEdge:448,chosenRuleInk:450,zonePin:670};
     for(const [name,z] of Object.entries(levels)){
       const pane=map.createPane(name);pane.style.zIndex=z;pane.style.pointerEvents="none";
@@ -98,14 +109,17 @@ const FishSections = (() => {
   }
   function brush(key,zoom,selected=false,area=false) {
     const s=symbols[key],rule=["protected","closed","condition"].includes(key);
-    const width=area&&!selected?(zoom<12?.85:1.35):
+    const overview=zoom<9&&!selected;
+    const zoneArea=area&&["district","private","condition"].includes(key);
+    const width=overview?(key==="open"?2.2:rule?1.4:.85):area&&!selected?(zoneArea?(zoom<12?1.6:2.4):(zoom<12?.85:1.35)):
       (zoom<10?1.5:zoom<12?2:zoom<15?2.8:3.5)+(key==="protected"?.6:0);
     const common={interactive:false,smoothFactor:.5,lineCap:"round",lineJoin:"round",fillRule:"nonzero"};
     return {
-      edge:{...common,pane:selected?(rule?"chosenRuleEdge":"chosenEdge"):(rule?"ruleEdge":"zoneCasing"),
-        color:selected?highlight:"#fff",weight:width+(selected?5:area?1:zoom<12?1.5:2.2),opacity:selected?1:.73,fill:false},
-      ink:{...common,pane:selected?(rule?"chosenRuleInk":"chosenInk"):(rule?"ruleInk":"zoneInk"),
-        color:s.color,weight:width,opacity:1,dashArray:s.dash||null,fillColor:s.color,fillOpacity:selected?.25:rule?.21:.12}
+      edge:{...common,pane:selected?(rule?"chosenRuleEdge":"chosenEdge"):(rule?"ruleEdge":key==="open"?"openEdge":"zoneCasing"),
+        color:selected?highlight:"#fff",weight:width+(selected?5:overview?1:zoneArea?2:area?1:zoom<12?1.5:2.2),opacity:selected?1:overview&&key!=="open"?.22:.73,fill:false},
+      ink:{...common,pane:selected?(rule?"chosenRuleInk":"chosenInk"):(rule?"ruleInk":key==="open"?"openInk":"zoneInk"),
+        color:s.color,weight:width,opacity:overview&&!rule&&key!=="open"?.64:1,dashArray:overview?null:s.dash||null,
+        fillColor:s.color,fillOpacity:rule&&area?.62:selected?.25:zoneArea||key==="open"?.23:.12}
     };
   }
   function shapePair(owner,latlngs,area,key,zoom,selected=false) {
@@ -145,9 +159,10 @@ const FishSections = (() => {
     return response.json();
   }
   class Layer {
-    constructor(map, notify) {
+    constructor(map, notify, markFor=row=>symbol(row.meta[1],row.meta[5])) {
       this.map=map;
       this.notify=notify;
+      this.markFor=markFor;
       this.cache=new Map();
       this.pending=new Map();
       this.batches=new Map();
@@ -158,6 +173,8 @@ const FishSections = (() => {
       this.selectedParts=new Map();
       this.searchFiles=new Map();
       this.attributions=new Set();
+      this.coarseLayers=new Set();
+      this.tinted=new WeakMap();
       this.epoch=0;
     }
     manifest() {
@@ -211,7 +228,18 @@ const FishSections = (() => {
       try {
         const index=await this.manifest();
         if(epoch!==this.epoch)return;
-        const files=zoom<8?[]:this.files(index,view,zoom<12);
+        const files=this.files(index,view,zoom<12);
+        const active=new Set(files.map(f=>f[0]));
+        if(zoom<10&&typeof Image!=="undefined"){
+          try{
+            const images=await this.coarseImages(Math.floor(zoom),active);
+            if(epoch!==this.epoch)return;
+            this.replaceCoarse(images);
+            this.visible.clear();this.paint(zoom);this.updateCredits(active);
+            this.drawnBounds=buffered;this.drawnZoom=zoom;this.stamp=stamp;
+            return;
+          }catch(error){console.warn("Kartenübersicht",error)}
+        }
         const needed=new Set(files.map(([,file])=>file));
         for(const [file,job] of this.pending)if(!needed.has(file)&&!job.taps)job.controller.abort();
         const rows=new Map();
@@ -221,7 +249,7 @@ const FishSections = (() => {
             const file=files[next++];
             try {
               for(const row of await this.load(file)) {
-                if(row.zoom<=zoom && intersects(row.bounds,view))rows.set(row.key,row);
+                if(visibleAt(row,zoom) && intersects(row.bounds,view))rows.set(row.key,row);
               }
             } catch(error){if(epoch===this.epoch){failed=true;console.warn("Gewässerdaten",file[1],error)}}
           }
@@ -232,12 +260,43 @@ const FishSections = (() => {
         this.drawnZoom=zoom;this.drawnBounds=buffered;
         this.visible=rows;
         this.paint(zoom);
-        this.updateCredits(new Set(files.map(f=>f[0])));
+        this.replaceCoarse([]);
+        this.updateCredits(active);
       } catch(error) {
         if(epoch===this.epoch){this.error=true;console.warn("Gewässerkarte",error)}
       } finally {
         if(epoch===this.epoch){this.busy=false;this.notify()}
       }
+    }
+    async coarseImages(zoom,active){
+      if(!this.atlas)this.atlas=fetch("./data/map-overview.json",{signal:AbortSignal.timeout(9000)})
+        .then(r=>{if(!r.ok)throw Error("Übersicht "+r.status);return r.json()}).catch(e=>{this.atlas=null;throw e});
+      const atlas=await this.atlas;
+      return Promise.all(atlas[zoom].filter(row=>active.has(row[0])).map(async row=>{
+        const [code,kind,rule,x,y,width,height,png]=row;
+        const mark=this.markFor({code,meta:["",kind,"","","",false,rule]});
+        let colors=this.tinted.get(row);
+        if(!colors){colors=new Map();this.tinted.set(row,colors)}
+        if(!colors.has(mark)){
+          const job=(async()=>{
+            const source=new Image();source.src="data:image/png;base64,"+png;await source.decode();
+            const canvas=document.createElement("canvas");canvas.width=width;canvas.height=height;
+            const ctx=canvas.getContext("2d");ctx.drawImage(source,0,0);ctx.globalCompositeOperation="source-in";
+            ctx.fillStyle=symbols[mark].color;ctx.fillRect(0,0,width,height);
+            const bounds=[this.map.unproject([x,y+height],zoom),this.map.unproject([x+width,y],zoom)];
+            const style=brush(mark,zoom).ink;
+            return L.imageOverlay(canvas.toDataURL(),bounds,{pane:style.pane,opacity:style.opacity,interactive:false});
+          })().catch(e=>{colors.delete(mark);throw e});
+          colors.set(mark,job);
+        }
+        return colors.get(mark);
+      }));
+    }
+    replaceCoarse(images){
+      const next=new Set(images);
+      for(const layer of this.coarseLayers)if(!next.has(layer))layer.remove();
+      for(const layer of next)if(!this.coarseLayers.has(layer))layer.addTo(this.map);
+      this.coarseLayers=next;
     }
     updateCredits(active) {
       for(const code of this.attributions)if(!active.has(code))this.map.attributionControl.removeAttribution(credits[code]);
@@ -249,7 +308,8 @@ const FishSections = (() => {
       // Keep the old canvas visible until the complete new viewport is ready.
       const groups=new Map();
       for(const row of this.visible.values()) {
-        const key=symbol(row.meta[1],row.meta[5])+(row.poly?"/area":"/line");
+        const tiny=subPixel(row.bounds,zoom);
+        const key=this.markFor(row)+(tiny?"/mark":row.poly?"/area":"/line");
         if(!groups.has(key))groups.set(key,[]);
         groups.get(key).push(row);
       }
@@ -261,6 +321,7 @@ const FishSections = (() => {
         if(batch?.signature===signature)continue;
         const poly=type==="area";
         const latlngs=rows.map(row=>{
+          if(type==="mark")return shortMark(geometry(row)[0][0],zoom);
           if(!row.latlngs)row.latlngs=leafletPaths(geometry(row),row.poly);
           return poly?row.latlngs:row.latlngs[0];
         });
@@ -356,7 +417,6 @@ const FishSections = (() => {
     }
     async hits(lat,lon,tol) {
       const zoom=this.map.getZoom(),box=tapBox(lat,lon,tol*1.04),index=await this.manifest();
-      if(zoom<8)return [];
       const found=new Map();
       // Always check the original detail cell, including protection that is too
       // small for an overview symbol. Never infer rights from an empty result.
@@ -367,13 +427,15 @@ const FishSections = (() => {
       }
       await Promise.all(files.map(async file=>{
         for(const row of await this.load(file,true)) {
-          if(found.has(row.key)||(!restriction(row.meta[1])&&row.zoom>zoom)||!intersects(box,row.bounds))continue;
+          if(found.has(row.key)||(!restriction(row.meta[1])&&!visibleAt(row,zoom))||!intersects(box,row.bounds))continue;
           const paths=geometry(row),point=nearest(lat,lon,paths,row.poly);
           if(point.d>tol)continue;
           const [water,kind,rev,region,detail,buried,rule]=row.meta;
           const name=water||(row.code==="SG"?region:"")||(row.poly?"Gewässerfläche ohne amtlichen Namen":"Bach ohne amtlichen Namen");
+          const lake=row.code==="LU"?["see","sempach","hallwil","vws","zugersee"].includes(rule):
+            row.code==="AG"?/(see|weiher|teich)(?:$|[\s(/-])/i.test(water):row.poly;
           found.set(row.key,{...point,t:"zone",id:row.key,code:row.code,name,water,kind,rev,region,detail,buried,rule,built:index[row.code].built,
-            lake:row.code==="AG"?/(see|weiher|teich)(?:$|[\s(/-])/i.test(water):row.poly,l:paths,area:row.poly,parts:[selectionParts(row)]});
+            lake,l:paths,area:row.poly,parts:[selectionParts(row)]});
         }
       }));
       for(const hit of found.values()){
@@ -387,5 +449,5 @@ const FishSections = (() => {
       return [...found.values()];
     }
   }
-  return {Layer,nearest,intersects,tapBox,leafletPaths,symbol,symbols,highlight,initPanes,shapePair,drawSelection,pin};
+  return {Layer,nearest,intersects,tapBox,leafletPaths,decode,subPixel,shortMark,restriction,localCondition,symbol,symbols,highlight,initPanes,shapePair,drawSelection,pin};
 })();

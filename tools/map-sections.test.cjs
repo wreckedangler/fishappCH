@@ -174,3 +174,130 @@ test("numbered district overviews preserve Aargau protection and Zürich's local
   const overview=await layer.district(zh);
   assert.ok(overview.some(p=>p.lines.length>1));
 });
+
+test("Luzern draws the lake basin and numbered districts during the first viewport sync",async()=>{
+  const {layer,requests}=mapAt(10);
+  const bounds={getWest:()=>7.84,getSouth:()=>46.96,getEast:()=>8.36,getNorth:()=>47.21,pad:()=>bounds};
+  layer.map.getBounds=()=>bounds;
+  const credits=new Set();
+  layer.map.attributionControl={addAttribution:t=>credits.add(t)};
+  let drawn=[];
+  layer.paint=()=>{drawn=[...layer.visible.values()].filter(r=>r.code==="LU")};
+  await layer.sync();
+  assert.ok(drawn.some(r=>r.meta[0]==="Luzerner Seebecken und obere Reuss"&&r.poly));
+  assert.ok(drawn.some(r=>r.meta[2]==="55"&&!r.poly));
+  assert.ok(drawn.some(r=>r.meta[1]==="Ruhezone A"&&r.poly));
+  assert.ok([...credits].some(c=>c.includes("Kanton Luzern")));
+  assert.ok(requests.some(url=>url.includes("LU-overview-")));
+  assert.ok(!requests.some(url=>url.includes("LU-groups-")||url.includes("LU-selection-")));
+});
+
+test("Luzern keeps private rights, patent areas and overlapping local conditions distinct",async()=>{
+  const {layer,api}=mapAt(15);
+  const at=async(lat,lon)=>(await layer.hits(lat,lon,6)).filter(h=>h.code==="LU"&&h.d<2);
+  const city=(await at(47.0512807,8.3059275)).find(h=>h.name==="Luzerner Seebecken und obere Reuss");
+  assert.equal(api.symbol(city.kind),"private");
+  assert.equal(city.rule,"");
+  const river=(await at(47.1030608,8.3481518)).find(h=>h.name==="Untere Reuss ab Reusszopf");
+  assert.equal(river.lake,false);
+  assert.equal(river.rule,"fluss");
+  assert.equal(api.symbol(river.kind),"district");
+  const zone=await at(47.1230234,8.1845128);
+  assert.ok(zone.some(h=>h.kind==="Patentgebiet"&&h.rule==="sempach"));
+  assert.ok(zone.some(h=>h.kind==="Ruhezone A"&&api.symbol(h.kind)==="condition"&&api.restriction(h.kind)));
+  const noPatent=(await at(47.0032678,8.4206919)).find(h=>h.kind==="Keine Patentausgabe");
+  assert.equal(api.symbol(noPatent.kind),"condition");
+  assert.equal(noPatent.rule,"");
+});
+
+test("Luzern preserves the full Uffikoner Weiher district and clips neutral lakes to the canton",async()=>{
+  const {layer,api}=mapAt(15);
+  const ponds=await Promise.all([[47.2066878,8.0245598],[47.205713,8.0240744],[47.2057042,8.0203227]].map(
+    async([lat,lon])=>(await layer.hits(lat,lon,5)).find(h=>h.rev==="109"&&h.code==="LU")));
+  assert.ok(ponds.every(h=>h.water==="Uffikoner Weiher"&&h.hasDistrict&&h.zoneId===ponds[0].zoneId));
+  const [district]=await layer.district(ponds[0]);
+  assert.equal(district.polygons.length,3);
+  for(const [name,lat,lon] of [["Zugersee",47.1130976,8.4907194],["Mauensee",47.1715574,8.0752409],["Soppensee",47.0895132,8.0810811]]){
+    const hit=(await layer.hits(lat,lon,3)).find(h=>h.name===name);
+    assert.equal(hit.code,"LU");assert.equal(hit.d,0);
+    assert.equal(api.symbol(hit.kind),"water");assert.equal(hit.lake,true);
+  }
+  assert.ok(!(await layer.hits(47.15,8.51,5)).some(h=>h.code==="LU"));
+});
+
+test("every above-ground fishery enters the overview and its category is drawn at every national scale",()=>{
+  const dir=path.join(root,"data","sections"),read=f=>JSON.parse(fs.readFileSync(path.join(dir,f),"utf8"));
+  const atlas=JSON.parse(fs.readFileSync(path.join(root,"data/map-overview.json"),"utf8"));
+  for(const [code,entry] of Object.entries(read("index.json"))){
+    const [meta,overview]=read(entry.overview),ids=new Set(overview.map(r=>r[0]));
+    for(const [key,file] of Object.entries(entry)){
+      if(!/^\d+_\d+$/.test(key))continue;
+      const [attrs,rows]=read(file);
+      for(const [id,m] of rows)if(!attrs[m][5]&&attrs[m][1]!=="Gewässer")assert.ok(ids.has(id),code+"-"+id);
+    }
+    const classes=new Set(meta.filter(m=>!m[5]).map(m=>[m[1],m[6]].join("|")));
+    for(const z of [6,7,8,9]){
+      const masks=atlas[z].filter(row=>row[0]===code);
+      assert.deepEqual(new Set(masks.map(row=>[row[1],row[2]].join("|"))),classes);
+      assert.ok(masks.every(r=>r[5]>0&&r[6]>0&&Buffer.from(r[7],"base64").readUInt32BE(0)===0x89504e47));
+    }
+  }
+});
+
+test("Glarus uses the official season and Swiss summer and winter night hours",()=>{
+  const {XSRC,swissFishingTime,fisheryPeriod}=require("../map-sources.js");
+  const gl=id=>XSRC.GL.layers[0].map({fangzeiten:id});
+  const status=(f,at)=>fisheryPeriod("GL",f,swissFishingTime(new Date(at)));
+  const lake=gl("1apr_31dez");
+  assert.equal(status(lake,"2026-11-16T18:59:00Z"),"open");
+  assert.equal(status(lake,"2026-11-16T19:00:00Z"),"night");
+  assert.equal(status(lake,"2026-06-15T21:00:00Z"),"night");
+  assert.equal(status(lake,"2026-06-16T02:00:00Z"),"open");
+  assert.equal(status(lake,"2026-12-31T23:10:00Z"),"closed");
+  assert.equal(status(gl("1mai_30sept"),"2026-11-17T12:00:00Z"),"closed");
+  assert.equal(status(gl("unbekannt"),"2026-11-17T12:00:00Z"),null);
+  assert.equal(status(gl("verbot"),"2026-11-17T12:00:00Z"),null);
+});
+
+test("Thurgau distinguishes a species rule from a seasonal closure across New Year",()=>{
+  const {XSRC,fisheryPeriod}=require("../map-sources.js"),mapper=XSRC.TG.layers[0].map;
+  const p={gueltig_von:"1. November",gueltig_bis:"31. Januar"};
+  const all=mapper({...p,fischereiregelung:"Fang aller Fischarten 1.Nov - 31. Januar verboten"});
+  const one=mapper({...p,fischereiregelung:"Fang von Felchen mit der Angel verboten"});
+  assert.equal(fisheryPeriod("TG",all,{ordinal:101}),"closed");
+  assert.equal(fisheryPeriod("TG",all,{ordinal:201}),null);
+  assert.equal(fisheryPeriod("TG",one,{ordinal:101}),null);
+  const shore=XSRC.TG.layers[2].map({erlaubt:"true",beschreibung:"Fischen vom Ufer ganzjährig erlaubt"});
+  assert.equal(fisheryPeriod("TG",shore,{ordinal:101}),null);
+});
+
+test("the viewport covers every bundled reach and the Geneva sector stops at the cantonal boundary",()=>{
+  const {api}=mapAt(6),{XBOX,XSRC}=require("../map-sources.js");
+  for(const c of Object.keys(XSRC)){
+    const all=JSON.parse(fs.readFileSync(path.join(root,"data/fisheries",c+".json"),"utf8"));
+    const [w,s,e,n]=XBOX[c];
+    const box=[Infinity,Infinity,-Infinity,-Infinity];
+    let sectors=0;
+    for(const [,meta,area,parts] of all.layers.flat()){
+      const paths=parts.map(p=>(area?p:[p]).map(api.decode));
+      if(meta.cantonalFootprint){
+        sectors++;
+        assert.ok(paths.some(r=>api.nearest(46.235,6.165,r,true).d===0),"lake in Geneva");
+        assert.ok(paths.every(r=>api.nearest(46.49,6.60,r,true).d>10000),"lake near Lausanne");
+      }
+      for(const ring of paths.flat())for(const [x,y] of ring){
+        box[0]=Math.min(box[0],x);box[1]=Math.min(box[1],y);
+        box[2]=Math.max(box[2],x);box[3]=Math.max(box[3],y);
+      }
+    }
+    assert.equal(sectors,c==="GE"?1:0);
+    assert.ok(box[0]>=w&&box[1]>=s&&box[2]<=e&&box[3]<=n,c+" "+box);
+  }
+});
+
+test("a canton abbreviation filters out similarly named tributaries across the border",()=>{
+  const js=fs.readFileSync(path.join(root,"map-search.js"),"utf8");
+  const search=vm.runInNewContext(js+"\nFishMapSearch");
+  const rows=[["Zufluss Sembach","109","Fischereirevier",47,8,"AG"],["Uffikoner Weiher","109","Fischereirevier",47.2,8,"LU"]];
+  assert.deepEqual(Array.from(search.rank(rows,"Revier 109 LU",{lat:47,lng:8}),r=>r.code),["LU"]);
+});

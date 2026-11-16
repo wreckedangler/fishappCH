@@ -1063,16 +1063,16 @@ function chooseWater(c,name,cw){
   if(cw)state.cw=Object.assign({},state.cw,{[c]:cw});
   else if(hasCM(c))state.cw=Object.assign({},state.cw,{[c]:""});
   state.xsel=Object.assign({},state.xsel,{[c]:name});
-  save();mapSel=null;
+  save();mapSel=null;renderSheet();drawSel();
   toast(hasCM(c)&&!cw?name+" gewählt – Regelgruppe unter «Hier» wählen":name+" gewählt");
   onCantonChanged();
   if(hasCM(c)&&!cw)show("hier");
 }
 function sheetAction(a){
   if(a==="close"){mapSel=null}
-  else if(a==="rules"){mapSel=null;show("hier");return}
+  else if(a==="rules"){mapSel=null;renderSheet();drawSel();show("hier");return}
   else if(a==="rules2"&&mapSel){a="ok"}
-  if(a==="ok"&&mapSel){const id=mapSel.id;state.canton="SO";state.cantonAuto=false;state.sec=id;state.secAuto=false;state.pin=null;mapSel=null;save();toast(secById(id).name+" gewählt");onCantonChanged();
+  if(a==="ok"&&mapSel){const id=mapSel.id;state.canton="SO";state.cantonAuto=false;state.sec=id;state.secAuto=false;state.pin=null;mapSel=null;save();renderSheet();toast(secById(id).name+" gewählt");onCantonChanged();
     if(arguments[0]==="rules2")show("hier");return}
   if(a==="okx"&&mapSel){const c=mapSel.code,f=XGEO[c].feats[mapSel.id];chooseWater(c,f.name,pickCW(c,[f.name,f.name.split(/[\s\d(]/)[0]],f.poly,f.cw));return}
   if(a==="okw"&&mapSel){const c=mapSel.code,w=mapSel.water;chooseWater(c,w.name||"Gewässer",pickCW(c,w.names,w.lake));return}
@@ -1089,7 +1089,7 @@ async function mapTap(e){
   if(mapSel){mapSel=null;renderSheet();drawSel();return}
   if(!navigator.onLine){flashHint("Ohne Internet nur eingezeichnete Zonen antippbar",2500);return}
   flashHint("Gewässer wird gesucht …");
-  const tolm=Math.max(25,tol);
+  const tolm=Math.max(60,tol*1.6);
   const u=`https://api3.geo.admin.ch/rest/services/api/MapServer/identify?geometry=${lon},${lat}&geometryType=esriGeometryPoint&layers=all:ch.swisstopo.swissboundaries3d-kanton-flaeche.fill&sr=4326&tolerance=0&returnGeometry=false&lang=de`;
   const[cj,w]=await Promise.all([fetch(u).then(r=>r.json()).catch(()=>null),waterAt(lat,lon,tolm).catch(()=>null)]);
   if(seq!==tapSeq)return;

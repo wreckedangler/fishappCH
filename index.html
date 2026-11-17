@@ -226,7 +226,7 @@ button:disabled{opacity:.55;cursor:wait}
   main:has(#v-stat.on){max-width:1080px}
   nav{padding-inline:max(12px,calc((100% - 1048px)/2))}
   #v-stat.on{display:grid;grid-template-columns:3fr 2fr;gap:12px;align-items:start}
-  #v-stat>.seg,#v-stat>.book-overview{grid-column:1/-1}
+  #v-stat>.seg,#v-stat>.ios-title,#v-stat>.book-overview{grid-column:1/-1}
   #v-stat>.card{margin:0}
   #v-stat>.card:has(#logList){grid-column:1;grid-row:3/span 4}
   #statsDetail,#soCounts,#v-stat>.card:last-child{grid-column:2}
@@ -654,6 +654,21 @@ dialog .row{gap:10px}
 #logList .entry-menu[open]{display:block}
 #logList .entry-menu[open]>summary{display:table;margin:8px 8px 4px auto}
 #logList .entry-menu>button{display:block;width:100%}
+
+/* ================= Einheitlicher Rahmen für alle Ansichten ================= */
+/* Scrollbalken-Platz immer reservieren: Leisten springen beim Ansichtswechsel nicht. */
+html{scrollbar-width:none}
+html::-webkit-scrollbar{display:none;width:0;height:0}
+/* Jede Ansicht: grosser Titel, dann Inhalt im gleichen Raster */
+section.view.on{padding-top:var(--pad)}
+section.view>.ios-title{margin:0 4px 0;font-size:34px;font-weight:700;letter-spacing:-.035em;line-height:1.12}
+section.view>.ios-title+*{margin-top:14px!important}
+section.view>.ios-title+.seg{margin-top:14px!important}
+#v-hier .hero{margin-top:14px}
+.book-overview .chips:first-child{margin-top:0}
+/* Kartenüberschriften überall gleich */
+.card>h2:first-child,.card>h1:first-child{margin-top:0}
+.card h2{font-size:17px;font-weight:600;letter-spacing:-.02em;margin-bottom:12px}
 #map{position:absolute;inset:0;background:#d9e1de}
 #map canvas{outline:none}
 .maplibregl-ctrl-bottom-right,.maplibregl-ctrl-bottom-left{display:none}
@@ -803,6 +818,7 @@ dialog .row{gap:10px}
 <main>
 <!-- HIER -->
 <section class="view on" id="v-hier">
+  <h1 class="ios-title">Hier</h1>
   <div id="hereHero"></div>
   <div class="ios-group">
     <div id="hereAct"></div>
@@ -832,6 +848,7 @@ dialog .row{gap:10px}
 
 <!-- FANG -->
 <section class="view" id="v-fang">
+  <h1 class="ios-title">Fang</h1>
   <div class="seg"><button type="button" data-v="fang">Erfassen</button><button type="button" data-v="stat">Fangbuch</button></div>
   <div id="fangCtx"></div>
 
@@ -868,9 +885,9 @@ dialog .row{gap:10px}
 
 <!-- STATISTIK -->
 <section class="view" id="v-stat">
+  <h1 class="ios-title">Fang</h1>
   <div class="seg"><button type="button" data-v="fang">Erfassen</button><button type="button" data-v="stat">Fangbuch</button></div>
   <div class="card book-overview">
-    <h1>Fangbuch</h1>
     <div id="bookPeriod" class="chips" role="group" aria-label="Zeitraum">
       <button type="button" data-period="today">Heute</button>
       <button type="button" data-period="year">Dieses Jahr</button>
@@ -913,6 +930,7 @@ dialog .row{gap:10px}
 
 <!-- REGELN -->
 <section class="view" id="v-regeln">
+  <h1 class="ios-title">Regeln</h1>
   <div id="rulesBody"></div>
   <div class="card" id="dataCard"></div>
 </section>

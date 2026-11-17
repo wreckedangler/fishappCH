@@ -336,3 +336,18 @@ dialog .row{gap:10px}
 #logList .entry-menu[open]{display:block}
 #logList .entry-menu[open]>summary{display:table;margin:8px 8px 4px auto}
 #logList .entry-menu>button{display:block;width:100%}
+
+/* ================= Einheitlicher Rahmen für alle Ansichten ================= */
+/* Scrollbalken-Platz immer reservieren: Leisten springen beim Ansichtswechsel nicht. */
+html{scrollbar-width:none}
+html::-webkit-scrollbar{display:none;width:0;height:0}
+/* Jede Ansicht: grosser Titel, dann Inhalt im gleichen Raster */
+section.view.on{padding-top:var(--pad)}
+section.view>.ios-title{margin:0 4px 0;font-size:34px;font-weight:700;letter-spacing:-.035em;line-height:1.12}
+section.view>.ios-title+*{margin-top:14px!important}
+section.view>.ios-title+.seg{margin-top:14px!important}
+#v-hier .hero{margin-top:14px}
+.book-overview .chips:first-child{margin-top:0}
+/* Kartenüberschriften überall gleich */
+.card>h2:first-child,.card>h1:first-child{margin-top:0}
+.card h2{font-size:17px;font-weight:600;letter-spacing:-.02em;margin-bottom:12px}

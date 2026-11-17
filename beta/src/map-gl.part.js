@@ -137,12 +137,6 @@ function drawGeo(){
   }
   setZones("fb-so",FC(features));
 }
-function drawCatches(){
-  if(!map)return;
-  const features=state.log.filter(f=>Number.isFinite(f.lat)&&Number.isFinite(f.lon)).map(f=>({type:"Feature",geometry:{type:"Point",coordinates:[f.lon,f.lat]},
-    properties:{t:`<b>${esc(f.art)}</b>${f.len!=null?" · "+f.len+" cm":""}<br>${new Date(f.ts).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"})}`}}));
-  catchData=FC(features);if(mapReady)map.getSource("fb-catches")?.setData(catchData);
-}
 let catchData=FC([]);
 function accuracyRadius(p){
   const mpp0=156543.03392*Math.cos(p.lat*Math.PI/180)/2; // metres per px at GL zoom 0 (512 px tiles)
@@ -400,7 +394,7 @@ let pinFC=FC([]),selFC=FC([]);
 function setPins(){
   const features=[];
   const hit=mapSel||currentConfirmed();
-  if(Number.isFinite(hit?.lat)&&Number.isFinite(hit?.lon))features.push({type:"Feature",geometry:{type:"Point",coordinates:[hit.lon,hit.lat]},properties:hit.wholeDistrict?{t:"pin",name:hit.name}:{t:"pin"}});
+  if(Number.isFinite(hit?.lat)&&Number.isFinite(hit?.lon)&&hit.t!=="spot"&&hit.t!=="catch")features.push({type:"Feature",geometry:{type:"Point",coordinates:[hit.lon,hit.lat]},properties:hit.wholeDistrict?{t:"pin",name:hit.name}:{t:"pin"}});
   if(tapPreview)features.push({type:"Feature",geometry:{type:"Point",coordinates:[tapPreview.lon,tapPreview.lat]},properties:{t:"preview"}});
   pinFC=FC(features);if(mapReady)map.getSource("fb-pins")?.setData(pinFC);
 }
@@ -433,6 +427,7 @@ function drawSel(){
   }
   applyZoneDim(mapSel?.districtView?.28:mapSel&&parts.length?.46:1);
   setPins();
+  if(spotMarkers.size)for(const [id,m] of spotMarkers)m.getElement().classList.toggle("selected",mapSel?.t==="spot"&&mapSel.id===id);
   if((hit?.group||hit?.wholeDistrict)&&!hit.fullParts&&!hit.loading&&!hit.partial){
     hit.loading=true;
     sectionMap.wholeZone(hit).then(all=>{hit.fullParts=all},()=>{hit.partial=true}).finally(()=>{
@@ -589,6 +584,7 @@ function bindSheetDrag(){
 }
 function renderSheet(){
   const el=$("#mapSheet");if(!el||!map)return;
+  if(shoreView&&!$("#shorePanel").hidden){if(sheetState!=="closed")placeSheet("closed");return}
   updateHint();renderTop();
   const right=mapSel&&!pendingSelection?mapRight(mapSel):null,access=rightsPanel(right);
   const evidence={section:"Amtlicher Abschnitt",water:"Regel für dieses Gewässer",guide:"Kantonale Auskunft",unknown:"Zuordnung ungeklärt",restriction:"Einschränkung"};
@@ -598,8 +594,11 @@ function renderSheet(){
   const fit=canFit?'<button type="button" class="sh-fit" data-sh="extent" aria-label="'+extentLabel+'" title="'+extentLabel+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5"/></svg></button>':"";
   const head=(title,pills)=>`<div class="sh-h"><div class="sh-t">${esc(title)}</div><div class="sh-controls">${fit}<button type="button" class="sh-x" data-sh="close" aria-label="Schliessen">${XICON}</button></div></div><div class="sh-p">${pills}</div>`;
   const chip=c=>`<span class="pill p-mut">${esc(cname(c))}</span>`;
-  let top="",actions="",body="";
-  if(mapSel&&mapSel.t==="sec"){
+  let top="",actions="",body="",photo=null;
+  if(mapSel?.t==="spot"||mapSel?.t==="catch"){
+    const o=mapSel.t==="spot"?spotSheet():catchSheet();
+    if(!o)mapSel=null;else{top=`<div class="sh-h"><div class="sh-t">${esc(o.title)}</div><div class="sh-controls"><button type="button" class="sh-x" data-sh="close" aria-label="Schliessen">${XICON}</button></div></div><div class="sh-p">${o.pills}</div>`;actions=o.actions;body=o.body;photo=o.photo}
+  } else if(mapSel&&mapSel.t==="sec"){
     const f=GEO.features.find(x=>x.id===mapSel.id)||{t:""},sec=secById(mapSel.id),st=secStatus(sec),k=sec.kind;
     const pill=k==="schon"?`<span class="pill p-bad">Schonstrecke</span>`:st.some(x=>x.lvl==="bad")?`<span class="pill p-bad">Heute gesperrt</span>`:rightBadge;
     const r=k==="patent"?soRule(sec,"Bachforelle"):null;
@@ -668,6 +667,7 @@ function renderSheet(){
     else placeSheet(sheetState,false);
   }else if(sheetState!=="closed"){el.sheetKey=null;placeSheet("closed")}
   el.sheetContent=h;
+  if(photo&&changed)fillSheetPhoto(photo);
 }
 function pickCW(c,names,lake,pref){
   const R=RULES[c];if(!R||!R.w)return"";
@@ -680,6 +680,7 @@ document.addEventListener("keydown",e=>{
 function sheetAction(a){
   if(pendingSelection&&a!=="close")return;
   if(a==="lu-retry"){loadLUDistricts(true);return}
+  if(spotAction(a))return;
   if(pendingSelection){pendingSelection=false;hitWarning=""}
   ++tapSeq;clearTapPreview();
   if(a==="extent"&&mapSel){showMapExtent(mapSel);return}
@@ -747,7 +748,7 @@ function labelAt(point){
   return Number.isFinite(p.d)?{ll:{lat:p.lat,lng:p.lon},row}:null;
 }
 async function mapTap(e){
-  clearShore();
+  clearShore();closePress();
   pendingSelection=false;
   const seq=++tapSeq;clearTapPreview();$("#mapMsg").className="hide";flashHint("");
   const previewTimer=setTimeout(()=>{
@@ -858,12 +859,22 @@ function clearShore(){
   shoreView=null;
   shoreMarkers.forEach(m=>m.remove());shoreMarkers=[];
   const panel=$("#shorePanel");
-  if(!panel.hidden){panel.hidden=true;map?.resize()}
+  if(!panel.hidden){panel.hidden=true;map?.resize();if(mapSel)renderSheet()}
+}
+// Uferstellen-Schlüssel (Kanton/Gewässergruppe) für ein auf der Karte angetipptes Gewässer.
+function hitShoreKey(hit){
+  if(!hit)return "";
+  if(hit.t==="sec")return "SO/"+hit.id;
+  if(hit.t==="x"){const f=xg(hit.code).feats[hit.id];return f?hit.code+"/"+pickCW(hit.code,[f.name,f.name.split(/[\s\d(]/)[0]],f.poly,f.cw):""}
+  if(hit.t==="zone")return hit.code+"/"+zoneGroup(hit);
+  if(hit.t==="w")return hit.code+"/"+pickCW(hit.code,hit.water.names,hit.water.lake);
+  return "";
 }
 function showShoreMarkers(){
   if(!shoreView||!map||shoreMarkers.length)return;
   const {fish,key,season}=shoreView,sec=currentSec();
-  if(key!==state.canton+"/"+sec.id){clearShore();return}
+  if(!shoreView.fromMap&&key!==state.canton+"/"+sec.id){clearShore();return}
+  const title=shoreView.title||sec.name;
   const points=shoreSites[key];
   const [,depth,time]=fish?waterApproach[fish][season]:[];
   const spot=shoreView.spot;
@@ -871,9 +882,11 @@ function showShoreMarkers(){
   const distance=p=>state.pos?Math.hypot((p[0]-state.pos.lat)*111000,(p[1]-state.pos.lon)*75000):0;
   const ranked=fish?[...points].sort((a,b)=>Number(b[2].includes(preference))-Number(a[2].includes(preference))||distance(a)-distance(b)).slice(0,3):points;
   ++tapSeq;
-  follow=false;syncLocateButton();mapSel=null;renderSheet();drawSel();
+  follow=false;syncLocateButton();
+  if(!shoreView.fromMap)mapSel=null;
   const panel=$("#shorePanel");panel.hidden=false;
-  panel.innerHTML=`<div class="shore-head"><strong>${fish?esc(fish)+" · ":""}${esc(sec.name)}</strong><button type="button" data-shore-close>Schliessen</button></div><div class="shore-options" role="group" aria-label="Uferstelle wählen"></div><div class="shore-detail" aria-live="polite">Nummer auf der Karte oder hier antippen.</div><p class="small">Suchpunkte an kartierten Wegen. Zugang, Sperren und Ufer vor Ort prüfen.</p><small>Geodaten © swisstopo</small>`;
+  renderSheet();drawSel();
+  panel.innerHTML=`<div class="shore-head"><strong>${fish?esc(fish)+" · ":""}${esc(title)}</strong><button type="button" data-shore-close>Schliessen</button></div><div class="shore-options" role="group" aria-label="Uferstelle wählen"></div><div class="shore-detail" aria-live="polite">Nummer auf der Karte oder hier antippen.</div><p class="small">Suchpunkte an kartierten Wegen. Zugang, Sperren und Ufer vor Ort prüfen.</p><small>Geodaten © swisstopo</small>`;
   panel.querySelector("[data-shore-close]").onclick=clearShore;
   const locationButtons=panel.querySelector(".shore-options");
   ranked.forEach(([lat,lon,tags],i)=>{
@@ -1022,10 +1035,12 @@ function buildControls(){
     </div>
     <div class="mui-right">
       <div class="mui-zoom"><button type="button" id="mapZoomIn" aria-label="Vergrössern">${ICONS.plus}</button><button type="button" id="mapZoomOut" aria-label="Verkleinern">${ICONS.minus}</button></div>
+      <button type="button" class="mui-round" id="mapLayersBtn" aria-label="Fänge und Spots" aria-controls="mapLayers">${ICONS.layers}</button>
       <button type="button" class="mui-round" id="mapCompass" aria-label="Karte nach Norden ausrichten" hidden>${ICONS.compass}</button>
     </div>
     <div class="mui-bottom-left"><button type="button" class="mui-chip" id="mapLegendBtn" aria-haspopup="dialog" aria-controls="legendDialog">Legende</button><button type="button" class="mui-credit" id="mapCreditBtn" aria-haspopup="dialog" aria-controls="legendDialog">© swisstopo u. a.</button></div>
-    <button type="button" class="mui-round mui-locate" id="mapLocate" aria-label="Zu meinem Standort">${ICONS.locate}</button>`;
+    <button type="button" class="mui-round mui-locate" id="mapLocate" aria-label="Zu meinem Standort">${ICONS.locate}</button>
+    <div id="mapLayers" class="mui-layers" hidden></div>`;
   host.append(ui);
   $("#mapZoomIn").onclick=()=>map.zoomIn({duration:250});
   $("#mapZoomOut").onclick=()=>map.zoomOut({duration:250});
@@ -1039,12 +1054,20 @@ function buildControls(){
     map.easeTo({center:[state.pos.lon,state.pos.lat],zoom:Math.max(map.getZoom(),14.5),duration:600});
   };
   $("#mapShore").onclick=()=>{
+    if(mapSel&&!pendingSelection){
+      // Uferstellen für das auf der Karte markierte Gewässer.
+      const key=hitShoreKey(mapSel),name=mapSel.t==="sec"?secById(mapSel.id).name:mapSel.name||"dieses Gewässer";
+      if(restrictedHit(mapSel)){toast(name+" ist hier gesperrt oder geschützt.");return}
+      if(!shoreSites[key]?.length){toast("Für "+name+" sind keine Uferstellen kartiert.");return}
+      shoreView={key,fromMap:true,title:name};showShoreMarkers();return;
+    }
     const sec=currentSec(),key=state.canton+"/"+sec.id;
     if(unknownWater()){show("hier");openWater();return}
     if(!shoreSites[key]?.length){toast("Für dieses Gewässer sind keine Uferstellen kartiert.");return}
     if(secStatus(sec).some(s=>s.lvl==="bad")){toast("Dieses Gewässer ist gesperrt.");return}
     shoreView={key};showShoreMarkers();
   };
+  bindLayerPanel();
   const seg=ui.querySelector(".mseg");
   const drawSeg=()=>{const cur=store.get("base","luft")==="topo"?"topo":"luft";seg.querySelectorAll("button").forEach(b=>{b.classList.toggle("on",b.dataset.b===cur);b.setAttribute("aria-pressed",String(b.dataset.b===cur))})};
   drawSeg();
@@ -1100,8 +1123,7 @@ function addOverlays(){
   map.addLayer({id:"fb-so-labels",type:"symbol",source:"fb-so",minzoom:12,filter:["!=",["get","lb"],""],
     layout:{"symbol-placement":"line-center","text-field":["get","lb"],"text-font":labelFont,"text-size":12,"text-padding":8,"text-allow-overlap":false},
     paint:{"text-color":["case",["==",["get","ls"],1],"#c93745","#12222a"],"text-halo-color":"#fff","text-halo-width":2.2}});
-  map.addSource("fb-catches",{type:"geojson",data:catchData});
-  map.addLayer({id:"fb-catches",type:"circle",source:"fb-catches",paint:{"circle-radius":6,"circle-color":"#713fad","circle-stroke-color":"#fff","circle-stroke-width":2}});
+  addCatchLayers();
   map.addSource("fb-me",{type:"geojson",data:state.pos?FC([{type:"Feature",geometry:{type:"Point",coordinates:[state.pos.lon,state.pos.lat]},properties:{}}]):FC([])});
   map.addLayer({id:"fb-me-acc",type:"circle",source:"fb-me",paint:{"circle-radius":state.pos?accuracyRadius(state.pos):0,"circle-color":"#1c7ed6","circle-opacity":.1,"circle-stroke-color":"#1c7ed6","circle-stroke-opacity":.45,"circle-stroke-width":1,"circle-pitch-alignment":"map"}});
   map.addSource("fb-pins",{type:"geojson",data:pinFC});
@@ -1232,13 +1254,18 @@ async function initMap(){
   bindSheetDrag();
   const sheet=$("#mapSheet");
   sheet.onclick=e=>{const b=e.target.closest("[data-sh]");if(b)sheetAction(b.dataset.sh)};
+  bindLongPress();
   map.on("style.load",()=>{if(mapReady)return;addOverlays();mapReady=true;
-    drawGeo();drawX();loadX();drawCatches();updateMe();sectionMap.sync();renderSheet();drawSel();showShoreMarkers();updateHint();focusRequestedLU()});
+    drawGeo();drawX();loadX();drawCatches();refreshSpots();updateMe();sectionMap.sync();renderSheet();drawSel();showShoreMarkers();updateHint();focusRequestedLU()});
   map.on("click",e=>{
     if(!mapReady)return;
-    const box=[[e.point.x-8,e.point.y-8],[e.point.x+8,e.point.y+8]];
+    if(placeMode){applyPlace(e.lngLat);return}
+    if(pressMarker){closePress();return}
+    const box=[[e.point.x-12,e.point.y-12],[e.point.x+12,e.point.y+12]];
+    const cluster=map.queryRenderedFeatures(box,{layers:["fb-catch-cluster"]})[0];
+    if(cluster){map.getSource("fb-catches").getClusterExpansionZoom(cluster.properties.cluster_id).then(z=>map.easeTo({center:cluster.geometry.coordinates,zoom:z+.3,duration:450}));return}
     const fishHit=map.queryRenderedFeatures(box,{layers:["fb-catches"]})[0];
-    if(fishHit){new maplibregl.Popup({closeButton:false,maxWidth:"240px"}).setLngLat(fishHit.geometry.coordinates).setHTML(fishHit.properties.t).addTo(map);return}
+    if(fishHit){openCatch(fishHit.properties.id);return}
     mapTap({latlng:{lat:e.lngLat.lat,lng:e.lngLat.lng},point:e.point});
   });
   map.on("dragstart",()=>{if(follow){follow=false;syncLocateButton()}});

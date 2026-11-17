@@ -108,6 +108,19 @@ dialog[open]{animation:iosIn .22s var(--ease)}
 .ios-head+.card{margin-top:0}
 .ios-foot{margin:7px 16px 0;font-size:13px;line-height:1.38;color:var(--mut)}
 .ios-foot:empty{display:none}
+#hereWaterInfo[hidden],#hereWaterInfo details[hidden]{display:none}
+#hereWaterInfo details{margin:0;padding:0;background:transparent;border:0}
+#hereWaterInfo details:not([hidden])+details:not([hidden]){border-top:1px solid var(--sep)}
+#hereWaterInfo summary{padding:10px var(--pad,16px);min-height:48px;cursor:pointer}
+#hereWaterInfo summary:focus-visible{outline-offset:-3px}
+#hereWaterInfo summary span{min-width:0}
+#hereWaterInfo strong,#hereWaterInfo small{display:block}
+#hereWaterInfo summary small,.water-info-detail{font-size:14px;color:var(--mut);font-weight:400;line-height:1.4}
+.water-info-detail{padding:0 var(--pad,16px) 10px;overflow-wrap:anywhere}
+.water-info-detail p{margin:0 0 4px}
+.water-info-detail a{display:inline-flex;align-items:center;min-height:44px}
+.water-info-detail .report-species{grid-template-columns:minmax(0,1fr) auto}
+.water-info-detail .report-species:last-child{border:0}
 #hereRules .card,#waterFish .card{padding:6px 16px}
 #hereRules .card ul{margin:8px 0;padding-left:18px}
 #waterFish .list .it:first-child{padding-top:12px}

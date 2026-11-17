@@ -81,7 +81,7 @@ async function syncShare(id) {
         if(row.remove&&!result.shared)localStorage.removeItem(sharePrefix+id);
         else if(result.shared&&!row.remove)shareWrite(id,{...row,pending:false,error:""});
         else throw new Error("Freigabestatus unklar.");
-        updateShareUI(id);refreshReports(true);return;
+        updateShareUI(id);refreshReports(true);invalidateHereCatches();return;
       }catch(error){
         const current=shareState(id);
         if(current?.revision!==row.revision||current.key!==row.key)continue;
@@ -174,10 +174,27 @@ async function idForReportHit(z) {
   const hash=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(JSON.stringify(parts)));
   return z.code+":"+Array.from(new Uint8Array(hash).slice(0,10),b=>b.toString(16).padStart(2,"0")).join("");
 }
-function rememberReportSection(hit,canton,name) {
+let reportSelectionVersion=0;
+function clearReportSection(){
+  ++reportSelectionVersion;
   store.set("publicWaterRef",null);
-  if(hit)void idForReportHit(hit).then(id=>{
-    if(id&&state.canton===canton&&selectedWaterName()===name)store.set("publicWaterRef",{id,canton,name});
+}
+function rememberReportSection(hit,canton,name) {
+  clearReportSection();
+  if(!hit)return;
+  const version=reportSelectionVersion;
+  const current=()=>version===reportSelectionVersion&&state.canton===canton&&selectedWaterName()===name;
+  void idForReportHit(hit).then(async id=>{
+    if(!current())return;
+    const ref={id,canton,name};
+    if(id){store.set("publicWaterRef",ref);renderHereWater();}
+    if(hit.t==="w"||hit.code==="JU"&&hit.t==="zone"){
+      const index=await loadHereStations();
+      if(!current())return;
+      const names=hit.t==="w"?(hit.water.names||[name]):[hit.water];
+      const station=stationOnGeometry(index.byName,names,hit.parts||[]);
+      if(station){store.set("publicWaterRef",{...ref,station:station.id});renderHereWater();}
+    }
   }).catch(()=>{});
 }
 
@@ -228,16 +245,21 @@ function refreshReports(force=false) {
     }finally{clearTimeout(timeout);if(reportAbort===controller)reportAbort=null;}
   },180);
 }
+function reportLength(row) {
+  if(row.min==null)return "";
+  return (row.min===row.max?row.min:row.min+"–"+row.max)+" cm";
+}
+function publicSpeciesRows(rows) {
+  return rows.map(row=>'<div class="report-species"><b>'+esc(row.species)+'</b><span>'+esc(row.count)+' × · '+
+    esc(reportLength(row)||"Länge nicht angegeben")+'</span><small>Letzter Fang am '+esc(fmtD(row.last))+'</small></div>').join("");
+}
 function publicSheet() {
   const z=mapSel;
   let body;
   if(z.error)body='<p class="sh-d">Fangmeldungen nicht erreichbar.</p><button type="button" data-sh="report-retry">Erneut laden</button>';
   else if(!z.rows)body='<p class="sh-d">Meldungen werden geladen …</p>';
   else if(!z.rows.length)body='<p class="sh-d">Für diesen Abschnitt wurden in diesem Zeitraum keine Fänge geteilt.</p>';
-  else body=z.rows.map(row=>{
-    const length=row.min==null?"Länge nicht angegeben":row.min===row.max?row.min+" cm":row.min+"–"+row.max+" cm";
-    return '<div class="report-species"><b>'+esc(row.species)+'</b><span>'+row.count+' × · '+esc(length)+'</span><small>Letzter Fang am '+esc(fmtD(row.last))+'</small></div>';
-  }).join("");
+  else body=publicSpeciesRows(z.rows);
   return {title:z.name,pills:'<span class="pill p-mut">Öffentliche Fänge · '+z.days+' Tage</span>',body,actions:""};
 }
 async function openPublicSection(id,name,position) {

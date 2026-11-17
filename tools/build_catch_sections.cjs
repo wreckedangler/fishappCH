@@ -3,7 +3,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
-const { createHash } = require("node:crypto");
+const key = require("./section-key.cjs");
 const root = path.join(__dirname, "..");
 const read = p => fs.readFileSync(path.join(root, p), "utf8");
 const json = p => JSON.parse(read(p));
@@ -20,9 +20,6 @@ function add(code, key, name, [lon,lat]) {
 function anchor(lines) {
   const line = lines.reduce((best, l) => l.length > best.length ? l : best, []);
   return line[Math.floor(line.length/2)] || [];
-}
-function key(parts) {
-  return createHash("sha256").update(JSON.stringify(parts)).digest("hex").slice(0,20);
 }
 for (const f of json("data/so-sections.json").features) {
   if (restriction(f.art)) continue;

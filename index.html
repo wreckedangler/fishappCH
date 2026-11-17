@@ -425,6 +425,19 @@ dialog[open]{animation:iosIn .22s var(--ease)}
 .ios-head+.card{margin-top:0}
 .ios-foot{margin:7px 16px 0;font-size:13px;line-height:1.38;color:var(--mut)}
 .ios-foot:empty{display:none}
+#hereWaterInfo[hidden],#hereWaterInfo details[hidden]{display:none}
+#hereWaterInfo details{margin:0;padding:0;background:transparent;border:0}
+#hereWaterInfo details:not([hidden])+details:not([hidden]){border-top:1px solid var(--sep)}
+#hereWaterInfo summary{padding:10px var(--pad,16px);min-height:48px;cursor:pointer}
+#hereWaterInfo summary:focus-visible{outline-offset:-3px}
+#hereWaterInfo summary span{min-width:0}
+#hereWaterInfo strong,#hereWaterInfo small{display:block}
+#hereWaterInfo summary small,.water-info-detail{font-size:14px;color:var(--mut);font-weight:400;line-height:1.4}
+.water-info-detail{padding:0 var(--pad,16px) 10px;overflow-wrap:anywhere}
+.water-info-detail p{margin:0 0 4px}
+.water-info-detail a{display:inline-flex;align-items:center;min-height:44px}
+.water-info-detail .report-species{grid-template-columns:minmax(0,1fr) auto}
+.water-info-detail .report-species:last-child{border:0}
 #hereRules .card,#waterFish .card{padding:6px 16px}
 #hereRules .card ul{margin:8px 0;padding-left:18px}
 #waterFish .list .it:first-child{padding-top:12px}
@@ -832,6 +845,10 @@ section.view>.ios-title+.seg{margin-top:14px!important}
 <section class="view on" id="v-hier">
   <h1 class="ios-title">Hier</h1>
   <div id="hereHero"></div>
+  <div id="hereWaterInfo" class="ios-group" hidden>
+    <details id="hereCatches" hidden><summary><span><strong>Zuletzt hier gefangen</strong><small></small></span></summary><div class="water-info-detail"></div></details>
+    <details id="hereHydro" hidden><summary><span><strong>Wasser am Abschnitt</strong><small></small></span></summary><div class="water-info-detail"></div></details>
+  </div>
   <div class="ios-group">
     <div id="hereAct"></div>
     <button type="button" class="ios-row hide" id="btnGeo"><span class="k">Standort aktivieren</span></button>
@@ -1376,6 +1393,7 @@ $("#picker").onclick=e=>{
   if(e.target===e.currentTarget&&(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom))e.currentTarget.close();
 };
 function renderHier(){
+  renderHereWater();
   const restoreWaterFocus=document.activeElement?.id==="heroCWTrigger";
 
   const det=isSO(),cm=isCM(),sec=currentSec(),x=hereSummary(),st=det||cm?secStatus(sec):[];
@@ -1460,9 +1478,10 @@ function rememberWater(c,id){
 function selectListedWater(c,id){
   const rev=c==="LU"&&id.startsWith("lu-")?id.slice(3):"",district=luDistricts?.[rev];
   function select(rule){
+    clearReportSection();
     state.canton=c;state.cantonAuto=false;state.secAuto=false;state.pin=null;
     if(c==="LU")state.luRev=rev;
-    if(c==="SO")state.sec=id;
+    if(c==="SO"){state.sec=id;delete state.xsel.SO;}
     else{
       state.cw[c]=rule;
       if(district)state.xsel.LU=luWaterName(district.name,rev);else delete state.xsel[c];
@@ -3432,7 +3451,7 @@ function sheetAction(a){
   }
   if(a==="close"){mapSel=null}
   else if(a==="rules"){mapSel=null;renderSheet();drawSel();show("hier");return}
-  if(a==="ok"&&mapSel){const id=mapSel.id;state.canton="SO";state.cantonAuto=false;state.sec=id;state.secAuto=false;state.pin=null;chosenMapHit=null;mapSel=null;save();renderSheet();toast(secById(id).name+" gewählt");onCantonChanged();
+  if(a==="ok"&&mapSel){const id=mapSel.id;clearReportSection();delete state.xsel.SO;state.canton="SO";state.cantonAuto=false;state.sec=id;state.secAuto=false;state.pin=null;chosenMapHit=null;mapSel=null;save();renderSheet();toast(secById(id).name+" gewählt");onCantonChanged();
     show("hier");return}
   if(a==="okx"&&mapSel){const c=mapSel.code,f=XGEO[c].feats[mapSel.id];if(!f||restrictedHit(mapSel))return;chooseWater(c,f.name,pickCW(c,[f.name,f.name.split(/[\s\d(]/)[0]],f.poly,f.cw));return}
   if(a==="okw"&&mapSel?.t==="w"&&!(mapSel.border?.length>1)&&!mapSel.water.ambiguous&&mapRight(mapSel)?.level!=="restriction"){
@@ -4558,7 +4577,7 @@ async function syncShare(id) {
         if(row.remove&&!result.shared)localStorage.removeItem(sharePrefix+id);
         else if(result.shared&&!row.remove)shareWrite(id,{...row,pending:false,error:""});
         else throw new Error("Freigabestatus unklar.");
-        updateShareUI(id);refreshReports(true);return;
+        updateShareUI(id);refreshReports(true);invalidateHereCatches();return;
       }catch(error){
         const current=shareState(id);
         if(current?.revision!==row.revision||current.key!==row.key)continue;
@@ -4651,10 +4670,27 @@ async function idForReportHit(z) {
   const hash=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(JSON.stringify(parts)));
   return z.code+":"+Array.from(new Uint8Array(hash).slice(0,10),b=>b.toString(16).padStart(2,"0")).join("");
 }
-function rememberReportSection(hit,canton,name) {
+let reportSelectionVersion=0;
+function clearReportSection(){
+  ++reportSelectionVersion;
   store.set("publicWaterRef",null);
-  if(hit)void idForReportHit(hit).then(id=>{
-    if(id&&state.canton===canton&&selectedWaterName()===name)store.set("publicWaterRef",{id,canton,name});
+}
+function rememberReportSection(hit,canton,name) {
+  clearReportSection();
+  if(!hit)return;
+  const version=reportSelectionVersion;
+  const current=()=>version===reportSelectionVersion&&state.canton===canton&&selectedWaterName()===name;
+  void idForReportHit(hit).then(async id=>{
+    if(!current())return;
+    const ref={id,canton,name};
+    if(id){store.set("publicWaterRef",ref);renderHereWater();}
+    if(hit.t==="w"||hit.code==="JU"&&hit.t==="zone"){
+      const index=await loadHereStations();
+      if(!current())return;
+      const names=hit.t==="w"?(hit.water.names||[name]):[hit.water];
+      const station=stationOnGeometry(index.byName,names,hit.parts||[]);
+      if(station){store.set("publicWaterRef",{...ref,station:station.id});renderHereWater();}
+    }
   }).catch(()=>{});
 }
 
@@ -4705,16 +4741,21 @@ function refreshReports(force=false) {
     }finally{clearTimeout(timeout);if(reportAbort===controller)reportAbort=null;}
   },180);
 }
+function reportLength(row) {
+  if(row.min==null)return "";
+  return (row.min===row.max?row.min:row.min+"–"+row.max)+" cm";
+}
+function publicSpeciesRows(rows) {
+  return rows.map(row=>'<div class="report-species"><b>'+esc(row.species)+'</b><span>'+esc(row.count)+' × · '+
+    esc(reportLength(row)||"Länge nicht angegeben")+'</span><small>Letzter Fang am '+esc(fmtD(row.last))+'</small></div>').join("");
+}
 function publicSheet() {
   const z=mapSel;
   let body;
   if(z.error)body='<p class="sh-d">Fangmeldungen nicht erreichbar.</p><button type="button" data-sh="report-retry">Erneut laden</button>';
   else if(!z.rows)body='<p class="sh-d">Meldungen werden geladen …</p>';
   else if(!z.rows.length)body='<p class="sh-d">Für diesen Abschnitt wurden in diesem Zeitraum keine Fänge geteilt.</p>';
-  else body=z.rows.map(row=>{
-    const length=row.min==null?"Länge nicht angegeben":row.min===row.max?row.min+" cm":row.min+"–"+row.max+" cm";
-    return '<div class="report-species"><b>'+esc(row.species)+'</b><span>'+row.count+' × · '+esc(length)+'</span><small>Letzter Fang am '+esc(fmtD(row.last))+'</small></div>';
-  }).join("");
+  else body=publicSpeciesRows(z.rows);
   return {title:z.name,pills:'<span class="pill p-mut">Öffentliche Fänge · '+z.days+' Tage</span>',body,actions:""};
 }
 async function openPublicSection(id,name,position) {
@@ -4731,6 +4772,202 @@ function openPublicMapFeature(f) {
   else void openPublicSection(f.properties.id,f.properties.name,f.geometry.coordinates);
 }
 addEventListener("focus",()=>refreshReports());
+
+/* BAFU observations and the geometry check shared with the station-index build. */
+function hydroName(name) {
+  const key=String(name||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/^(?:la |le |l['’])/,"").trim();
+  const aliases={"lac leman":"genfersee","leman":"genfersee","lac de neuchatel":"neuenburgersee",
+    "lac de morat":"murtensee","lac de bienne":"bielersee","aegerisee":"agerisee",
+    "bodensee, obersee":"bodensee-obersee","bodensee, untersee":"untersee",
+    "luganersee":"lago di lugano","sarine":"saane","birse":"birs","suze":"schuss"};
+  return aliases[key]||key;
+}
+function hydroNameIndex(stations) {
+  const byName=new Map();
+  for(const [id,station] of Object.entries(stations)){
+    const key=hydroName(station.water);
+    if(!byName.has(key))byName.set(key,[]);
+    byName.get(key).push([id,station]);
+  }
+  return byName;
+}
+function stationOnGeometry(byName,names,parts) {
+  const candidates=new Map();
+  for(const name of names)for(const [id,s] of byName.get(hydroName(name))||[])candidates.set(id,s);
+  let best=null;
+  for(const [id,s] of candidates){
+    for(const part of parts){
+      const geometries=(part.polygons||[]).map(rings=>[rings,true]);
+      if(!s.lake&&part.lines?.length)geometries.push([part.lines,false]);
+      for(const [paths,area] of geometries){
+        if(!paths.length)continue;
+        const {d}=FishSections.nearest(s.lat,s.lon,paths,area);
+        // Stations can be on the bank. Never search farther up/downstream for a substitute.
+        if(d<=100&&(!best||d<best.distance))best={id,distance:d};
+      }
+    }
+  }
+  return best;
+}
+
+const hydroMinute=60000,hydroFresh=90*hydroMinute;
+const hydroQuery=`query HereWater($station:String!, $from:AWSDateTime!, $main:String!) {
+  water { observations {
+    data_live(where:{stationNo:{_eq:$station},timestamp:{_gte:$from}}) {stationNo parameterName timestamp value}
+    unit:data_10min_mean(where:{station:{no:{_eq:$station}},parameterName:{_eq:$main}},limit:1) {unitSymbol}
+  } }
+}`;
+async function fetchHydro(id,station) {
+  const main=station.lake?"W":"Q";
+  const variables={station:id,main,from:new Date(Date.now()-5*60*hydroMinute).toISOString()};
+  const response=await fetch("https://data.bafu.admin.ch/api",{method:"POST",credentials:"omit",referrerPolicy:"no-referrer",
+    headers:{"Content-Type":"application/json"},body:JSON.stringify({query:hydroQuery,variables}),signal:AbortSignal.timeout(15000)});
+  if(!response.ok)throw Error("BAFU "+response.status);
+  const {data,errors}=await response.json(),observation=data?.water?.observations;
+  if(errors?.length||!Array.isArray(observation?.data_live))throw Error("BAFU-Messwerte fehlen");
+  return hydroReading(id,station.lake,observation.data_live,observation.unit?.[0]?.unitSymbol,Date.now());
+}
+function hydroReading(id,lake,rows,unit,now) {
+  const u=String(unit||"").toLowerCase().replace(/\s|\./g,"");
+  let factor=1;
+  if(lake&&u!=="müm")return null;
+  if(!lake&&!["m3/s","m³/s"].includes(u)){
+    if(!["l/s","l/sec"].includes(u))return null;
+    factor=.001;
+  }
+  const values=rows.filter(r=>r.stationNo===id&&Number.isFinite(r.value)).map(r=>({...r,time:Date.parse(r.timestamp)}))
+    .filter(r=>r.time<=now&&r.time>=now-5*60*hydroMinute).sort((a,b)=>b.time-a.time);
+  const main=values.filter(r=>r.parameterName===(lake?"W":"Q")&&(lake||r.value>=0));
+  const current=main[0];
+  if(!current||now-current.time>hydroFresh)return null;
+  const temp=values.find(r=>r.parameterName==="WT"&&now-r.time<=hydroFresh&&Math.abs(current.time-r.time)<=20*hydroMinute);
+  const target=current.time-3*60*hydroMinute;
+  const prior=main.reduce((closest,row)=>!closest||Math.abs(row.time-target)<Math.abs(closest.time-target)?row:closest,null);
+  let trend="";
+  if(!lake&&prior&&Math.abs(prior.time-target)<=15*hydroMinute){
+    const delta=(current.value-prior.value)*factor;
+    const tolerance=Math.max(.01,Math.abs(prior.value*factor)*.03);
+    trend=Math.abs(delta)<=tolerance?"stabil":delta>0?"steigend":"fallend";
+  }
+  return {value:current.value*factor,time:current.time,temperature:temp?.value??null,tempTime:temp?.time??null,trend};
+}
+
+let hereStationIndex=null;
+function loadHereStations(){
+  if(!hereStationIndex)hereStationIndex=fetch("./data/here-stations.json",{signal:AbortSignal.timeout(10000)})
+    .then(response=>{
+      if(!response.ok)throw Error("Stationsverzeichnis "+response.status);
+      return response.json();
+    }).then(index=>({...index,byName:hydroNameIndex(index.stations)}))
+    .catch(error=>{hereStationIndex=null;throw error;});
+  return hereStationIndex;
+}
+const hereSwissDay=new Intl.DateTimeFormat("sv-SE",{timeZone:"Europe/Zurich"});
+const hereSwissTime=new Intl.DateTimeFormat("de-CH",{timeZone:"Europe/Zurich",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+const hereFlowNumber=new Intl.NumberFormat("de-CH",{maximumSignificantDigits:3});
+const hereLevelNumber=new Intl.NumberFormat("de-CH",{minimumFractionDigits:2,maximumFractionDigits:2});
+const hereTempNumber=new Intl.NumberFormat("de-CH",{maximumFractionDigits:1});
+function hereSelection(){
+  if(unknownWater())return null;
+  if(isSO()){
+    const sec=currentSec();
+    if(!sec.id||sec.kind==="schon"||state.secAuto&&state.here?.alts?.length&&!state.here.pinned)return null;
+    return {section:"SO:"+sec.id};
+  }
+  // Outside SO automatic canton detection alone does not identify a stretch of water.
+  if(state.cantonAuto)return null;
+  const name=selectedWaterName(),c=state.canton,ref=store.get("publicWaterRef",null);
+  if(name){
+    if(ref?.canton===c&&ref.name===name)return {section:ref.id,station:ref.station};
+    if(c==="LU"&&state.luRev)return {section:"LU:R"+state.luRev};
+    return null;
+  }
+  const rule=cwOf(c);
+  return rule?{picker:c+":"+rule}:null;
+}
+function hereCatchContent(rows){
+  if(!rows?.length)return null;
+  const count=rows.reduce((n,r)=>n+r.count,0),first=rows[0],length=reportLength(first);
+  const species=first.species.replace(" (Flussbarsch)","");
+  const others=rows.length>1?" + "+(rows.length-1)+(rows.length===2?" Art":" Arten"):"";
+  return {text:"7 Tage · "+count+(count===1?" Fang":" Fänge")+" · "+species+(length?" "+length:"")+others,
+    body:"<p>Öffentlich geteilt an diesem Gewässerabschnitt</p>"+publicSpeciesRows(rows)};
+}
+function hereHydroContent(id,station,reading){
+  if(!reading||Date.now()-reading.time>hydroFresh)return null;
+  const {value,trend,time,temperature,tempTime}=reading;
+  const title=station.lake?"Seepegel":"Abfluss";
+  const parts=[station.lake?hereLevelNumber.format(value)+" m ü. M.":hereFlowNumber.format(value)+" m³/s"];
+  if(trend)parts.push(trend);
+  if(temperature!=null)parts.push(hereTempNumber.format(temperature)+" °C");
+  let body="<p><strong>"+esc(station.water+" – "+station.place)+"</strong></p><p>Messung am "+esc(hereSwissTime.format(time))+" Uhr</p>";
+  if(tempTime!=null&&tempTime!==time)body+="<p>Wassertemperatur gemessen am "+esc(hereSwissTime.format(tempTime))+" Uhr</p>";
+  if(trend)body+="<p>Vergleich mit dem Abfluss vor rund drei Stunden. Bis 3 % Unterschied (mindestens 0.01 m³/s) gilt als stabil.</p>";
+  body+='<a href="https://www.hydrodaten.admin.ch/de/seen-und-fluesse/stationen-und-daten/'+encodeURIComponent(id)+'" target="_blank" rel="noopener noreferrer">Messstation beim BAFU öffnen</a>';
+  return {title,text:parts.join(" · "),body,expires:time+hydroFresh};
+}
+function paintHereRow(row,content){
+  row.hidden=!content;
+  if(content){
+    if(content.title)row.querySelector("strong").textContent=content.title;
+    const small=row.querySelector("summary small");
+    if(small.textContent!==content.text)small.textContent=content.text;
+    if(row.hereBody!==content.body){
+      row.querySelector(".water-info-detail").innerHTML=content.body;
+      row.hereBody=content.body;
+    }
+  }else row.open=false;
+  $("#hereWaterInfo").hidden=$("#hereCatches").hidden&&$("#hereHydro").hidden;
+}
+function updateHereRow(row,key,ttl,read){
+  if(row.hereKey!==key){
+    row.hereKey=key;row.hereTicket=null;row.hereDue=0;row.hereExpires=0;
+    paintHereRow(row,null);
+  }
+  if(row.hereExpires&&row.hereExpires<=Date.now()&&!row.hidden)paintHereRow(row,null);
+  if(!key||row.hereTicket||Date.now()<row.hereDue)return;
+  const ticket={};row.hereTicket=ticket;
+  Promise.resolve().then(read).then(content=>{
+    if(row.hereTicket!==ticket)return;
+    paintHereRow(row,content);
+    row.hereExpires=content?.expires||0;
+    row.hereDue=Math.min(Date.now()+ttl,content?.expires??Infinity);
+  }).catch(()=>{
+    if(row.hereTicket!==ticket)return;
+    paintHereRow(row,null);
+    row.hereDue=Date.now()+30000;
+  }).finally(()=>{if(row.hereTicket===ticket)row.hereTicket=null;});
+}
+function renderHereWater(){
+  const catches=$("#hereCatches"),hydro=$("#hereHydro");
+  const visible=!document.hidden&&navigator.onLine&&route()==="hier"&&$("#v-hier").classList.contains("on");
+  const choice=visible&&hereSelection();
+  const section=choice?.section,picker=choice?.picker,station=choice?.station;
+  const reportKey=(section||picker||"");
+  updateHereRow(catches,reportKey&&reportKey+"/"+hereSwissDay.format(new Date()),60000,async()=>{
+    const id=section||(await loadHereStations()).pickerSections[picker];
+    if(!id)return null;
+    const data=await reportRequest("section?"+new URLSearchParams({id,days:7}));
+    return hereCatchContent(data.species);
+  });
+  updateHereRow(hydro,station||section||picker||"",10*hydroMinute,async()=>{
+    const index=await loadHereStations();
+    const id=station||(section?index.sections[section]:index.rules[picker]);
+    if(!id||!index.stations[id])return null;
+    return hereHydroContent(id,index.stations[id],await fetchHydro(id,index.stations[id]));
+  });
+}
+function invalidateHereCatches(){
+  const row=$("#hereCatches");
+  row.hereKey=null;
+  renderHereWater();
+}
+addEventListener("online",renderHereWater);
+addEventListener("offline",renderHereWater);
+addEventListener("pageshow",renderHereWater);
+document.addEventListener("visibilitychange",renderHereWater);
+setInterval(()=>{if(!document.hidden&&route()==="hier")renderHereWater();},60000);
 
 /* ================= UPDATES (Regeln/Hinweise) ================= */
 function applyData(j){
@@ -4785,7 +5022,7 @@ $("#hereHero").onchange=e=>{if(e.target.id!=="heroCW")return;
 $("#selCanton").onchange=e=>{state.canton=e.target.value;state.cantonAuto=false;save();toast("Kanton manuell gewählt – automatische Erkennung aus");onCantonChanged()};
 $("#cbCantonAuto").onchange=e=>{setAuto(e.target.checked);toast(e.target.checked?"Standort bestimmt Kanton und Gewässer":"Automatik aus – du wählst selbst")};
 $("#hereAct").onclick=e=>{const b=e.target.closest("[data-act]");if(!b)return;if(b.dataset.act==="manual"){openWater();return}if(b.dataset.act==="map"){requestedLURev=state.canton==="LU"&&!state.cantonAuto?state.luRev:"";show("karte")}else{setAuto(true);toast("Standort bestimmt Kanton und Gewässer")}};
-$("#selSec").onchange=e=>{state.sec=e.target.value;state.secAuto=false;state.cantonAuto=false;save();renderAll()};
+$("#selSec").onchange=e=>{clearReportSection();delete state.xsel.SO;state.sec=e.target.value;state.secAuto=false;state.cantonAuto=false;save();renderAll()};
 $("#btnGeo").onclick=()=>{state.geoErr=null;startGeo();renderHier()};
 function recentSpecies(){const recent=[...new Set(state.log.map(f=>f.art))].filter(sp=>SPECIES.includes(sp)).slice(0,3);$("#spChips").innerHTML=recent.map(s=>`<button type="button" data-sp="${esc(s)}">${esc(s.replace(" (Flussbarsch)",""))}</button>`).join("")}
 $("#spChips").onclick=e=>{const b=e.target.closest("[data-sp]");if(b)setSpecies(b.dataset.sp)};

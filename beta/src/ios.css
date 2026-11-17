@@ -234,3 +234,102 @@ dialog{border-radius:30px;background:color-mix(in srgb,var(--sf) 88%,transparent
 #mapUI .mui-search.open{background:var(--sf)}
 #mapUI .mui-zoom{border-radius:24px}
 #v-karte #mapSheet{border-radius:28px 28px 0 0;background:color-mix(in srgb,var(--sf) 94%,transparent);-webkit-backdrop-filter:saturate(180%) blur(30px);backdrop-filter:saturate(180%) blur(30px);box-shadow:0 -10px 34px -8px rgba(0,0,0,.22),var(--glass-edge)}
+
+/* ================= Durchgängige Einzelelemente ================= */
+/* Links ohne Unterstrich */
+a{color:var(--acc);text-decoration:none;font-weight:500}
+a:active{opacity:.6}
+.ios-foot a,.small a{font-weight:400}
+/* Grosser Titel pro Ansicht */
+.ios-title{margin:6px 4px 12px;font-size:34px;font-weight:700;letter-spacing:-.035em;line-height:1.1}
+.search-block{margin:0}
+.search-block input[type=search]{background-color:var(--fill);padding-left:38px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238e8e93' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:12px center;background-size:16px}
+.search-block .chips{margin-top:12px!important}
+.search-block p{margin:10px 4px 0!important}
+#artList{margin-top:var(--gap)}
+/* Aufklappbare Karten: Kopfzeile wie eine Listenzeile */
+details.card{padding:0}
+details.card>summary{min-height:52px;margin:0;padding:14px var(--pad);font-size:17px;font-weight:600}
+details.card[open]>summary{box-shadow:inset 0 -.5px 0 var(--sep)}
+details.card>:not(summary){margin-left:var(--pad);margin-right:var(--pad)}
+details.card>:last-child{margin-bottom:var(--pad)}
+details.card h2{margin-top:20px}
+#bookMetrics{margin-top:14px}
+/* Fangbuch */
+.book-overview h1{margin:0 0 14px}
+.book-total{margin-top:16px}
+.book-total strong{font-weight:700;letter-spacing:-.04em}
+.book-total span{font-weight:600;color:var(--mut)}
+#logList .it{padding:14px 0}
+#logList [data-add-photo],#logList .entry-menu>summary{min-height:32px;padding:5px 12px;font-size:14px;font-weight:600;border-radius:999px;background:var(--fill);color:var(--tx);border:0}
+#logList [data-add-photo]{color:var(--acc);background:var(--acc-soft)}
+#logList .entry-menu>summary{list-style:none;cursor:pointer;margin:0}
+#logList .entry-menu[open]{flex:1 0 100%;display:flex;flex-direction:column;margin-top:10px;border-radius:14px;background:var(--fill);overflow:hidden}
+#logList .entry-menu[open]>summary{align-self:flex-end;margin:8px 8px 4px;background:var(--fill2)}
+#logList .entry-menu>button{min-height:46px;margin:0;padding:10px 16px;border-radius:0;background:none;color:var(--acc);font-weight:500;text-align:left;box-shadow:inset 0 .5px 0 var(--sep)}
+#logList .entry-menu>button.del{color:var(--bad)}
+#logList .book-photo{border-radius:12px}
+.data-safe{margin:0}
+@media(min-width:900px){.data-safe{grid-column:2}}
+/* Fang: Gewässerzeile, Längenwahl */
+.water-current{min-height:50px;margin:0;padding:12px var(--pad);border-radius:var(--r);background:var(--sf);color:var(--tx);font-weight:400;box-shadow:var(--shadow)}
+.water-current span{font-weight:500}
+.lenrow{gap:10px}
+.lenrow button{flex:0 0 48px;width:48px;height:48px;min-height:0;border-radius:50%;padding:0;font-size:24px;font-weight:400}
+.lenrow input{font-size:26px;font-weight:600;letter-spacing:-.02em}
+#btnFishInfo{min-height:0;padding:6px 0;background:none;font-size:15px;font-weight:500}
+/* Dialogköpfe einheitlich: Titel links, kleiner Schliessen-Knopf rechts */
+.picker-head,#legendDialog header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 14px;padding:0;background:none;position:static}
+.picker-head h2,#legendDialog header h2{margin:0;font-size:22px;font-weight:700;letter-spacing:-.025em}
+.picker-head button,#legendDialog header button,#mapSearchDialog header button{min-height:34px;padding:5px 14px;font-size:15px;font-weight:600;background:var(--fill);color:var(--tx)}
+#legendDialog header{position:sticky;top:-22px;margin:-22px -20px 12px;padding:16px 20px 10px;background:color-mix(in srgb,var(--sf) 92%,transparent);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+dialog label{margin:16px 0 6px}
+dialog .row{gap:10px}
+#dlg .row{margin-top:20px!important}
+/* Auswahllisten in Dialogen: iOS-Liste mit Häkchen */
+#waterList,#pickerList,#mapResults{margin-top:14px;border-radius:16px;background:var(--fill);overflow:auto}
+#waterList h3{margin:0;padding:14px 16px 6px;font-size:13px;font-weight:400;color:var(--mut);background:var(--sf)}
+#waterList button,#pickerList button,#mapResults button{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;width:100%;min-height:48px;margin:0;padding:11px 44px 11px 16px;border:0;border-radius:0;background:none;color:var(--tx);font-size:17px;font-weight:400;text-align:left;position:relative;box-shadow:inset 0 -.5px 0 var(--sep)}
+#waterList button:last-child,#pickerList button:last-child{box-shadow:none}
+#waterList button:active,#pickerList button:active,#mapResults button:active{background:var(--fill2);transform:none;filter:none}
+#waterList button small,#mapResults button small{display:block;margin-top:2px;font-size:13px;color:var(--mut)}
+#pickerList button[aria-pressed=true]{color:var(--acc);background:none;box-shadow:inset 0 -.5px 0 var(--sep);font-weight:600}
+#pickerList button[aria-pressed=true]::after{content:"";position:absolute;right:18px;top:50%;width:6px;height:12px;margin-top:-8px;border-right:2.5px solid var(--acc);border-bottom:2.5px solid var(--acc);transform:rotate(45deg)}
+/* Legende */
+#legendDialog .symbols{padding:12px 16px;border-radius:16px;background:var(--fill);line-height:2}
+#legendDialog p{font-size:15px;color:var(--mut)}
+#legendDialog h3{font-size:13px;font-weight:400;color:var(--mut);margin:22px 0 6px}
+#legendDialog details{margin-top:16px;border-radius:16px;background:var(--fill);padding:0 16px}
+#legendDialog details>summary{min-height:48px;margin:0}
+/* Kartenblatt */
+#mapSheet .sh-a button,#mapSheet a.btn{border-radius:999px;min-height:48px}
+#mapSheet .sh-district{background:var(--fill);color:var(--acc)}
+:is(.sh-x,.sh-fit){background:var(--fill);color:var(--mut);border-radius:50%}
+#mapSheet .sh-more{border-top:0;margin-top:14px;border-radius:14px;background:var(--fill);padding:0 14px}
+#mapSheet .sh-more summary{color:var(--tx);font-weight:500;font-size:15px}
+#mapSheet .sh-rights{margin:12px 0;padding:12px 14px;border-radius:14px;background:var(--fill)}
+#mapSheet .sh-rights a{min-height:36px}
+#mapSheet .sh-warn{border-radius:12px}
+/* Uferstellen-Panel */
+#shorePanel{border-top:0;border-radius:24px 24px 0 0;padding:16px var(--pad) 18px;background:color-mix(in srgb,var(--sf) 94%,transparent);-webkit-backdrop-filter:saturate(180%) blur(30px);backdrop-filter:saturate(180%) blur(30px);box-shadow:0 -10px 30px -10px rgba(0,0,0,.25)}
+#shorePanel .shore-head strong{font-size:17px;letter-spacing:-.02em}
+#shorePanel .shore-head button{min-height:34px;padding:5px 14px;font-size:15px;background:var(--fill);color:var(--tx)}
+.shore-options button{min-width:40px;min-height:40px;padding:0 12px;border-radius:999px;background:var(--fill);color:var(--tx);font-weight:600}
+#shorePanel dl{padding:10px 14px;border-radius:14px;background:var(--fill)}
+/* Suchtreffer unter dem Suchfeld */
+#mapUI .mui-results{background:color-mix(in srgb,var(--sf) 96%,transparent);-webkit-backdrop-filter:blur(30px);backdrop-filter:blur(30px);border-top:.5px solid var(--sep);box-shadow:var(--float)}
+#mapUI .msr-item{box-shadow:inset 0 -.5px 0 var(--sep);font-weight:400}
+#mapUI .msr-item span{font-size:16px}
+/* Langdruck-Menü, Platzierhinweis, Hinweis-Pille */
+#v-karte .press-card{background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(24px);backdrop-filter:saturate(180%) blur(24px);box-shadow:var(--float),var(--glass-edge);border-radius:22px;padding:6px}
+#v-karte .press-card button{border-radius:16px;background:var(--fill)}
+#v-karte .press-card .press-x{background:none}
+#v-karte #placeBar{border-radius:999px;padding:8px 8px 8px 18px;background:rgba(28,28,30,.82);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);box-shadow:var(--float)}
+#v-karte #placeBar button{border-radius:999px;min-height:36px}
+#v-karte #mapHint{background:rgba(28,28,30,.8);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);font-weight:500;box-shadow:var(--float)}
+#mapUI .mui-credit{border-radius:999px;background:var(--glass);color:var(--tx);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+/* Spot-Dialog */
+.spot-type span{border:0;background:var(--fill);border-radius:999px}
+.spot-type input:checked+span{background:color-mix(in srgb,var(--c) 18%,transparent);box-shadow:inset 0 0 0 1.5px var(--c)}
+/* Sitzung im Fang */
+#sessBox .timer{font-size:22px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums}

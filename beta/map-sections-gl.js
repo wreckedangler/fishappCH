@@ -297,11 +297,16 @@ const FishSections = (() => {
       }));
     }
     async wholeZone(hit) {
-      if(!hit.group)return hit.parts;
       if(this.selectedParts.has(hit.zoneId))return this.selectedParts.get(hit.zoneId);
-      const {file,id}=hit.group,data=await this.selectionFile(file);
-      const parts=data[id].map(([buried,lines,areas])=>({symbol:symbol(hit.kind,!!buried),footprints:hit.code==="AG",
-        lines:lines.map(decode),polygons:areas.map(rings=>rings.map(decode))}));
+      let parts;
+      if(hit.wholeDistrict){
+        parts=await this.district(hit);
+      }else{
+        if(!hit.group)return hit.parts;
+        const {file,id}=hit.group,data=await this.selectionFile(file);
+        parts=data[id].map(([buried,lines,areas])=>({symbol:symbol(hit.kind,!!buried),footprints:hit.code==="AG",
+          lines:lines.map(decode),polygons:areas.map(rings=>rings.map(decode))}));
+      }
       this.selectedParts.set(hit.zoneId,parts);
       if(this.selectedParts.size>20)this.selectedParts.delete(this.selectedParts.keys().next().value);
       return parts;
@@ -336,10 +341,11 @@ const FishSections = (() => {
       for(const hit of found.values()){
         const catalogue=await indexes.get(hit.code);
         hit.group=catalogue?.get(hit.id);
-        hit.zoneId=hit.group?hit.code+"/zone/"+hit.group.id:hit.id;
-        hit.fullParts=this.selectedParts.get(hit.zoneId);
         hit.hasDistrict=/^\d+$/.test(hit.rev)&&!!index[hit.code].districts?.[districtShard(hit.code,hit.rev)];
-        hit.partial=!catalogue;
+        hit.wholeDistrict=hit.code==="LU"&&hit.kind==="Fischereirevier"&&hit.hasDistrict;
+        hit.zoneId=hit.wholeDistrict?"LU/revier/"+hit.rev:hit.group?hit.code+"/zone/"+hit.group.id:hit.id;
+        hit.fullParts=this.selectedParts.get(hit.zoneId);
+        hit.partial=!catalogue&&!hit.wholeDistrict;
       }
       return [...found.values()];
     }

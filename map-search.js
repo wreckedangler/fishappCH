@@ -30,6 +30,23 @@ const FishMapSearch=(()=>{
       return {name,lat:a.lat,lon:a.lon,sub:"swisstopo",zoom:a.origin==="kantone"?10:14};
     }).filter(p=>p.name&&Number.isFinite(p.lat)&&Number.isFinite(p.lon));
   }
+  async function localSearch(layer,localRows,query,center,loadLUDistricts,preview){
+    if(loadLUDistricts&&(isLUList(query)||/\b(lu|luzern)\b/i.test(query)&&/\d/.test(query))){
+      const districts=await loadLUDistricts(true);
+      if(!districts)throw Error("Luzerner Revierverzeichnis");
+      const rows=Object.entries(districts).map(([rev,d])=>[d.name,rev,"Fischereirevier",d.lat,d.lon,"LU",d.registerName]);
+      return {zones:rank(rows,query,center),partial:false};
+    }
+    let rows=localRows();
+    preview(rank(rows,query,center));
+    const index=await layer.manifest();
+    const loaded=await Promise.allSettled(Object.entries(index).map(async([code,entry])=>{
+      const [rows,districts]=await Promise.all([layer.searchIndex(code,entry),code==="LU"?loadLUDistricts?.():null]);
+      return rows.map(row=>[...row,code,row[2]==="Fischereirevier"?districts?.[row[1]]?.registerName:""]);
+    }));
+    for(const r of loaded)if(r.status==="fulfilled")rows=rows.concat(r.value);
+    return {zones:rank(rows,query,center),partial:loaded.some(r=>r.status==="rejected")};
+  }
   function bind(layer,map,localRows,select,viewIncludesLU,loadLUDistricts){
     const dialog=document.getElementById("mapSearchDialog"),input=document.getElementById("mapQuery");
     const results=document.getElementById("mapResults"),status=document.getElementById("mapSearchStatus"),directory=document.getElementById("mapLUDirectory");
@@ -41,8 +58,8 @@ const FishMapSearch=(()=>{
       stop();
       const query=input.value.trim(),id=serial,browse=isLUList(query);
       results.replaceChildren();
-      directory.hidden=browse||!(viewIncludesLU()||/\b(lu|luzern|luzerner)\b/i.test(query));
-      if(query.length<2){status.textContent=directory.hidden?"Mindestens zwei Zeichen eingeben.":"";return}
+      if(directory)directory.hidden=browse||!(viewIncludesLU?.()||/\b(lu|luzern|luzerner)\b/i.test(query));
+      if(query.length<2){status.textContent=!directory||directory.hidden?"Mindestens zwei Zeichen eingeben.":"";return}
       status.textContent="Suche läuft …";
       timer=setTimeout(async()=>{
         const controller=new AbortController();request=controller;
@@ -67,23 +84,8 @@ const FishMapSearch=(()=>{
             (zones.length||locations.length?"":"Keine Treffer für «"+query+"».");
         }
         const local=async()=>{
-          if(browse||/\b(lu|luzern)\b/i.test(query)&&/\d/.test(query)){
-            const districts=await loadLUDistricts(true);
-            if(!districts)throw Error("Luzerner Revierverzeichnis");
-            const rows=Object.entries(districts).map(([rev,d])=>[d.name,rev,"Fischereirevier",d.lat,d.lon,"LU",d.registerName]);
-            zones=rank(rows,query,map.getCenter());
-            return;
-          }
-          let rows=localRows();
-          zones=rank(rows,query,map.getCenter());
-          const index=await layer.manifest();
-          const loaded=await Promise.allSettled(Object.entries(index).map(async([code,entry])=>{
-            const [rows,districts]=await Promise.all([layer.searchIndex(code,entry),code==="LU"?loadLUDistricts():null]);
-            return rows.map(row=>[...row,code,row[2]==="Fischereirevier"?districts?.[row[1]]?.registerName:""]);
-          }));
-          for(const r of loaded)if(r.status==="fulfilled")rows=rows.concat(r.value);
-          zones=rank(rows,query,map.getCenter());
-          if(loaded.some(r=>r.status==="rejected"))throw Error("Teilindex");
+          const result=await localSearch(layer,localRows,query,map.getCenter(),loadLUDistricts,items=>{zones=items});
+          zones=result.zones;if(result.partial)throw Error("Teilindex");
         };
         const remote=async()=>{
           if(!browse&&!/\brevier\s*\d+|\p{L}\s+\d{1,3}$/iu.test(query))locations=await places(query,controller.signal);
@@ -94,7 +96,7 @@ const FishMapSearch=(()=>{
       },180);
     }
     dialog.addEventListener("close",stop);
-    directory.onclick=()=>{input.value="Luzerner Reviere";status.tabIndex=-1;status.focus();update()};
+    if(directory)directory.onclick=()=>{input.value="Luzerner Reviere";status.tabIndex=-1;status.focus();update()};
     dialog.addEventListener("click",e=>{
       if(e.target!==dialog)return;
       const r=dialog.getBoundingClientRect();
@@ -104,5 +106,5 @@ const FishMapSearch=(()=>{
     input.addEventListener("keydown",e=>{if(e.key==="Enter"){const first=results.querySelector("button");if(first){e.preventDefault();first.click()}}});
     return ()=>{dialog.showModal();input.focus();input.select();update()};
   }
-  return {bind,rank};
+  return {bind,rank,isLUList,localSearch};
 })();

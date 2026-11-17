@@ -2129,6 +2129,51 @@ function renderArten(){
     <button type="button" class="full" data-catch="${esc(n)}" style="margin-top:10px">${f.koeder?"Fang erfassen":"Regeln ansehen"}</button></div></details>`}).join(""):`<p class="mut">Keine Art gefunden.</p>`;
 }
 
+function mapRight(hit){
+  const feature=hit.t==="x"?xg(hit.code).feats[hit.id]:hit.source;
+  if(hit.t==="x"&&!feature)return null;
+  const kind=feature?.art||hit.kind||"";
+  let closed="";
+  if(hit.t==="x"&&westMark(hit.code,feature)==="closed")
+    closed=fisheryPeriod(hit.code,feature,mapTime)==="night"?"Nächtliche Fangpause":"Fangzeit geschlossen";
+  else if(hit.t==="zone"&&sectionMark(hit.code,kind,hit.buried,hit.rule)==="closed"||
+          hit.t==="sec"&&feature&&soSymbol(feature)==="closed")closed="Fangzeit geschlossen";
+  const overlap=mapHits.some(other=>other!==hit&&
+    (restrictedHit(other)||/privat/i.test(other.kind)||other.code!==hit.code)&&Math.abs(other.d-hit.d)<=8);
+  return FishRights.resolve(hit,feature,{date:mapDate,closed,condition:FishSections.localCondition(kind),
+    protected:hit.code==="AI"&&/schon|verbot/i.test(hit.name),incomplete:!!hitWarning,overlap,luListed:hit.code==="LU"&&luDistricts?.[hit.rev]?.listed===true});
+}
+const luMeasure=new Intl.NumberFormat("de-CH",{minimumFractionDigits:1,maximumFractionDigits:1,useGrouping:true});
+function luMeasurements(rev){
+  const d=luDistricts?.[rev];
+  if(!d)return luDistrictError?'<button type="button" data-sh="lu-retry">Revierangaben erneut laden</button>':"";
+  const item=(label,value,unit)=>'<div><dt>'+label+'</dt><dd>'+luMeasure.format(value)+' '+unit+'</dd></div>';
+  return '<dl class="sh-measures">'+(d.lines?item(d.lines>1?"Gesamtlänge · "+d.lines+" Abschnitte":"Länge",d.metres,"m"):"")+
+    (d.areas?item(d.areas>1?"Gesamtfläche · "+d.areas+" Teilflächen":"Fläche",d.m2,"m²"):"")+'</dl>';
+}
+function chooseWater(c,name,cw,rev=""){
+  chosenMapHit=mapSel?Object.assign(mapSel,{choiceName:name}):null;
+  if(c!==state.canton)state.canton=c;
+  state.cantonAuto=false;state.secAuto=false;
+  if(cw)state.cw=Object.assign({},state.cw,{[c]:cw});
+  else if(hasCM(c))state.cw=Object.assign({},state.cw,{[c]:""});
+  state.xsel=Object.assign({},state.xsel,{[c]:name});
+  if(c==="LU"){state.luRev=rev;if(rev)rememberWater(c,"lu-"+rev)}
+  save();mapSel=null;renderSheet();drawSel();
+  toast(hasCM(c)&&!cw?name+" gewählt – Regelgruppe unter «Hier» wählen":name+" gewählt");
+  onCantonChanged();
+  show("hier");
+}
+let requestedLURev="";
+async function focusRequestedLU(){
+  const rev=requestedLURev;if(!rev)return;
+  requestedLURev="";
+  const seq=tapSeq,district=(luDistricts||await loadLUDistricts(true))?.[rev];
+  if(state.canton!=="LU"||state.luRev!==rev||tapSeq!==seq||!$("#v-karte").classList.contains("on"))return;
+  if(!district){toast("Die Position des Reviers konnte nicht geladen werden.");return}
+  await focusMapPlace({...district,rev,code:"LU",kind:"Fischereirevier",zone:true},true);
+}
+
 /* ================= KARTE ================= */
 let map=null,gLayer=null,meMarker=null,meCircle=null,catchLayer=null,follow=false;
 const swissCalendar=new Intl.DateTimeFormat("sv-SE",{timeZone:"Europe/Zurich",year:"numeric",month:"2-digit",day:"2-digit"});
@@ -2502,28 +2547,6 @@ function updateHint(){
   el.textContent=t;el.classList.toggle("on",!!t);
 }
 const XICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
-function mapRight(hit){
-  const feature=hit.t==="x"?xg(hit.code).feats[hit.id]:hit.source;
-  if(hit.t==="x"&&!feature)return null;
-  const kind=feature?.art||hit.kind||"";
-  let closed="";
-  if(hit.t==="x"&&westMark(hit.code,feature)==="closed")
-    closed=fisheryPeriod(hit.code,feature,mapTime)==="night"?"Nächtliche Fangpause":"Fangzeit geschlossen";
-  else if(hit.t==="zone"&&sectionMark(hit.code,kind,hit.buried,hit.rule)==="closed"||
-          hit.t==="sec"&&feature&&soSymbol(feature)==="closed")closed="Fangzeit geschlossen";
-  const overlap=mapHits.some(other=>other!==hit&&
-    (restrictedHit(other)||/privat/i.test(other.kind)||other.code!==hit.code)&&Math.abs(other.d-hit.d)<=8);
-  return FishRights.resolve(hit,feature,{date:mapDate,closed,condition:FishSections.localCondition(kind),
-    protected:hit.code==="AI"&&/schon|verbot/i.test(hit.name),incomplete:!!hitWarning,overlap,luListed:hit.code==="LU"&&luDistricts?.[hit.rev]?.listed===true});
-}
-const luMeasure=new Intl.NumberFormat("de-CH",{minimumFractionDigits:1,maximumFractionDigits:1,useGrouping:true});
-function luMeasurements(rev){
-  const d=luDistricts?.[rev];
-  if(!d)return luDistrictError?'<button type="button" data-sh="lu-retry">Revierangaben erneut laden</button>':"";
-  const item=(label,value,unit)=>'<div><dt>'+label+'</dt><dd>'+luMeasure.format(value)+' '+unit+'</dd></div>';
-  return '<dl class="sh-measures">'+(d.lines?item(d.lines>1?"Gesamtlänge · "+d.lines+" Abschnitte":"Länge",d.metres,"m"):"")+
-    (d.areas?item(d.areas>1?"Gesamtfläche · "+d.areas+" Teilflächen":"Fläche",d.m2,"m²"):"")+'</dl>';
-}
 function rightsPanel(right){
   if(!right)return "";
   return '<section class="sh-rights" aria-label="Fischereiberechtigung">'+(right.title?'<strong>'+esc(right.title)+'</strong>':"")+'<p>'+esc(right.body)+
@@ -2610,19 +2633,6 @@ function pickCW(c,names,lake,pref){
   const R=RULES[c];if(!R||!R.w)return"";
   if(pref&&R.w.some(w=>w[0]===pref))return pref;
   const m=matchW(c,{names,lake});return m.sug||(m.cand.length===1?m.cand[0]:"");
-}
-function chooseWater(c,name,cw,rev=""){
-  chosenMapHit=mapSel?Object.assign(mapSel,{choiceName:name}):null;
-  if(c!==state.canton)state.canton=c;
-  state.cantonAuto=false;state.secAuto=false;
-  if(cw)state.cw=Object.assign({},state.cw,{[c]:cw});
-  else if(hasCM(c))state.cw=Object.assign({},state.cw,{[c]:""});
-  state.xsel=Object.assign({},state.xsel,{[c]:name});
-  if(c==="LU"){state.luRev=rev;if(rev)rememberWater(c,"lu-"+rev)}
-  save();mapSel=null;renderSheet();drawSel();
-  toast(hasCM(c)&&!cw?name+" gewählt – Regelgruppe unter «Hier» wählen":name+" gewählt");
-  onCantonChanged();
-  show("hier");
 }
 document.addEventListener("keydown",e=>{
   if(e.key==="Escape" && !document.querySelector("dialog[open]") && mapSel && $("#v-karte").classList.contains("on")){sheetAction("close");map?.getContainer().focus()}
@@ -2887,21 +2897,12 @@ function bindMapCredits(){
   new MutationObserver(update).observe(full,{childList:true,subtree:true});
   update();
 }
-let requestedLURev="";
 async function focusMapPlace(place,fitDistrict=false){
   cancelMapQuery();follow=false;clearShore();mapSel=null;mapHits=[];renderSheet();drawSel();
   map.setView([place.lat,place.lon],place.zone?15:place.zoom,{animate:false});
   if(!place.zone){flashHint(place.name,2600);return}
   await mapTap({latlng:L.latLng(place.lat,place.lon),preferred:place});
   if(fitDistrict&&mapSel?.wholeDistrict&&mapSel.rev===place.rev)await showMapExtent(mapSel);
-}
-async function focusRequestedLU(){
-  const rev=requestedLURev;if(!rev)return;
-  requestedLURev="";
-  const seq=tapSeq,district=(luDistricts||await loadLUDistricts(true))?.[rev];
-  if(state.canton!=="LU"||state.luRev!==rev||tapSeq!==seq||!$("#v-karte").classList.contains("on"))return;
-  if(!district){toast("Die Position des Reviers konnte nicht geladen werden.");return}
-  await focusMapPlace({...district,rev,code:"LU",kind:"Fischereirevier",zone:true},true);
 }
 function initMap(){
   const msg=$("#mapMsg");

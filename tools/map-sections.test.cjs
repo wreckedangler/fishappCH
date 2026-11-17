@@ -6,14 +6,14 @@ const vm = require("node:vm");
 const root = path.join(__dirname, "..");
 const code = fs.readFileSync(path.join(root,"map-sections.js"),"utf8");
 
-function mapAt(zoom, unavailable=()=>false) {
+function mapAt(zoom, unavailable=()=>false,engine=code) {
   const requests=[];
   const fetch=async url=>{
     requests.push(url);
     if(unavailable(url))throw Error("Offline");
     return {ok:true,json:()=>JSON.parse(fs.readFileSync(path.join(root,url),"utf8"))};
   };
-  const api=vm.runInNewContext(code+"\nFishSections",{fetch,AbortSignal,AbortController,setTimeout,clearTimeout});
+  const api=vm.runInNewContext(engine+"\nFishSections",{fetch,AbortSignal,AbortController,setTimeout,clearTimeout});
   const layer=new api.Layer({getZoom:()=>zoom},()=>{});
   return {api,layer,requests};
 }
@@ -230,7 +230,8 @@ test("every published Luzern district resolves by exact number, name and map pos
   const index=require("../data/sections/index.json").LU;
   const search=require("../data/sections/"+index.search).filter(row=>row[2]==="Fischereirevier");
   const rank=vm.runInNewContext(fs.readFileSync(path.join(root,"map-search.js"),"utf8")+"\nFishMapSearch.rank");
-  const {layer}=mapAt(15);
+  const gl=fs.readFileSync(path.join(root,"beta/map-sections-gl.js"),"utf8");
+  const maps=[mapAt(15).layer,mapAt(15,undefined,gl).layer];
   assert.equal(Object.keys(directory).length,126);
   assert.equal(search.length,Object.keys(directory).length);
   assert.equal(Object.values(directory).reduce((sum,d)=>sum+(d.lines||0),0),127);
@@ -244,13 +245,15 @@ test("every published Luzern district resolves by exact number, name and map pos
     assert.equal(result.length,1,rev);
     assert.equal(result[0].name,d.name,rev);
     assert.equal(result[0].lat,d.lat);assert.equal(result[0].lon,d.lon);
-    const hit=(await layer.hits(d.lat,d.lon,55)).find(h=>h.code==="LU"&&h.kind==="Fischereirevier"&&h.rev===rev);
-    assert.equal(hit?.water,d.name,rev);
-    assert.equal(hit.wholeDistrict,true);
-    assert.equal(hit.zoneId,"LU/revier/"+rev);
-    const [whole]=await layer.wholeZone(hit);
-    assert.equal(Boolean(whole.lines.length),!!d.lines,rev);
-    assert.equal(Boolean(whole.polygons.length),!!d.areas,rev);
+    for(const layer of maps){
+      const hit=(await layer.hits(d.lat,d.lon,55)).find(h=>h.code==="LU"&&h.kind==="Fischereirevier"&&h.rev===rev);
+      assert.equal(hit?.water,d.name,rev);
+      assert.equal(hit.wholeDistrict,true);
+      assert.equal(hit.zoneId,"LU/revier/"+rev);
+      const [whole]=await layer.wholeZone(hit);
+      assert.equal(Boolean(whole.lines.length),!!d.lines,rev);
+      assert.equal(Boolean(whole.polygons.length),!!d.areas,rev);
+    }
   }
   assert.equal(directory[6].name,"Bihlbach, I. TS");assert.equal(directory[6].metres,4713.4);
   assert.equal(directory[7].name,"Bihlbach, II. TS");assert.equal(directory[7].metres,5597.7);

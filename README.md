@@ -22,6 +22,10 @@ Handy, ohne App Store.
 - **Fangerfassung** mit Schnellwahl der Art, sofortiger Prüfung von Mass,
   Schonzeit, Schutzstatus, Tages- und Jahreslimiten; Text zum Übertragen in
   die offizielle App.
+- **Öffentliche Fangkarte** mit freiwilliger Freigabe pro Fang. Die Kartenebene
+  zeigt Meldungen der letzten 7 oder 30 Kalendertage. Ein Tipp auf einen Marker
+  zeigt Fischart, Anzahl, gemeldete Längen und den letzten Fangtag am Abschnitt.
+  Eine Meldung gibt keine Auskunft über die Fischereiberechtigung.
 - **Fische**: Übersicht aller Arten mit Erkennungsmerkmalen, Vorkommen, Ködern, Tipp und Status heute im gewählten Kanton
 - **Statistik**, Angelzeit-Uhr, CSV-Export/Import.
 - **Alle 26 Kantone** zeigen das Gewässernetz beim Öffnen auf Luftbild und Landeskarte.
@@ -68,6 +72,21 @@ Zoomgrenzen und Ausdehnung aus dem jeweiligen versionierten swisstopo-TileJSON. 
 Aktualisieren eines Stils diese Angaben mit der zugehörigen Kachelversion abgleichen.
 
 ### Gewässerabschnitte aktualisieren
+
+Die öffentliche Fangkarte verwendet feste Positionen aus den amtlichen
+Abschnittsdaten. Bei einer Gewässerwahl aus dem schweizweiten Gewässernetz
+kann der Server die Geometrie über die swisstopo-Objektkennung beziehen.
+Nach einem Kartenupdate erzeugt `node tools/build_catch_sections.cjs` den
+Katalog für den Fangmeldungs-Server in `server/catalogue.json`.
+
+Der Server ist separat von GitHub Pages auf Sites mit einer D1-Datenbank
+veröffentlicht. Die API in `server/reports.mjs` nimmt Abschnittskennung,
+Fischart, Anzahl, optionale Länge und Fangtag entgegen. Das Fangbuch speichert
+den privaten Freigabeschlüssel auf dem Gerät. Unter **Fangbuch → Mehr →
+Freigabe verwalten** lässt sich eine Meldung zurückziehen. Ausstehende
+Übertragungen versucht die App bei erneuter Verbindung erneut.
+`node --test tools/public-catches.test.mjs` prüft die API mit einer
+lokalen SQLite-Datenbank (Node 22.13 oder neuer).
 
 `python tools/build_zone_index.py` lädt die amtlichen Ausgangsdaten für SG und GR.
 `python tools/build_map_sections.py` erstellt daraus und aus den Originaldaten

@@ -244,6 +244,7 @@ function renderLayerPanel(){
   const withPos=state.log.filter(f=>Number.isFinite(f.lat)).length,noPos=state.log.length-withPos;
   p.innerHTML=`<div class="ml-head"><strong>Auf der Karte</strong><button type="button" class="ml-x" data-ml="close" aria-label="Schliessen">${XICON}</button></div>
     <label class="ml-row"><span><b>Offene Gewässer hervorheben</b><small>Grün: Saison heute offen</small></span><input type="checkbox" class="ios-switch" data-ml="openFocus"${mapFilter.openFocus!==false?" checked":""}></label>
+    ${reportPanel()}
     <label class="ml-row"><span><b>Meine Fänge</b><small>${withPos} mit Ort${noPos?` · ${noPos} ohne Ort`:""}</small></span><input type="checkbox" class="ios-switch" data-ml="catches"${mapFilter.catches?" checked":""}></label>
     <div class="ml-sub"${mapFilter.catches?"":" hidden"}>
       ${arts.length>1?`<div class="ml-arts" role="group" aria-label="Fischart">${["",...arts].map(a=>`<button type="button" data-art="${esc(a)}" class="${a===mapFilter.art?"on":""}" aria-pressed="${a===mapFilter.art}">${a?esc(a):"Alle"}</button>`).join("")}</div>`:""}
@@ -257,6 +258,10 @@ function bindLayerPanel(){
   const p=$("#mapLayers");
   $("#mapLayersBtn").onclick=e=>{e.stopPropagation();if(p.hidden){renderLayerPanel();p.hidden=false}else p.hidden=true};
   p.addEventListener("click",e=>{
+    const days=e.target.closest("[data-report-days]");
+    if(days){mapFilter.publicDays=Number(days.dataset.reportDays);store.set("mapFilter",mapFilter);renderLayerPanel();refreshReports(true);
+      if(mapSel?.t==="public")openPublicSection(mapSel.id,mapSel.name,[mapSel.lon,mapSel.lat]);return;}
+    if(e.target.closest("[data-report-retry]")){refreshReports(true);return;}
     const art=e.target.closest("[data-art]");
     if(art){mapFilter={...mapFilter,art:art.dataset.art};store.set("mapFilter",mapFilter);drawCatches();const sc=p.querySelector(".ml-arts").scrollLeft;renderLayerPanel();p.querySelector(".ml-arts").scrollLeft=sc;return}
     const per=e.target.closest("[data-period]");
@@ -270,6 +275,7 @@ function bindLayerPanel(){
     const k=e.target.dataset.ml;if(!k)return;
     mapFilter={...mapFilter,[k]:e.target.type==="checkbox"?e.target.checked:e.target.value};store.set("mapFilter",mapFilter);
     if(k==="openFocus")applyZoneDim(zoneDim,true);
+    if(k==="publicReports"){if(!mapFilter.publicReports&&mapSel?.t==="public")sheetAction("close");refreshReports(true);}
     drawCatches();refreshSpots();renderLayerPanel();
   });
   document.addEventListener("pointerdown",e=>{if(!p.hidden&&!e.target.closest("#mapLayers,#mapLayersBtn"))p.hidden=true},true);

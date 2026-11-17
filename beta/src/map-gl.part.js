@@ -613,7 +613,7 @@ function renderSheet(){
   const el=$("#mapSheet");if(!el||!map)return;
   if(shoreView&&!$("#shorePanel").hidden){if(sheetState!=="closed")placeSheet("closed");return}
   updateHint();renderTop();
-  const right=mapSel&&!pendingSelection?mapRight(mapSel):null,access=rightsPanel(right);
+  const right=mapSel&&!pendingSelection&&mapSel.t!=="public"?mapRight(mapSel):null,access=rightsPanel(right);
   const evidence={section:"Amtlicher Abschnitt",water:"Regel für dieses Gewässer",guide:"Kantonale Auskunft",unknown:"Zuordnung ungeklärt",restriction:"Einschränkung"};
   const rightBadge=right?'<span class="pill '+(["unknown","restriction"].includes(right.level)?"p-warn":"p-mut")+'">'+evidence[right.level]+'</span>':"";
   const canFit=!pendingSelection&&(mapSel?.t==="sec"||mapSel?.t==="x"||mapSel?.parts?.length);
@@ -622,8 +622,8 @@ function renderSheet(){
   const head=(title,pills)=>`<div class="sh-h"><div class="sh-t">${esc(title)}</div><div class="sh-controls">${fit}<button type="button" class="sh-x" data-sh="close" aria-label="Schliessen">${XICON}</button></div></div><div class="sh-p">${pills}</div>`;
   const chip=c=>`<span class="pill p-mut">${esc(cname(c))}</span>`;
   let top="",actions="",body="",photo=null;
-  if(mapSel?.t==="spot"||mapSel?.t==="catch"){
-    const o=mapSel.t==="spot"?spotSheet():catchSheet();
+  if(["spot","catch","public"].includes(mapSel?.t)){
+    const o=mapSel.t==="spot"?spotSheet():mapSel.t==="public"?publicSheet():catchSheet();
     if(!o)mapSel=null;else{top=`<div class="sh-h"><div class="sh-t">${esc(o.title)}</div><div class="sh-controls"><button type="button" class="sh-x" data-sh="close" aria-label="Schliessen">${XICON}</button></div></div><div class="sh-p">${o.pills}</div>`;actions=o.actions;body=o.body;photo=o.photo}
   } else if(mapSel&&mapSel.t==="sec"){
     const f=GEO.features.find(x=>x.id===mapSel.id)||{t:""},sec=secById(mapSel.id),st=secStatus(sec),k=sec.kind;
@@ -676,7 +676,10 @@ function renderSheet(){
         body+='<details class="sh-more"><summary>Weitere Abschnitte hier ('+(mapHits.length-1)+')</summary><div class="chips">'+mapHits.map((z,i)=>z===mapSel?"":`<button type="button" data-sh="hit-${i}">${esc(z.name)} · ${esc(z.code||"SO")} ${esc(z.rev||"")} · ${esc(z.kind)}</button>`).join("")+"</div></details>";
       }
       if(mapHits.includes(mapSel)&&hitWarning)top+=`<p class="sh-warn">${esc(hitWarning)}</p>`;
-      if(!mapSel.districtView)body+=hitRules(mapSel);
+      if(!mapSel.districtView){
+        if(["sec","x","zone","w"].includes(mapSel.t)&&mapFilter.publicReports!==false)body='<button type="button" class="report-link" data-sh="reports">Öffentliche Fänge ansehen</button>'+body;
+        body+=hitRules(mapSel);
+      }
       if(mapSel?.code){
         const built=mapSel.t==="x"?xg(mapSel.code).built:mapSel.built;
         const stand=built?`<p class="sh-d">Kartenstand der App · ${esc(fmtD(built))}</p>`:"";
@@ -706,6 +709,11 @@ document.addEventListener("keydown",e=>{
 });
 function sheetAction(a){
   if(pendingSelection&&a!=="close")return;
+  if(a==="reports"&&mapSel){
+    const hit=mapSel;void idForReportHit(hit).then(id=>{if(mapSel===hit)openPublicSection(id,hit.name,[hit.lon,hit.lat]);});
+    return;
+  }
+  if(a==="report-retry"&&mapSel?.t==="public"){openPublicSection(mapSel.id,mapSel.name,[mapSel.lon,mapSel.lat]);return;}
   if(a==="lu-retry"){loadLUDistricts(true);return}
   if(spotAction(a))return;
   if(pendingSelection){pendingSelection=false;hitWarning=""}
@@ -1173,7 +1181,7 @@ function addOverlays(){
   map.addLayer({id:"fb-so-labels",type:"symbol",source:"fb-so",minzoom:12,filter:["!=",["get","lb"],""],
     layout:{"symbol-placement":"line-center","text-field":["get","lb"],"text-font":labelFont,"text-size":12,"text-padding":8,"text-allow-overlap":false},
     paint:{"text-color":["case",["==",["get","ls"],1],"#c93745","#12222a"],"text-halo-color":"#fff","text-halo-width":2.2}});
-  addCatchLayers();
+  addReportLayers();addCatchLayers();
   map.addSource("fb-me",{type:"geojson",data:state.pos?FC([{type:"Feature",geometry:{type:"Point",coordinates:[state.pos.lon,state.pos.lat]},properties:{}}]):FC([])});
   map.addLayer({id:"fb-me-acc",type:"circle",source:"fb-me",paint:{"circle-radius":state.pos?accuracyRadius(state.pos):0,"circle-color":"#1c7ed6","circle-opacity":.1,"circle-stroke-color":"#1c7ed6","circle-stroke-opacity":.45,"circle-stroke-width":1,"circle-pitch-alignment":"map"}});
   map.addSource("fb-pins",{type:"geojson",data:pinFC});
@@ -1257,7 +1265,7 @@ function prepareSections(){
   sectionMap.preload(view.center,(view.zoom??5)+1);
 }
 async function initMap(){
-  if(map){refreshMapDate();requestAnimationFrame(()=>{map.resize();sectionMap.sync();scheduleWest();loadX()});renderSheet();drawSel();showShoreMarkers();if(mapReady)focusRequestedLU();return}
+  if(map){refreshMapDate();requestAnimationFrame(()=>{map.resize();sectionMap.sync();scheduleWest();loadX();refreshReports()});renderSheet();drawSel();showShoreMarkers();if(mapReady)focusRequestedLU();return}
   if(initMap.loading)return;
   initMap.loading=true;
   const msg=$("#mapMsg");msg.className="";msg.textContent="Karte wird geladen …";
@@ -1311,7 +1319,7 @@ async function initMap(){
   bindLongPress();
   map.on("style.load",()=>{if(mapReady)return;
     updateDetailBounds();drawGeo();drawX();addOverlays();mapReady=true;
-    drawLakes();loadX();drawCatches();refreshSpots();updateMe();sectionMap.sync();renderSheet();drawSel();showShoreMarkers();updateHint();focusRequestedLU()});
+    drawLakes();loadX();drawCatches();refreshSpots();updateMe();sectionMap.sync();renderSheet();drawSel();showShoreMarkers();updateHint();focusRequestedLU();refreshReports()});
   map.on("click",e=>{
     if(!mapReady)return;
     if(placeMode){applyPlace(e.lngLat);return}
@@ -1321,6 +1329,7 @@ async function initMap(){
     if(cluster){map.getSource("fb-catches").getClusterExpansionZoom(cluster.properties.cluster_id).then(z=>map.easeTo({center:cluster.geometry.coordinates,zoom:z+.3,duration:450}));return}
     const fishHit=map.queryRenderedFeatures(box,{layers:["fb-catches"]})[0];
     if(fishHit){openCatch(fishHit.properties.id);return}
+    if(publicMapClick(box))return;
     mapTap({latlng:{lat:e.lngLat.lat,lng:e.lngLat.lng},point:e.point});
   });
   map.on("dragstart",()=>{if(follow){follow=false;syncLocateButton()}});
@@ -1331,7 +1340,7 @@ async function initMap(){
   map.on("zoomend",()=>{const z=Math.floor(lz());if(z!==zoomLevel){zoomLevel=z;drawGeo();scheduleWest()}});
   map.on("moveend",()=>{
     if(!$("#v-karte").classList.contains("on")||!mapReady)return;
-    loadX();sectionMap.sync();updateHint();
+    loadX();sectionMap.sync();updateHint();refreshReports();
     const c=map.getCenter();store.set("mapViewGL",[c.lat,c.lng,map.getZoom()]);
   });
   map.on("error",e=>{

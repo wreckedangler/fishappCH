@@ -674,6 +674,17 @@ section.view>.ios-title+.seg{margin-top:14px!important}
 /* Kartenüberschriften überall gleich */
 .card>h2:first-child,.card>h1:first-child{margin-top:0}
 .card h2{font-size:17px;font-weight:600;letter-spacing:-.02em;margin-bottom:12px}
+/* Öffentliche Fangmeldungen */
+.share-catch{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;min-height:48px}
+.share-catch small,.share-status{color:var(--mut);display:block;font-size:.82rem}
+.share-status:empty{display:none}
+#shareDialog{max-height:86dvh;overflow:auto}
+#shareResults{margin-top:10px;min-height:7rem}
+#shareConfirm,#shareCancel,#shareFindAgain,.report-link,#mapLayers .report-period button{min-height:44px}
+#shareMessage{min-height:1.3em}
+.report-species{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.report-species small{grid-column:1/-1;color:var(--mut)}
+.report-link{margin-bottom:12px}
 #map{position:absolute;inset:0;background:#d9e1de}
 #map canvas{outline:none}
 .maplibregl-ctrl-bottom-right,.maplibregl-ctrl-bottom-left{display:none}
@@ -882,6 +893,7 @@ section.view>.ios-title+.seg{margin-top:14px!important}
       <button type="button" id="removePhoto">Foto entfernen</button>
     </div>
     </fieldset>
+    <label class="share-catch" for="shareNew"><span><b>Auf der Fangkarte teilen</b><small id="shareSectionLabel">Abschnitt, Art, Länge, Anzahl und Fangdatum</small></span><input type="checkbox" class="ios-switch" id="shareNew" autocomplete="off"></label>
     <div class="save-bar"><button class="pri full" id="btnSave">Fang speichern</button></div>
     <div id="afterSave" role="status"></div>
   </div>
@@ -978,6 +990,15 @@ section.view>.ios-title+.seg{margin-top:14px!important}
   <label for="waterCanton">Kanton</label><select id="waterCanton"></select>
   <label for="waterQuery">Gewässer suchen</label><input type="search" id="waterQuery" placeholder="Name, Abschnitt oder Reviernummer">
   <div id="waterList"></div>
+</dialog>
+<dialog id="shareDialog" aria-labelledby="shareTitle">
+  <h2 id="shareTitle">Auf der Fangkarte teilen</h2>
+  <p>Öffentlich sichtbar sind Fischart, Länge, Anzahl, Fangdatum und der gewählte Abschnitt. GPS-Punkt, Foto und Notiz bleiben privat.</p>
+  <label for="shareSearch" id="sharePlace">Gewässerabschnitt</label>
+  <div class="row"><input id="shareSearch" type="search" placeholder="Gewässer oder Reviernummer" autocomplete="off"><button type="button" id="shareFindAgain">Suchen</button></div>
+  <select id="shareResults" size="4" aria-label="Abschnitt auswählen"></select>
+  <p id="shareMessage" class="mut small" role="status"></p>
+  <div class="row"><button type="button" id="shareCancel">Abbrechen</button><button type="button" class="pri" id="shareConfirm" disabled>Abschnitt übernehmen</button></div>
 </dialog>
 <dialog id="dlg"><div id="dlgBody"></div><div class="row" style="margin-top:12px"><button id="dlgNo">Abbrechen</button><button class="pri" id="dlgYes">OK</button></div></dialog>
 
@@ -1270,6 +1291,7 @@ function renderTop(){
     const z=mapSel;
     t=z?.districtView?"Revier "+z.rev:z?(z.name||z.water?.name||"Gewässer"):"Gewässerkarte";
     s=z?.t==="spot"?"Mein Spot":z?.t==="catch"?"Mein Fang":z?((z.code?cname(z.code):"Solothurn")+(z.rev?" · Revier "+z.rev:"")+" · Kartenauskunft"):"Grün · offene Fangsaison";
+    if(z?.t==="public")s="Öffentliche Fangmeldungen";
     if(z?.districtView)s=cname(z.code)+" · Revierübersicht";
     cls=z&&!z.districtView&&restrictedHit(z)?"warn":"none";
     $("#tbCanton").textContent=z?.border?.length>1?z.border.join("/"):z?.code||"CH";
@@ -1516,6 +1538,7 @@ $("#waterQuery").oninput=renderWaterList;
 $("#waterClose").onclick=()=>$("#waterDialog").close();
 $("#fangCtx").onclick=openWater;
 function renderFang(){
+  updateShareContext();
   recentSpecies();
   const missing=unknownWater()||(isCM()&&!currentSec().id);
   $("#fangCtx").innerHTML=`<button type="button" class="full water-current">Gewässer: ${esc(missing&&!selectedWaterName()?"Bitte wählen":ctxLabel())}<span>Ändern</span></button>`;
@@ -1634,6 +1657,8 @@ function saveFang(){
     const f={id:Date.now(),ts:now.getTime(),day:dayKey(now),canton:state.canton,sec:sec.id,art:sp,len,n,kept,note:$("#fNote").value.trim(),lat:p?+p.lat.toFixed(5):null,lon:p?+p.lon.toFixed(5):null};
     if(!isSO()&&selectedWaterName())f.waterName=selectedWaterName();
     if(f.canton==="LU"&&f.waterName&&state.luRev)f.luRev=state.luRev;
+    const ref=formCatch().reportSection;if(ref)f.reportSection=ref;
+    const toShare=$("#shareNew").checked?draftSection:null;
     const photo=draftPhoto;
     $("#btnSave").disabled=$("#takePhoto").disabled=$("#choosePhoto").disabled=$("#fPhoto").disabled=$("#removePhoto").disabled=true;
     try{
@@ -1653,6 +1678,8 @@ function saveFang(){
     }finally{
       $("#btnSave").disabled=$("#takePhoto").disabled=$("#choosePhoto").disabled=$("#fPhoto").disabled=$("#removePhoto").disabled=false;
     }
+    if(toShare)queueShare(f,toShare);
+    resetShareDraft();
     resetPhoto();
     const t=now.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
     const so=state.canton==="SO";
@@ -1741,7 +1768,7 @@ function renderStats(){
   bookPhotoObserver?.disconnect();
   for(const url of previewUrls)URL.revokeObjectURL(url);
   previewUrls.clear();
-  $("#logList").innerHTML=catches.length?catches.slice(0,bookLimit).map(f=>`<div class="it" id="catch-${f.id}" tabindex="-1"><div class="row" style="align-items:center"><div style="flex:3"><b>${esc(f.art)}</b>${f.len!=null?` · ${f.len} cm`:""}${f.n>1?` · ${f.n} Stk.`:""} <span class="pill ${f.kept?"p-ok":"p-mut"}">${f.kept?"behalten":"zurück"}</span><div class="mut small">${new Date(f.ts).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"})} · ${esc((f.canton||"SO")==="SO"?waterLabel("SO",f.sec):cname(f.canton)+((f.waterName||cwLabel(f.canton,f.sec))?" · "+(f.waterName||cwLabel(f.canton,f.sec)):""))}${f.note?" · "+esc(f.note):""}</div></div>${f.photoKey?`<button type="button" class="book-photo" data-photo="${esc(f.photoKey)}" aria-label="Fangfoto vergrössern: ${esc(f.art)}">Foto laden …</button>`:`<button type="button" data-add-photo="${esc(f.id)}">Foto hinzufügen</button>`}<details class="entry-menu"><summary>Mehr</summary><button type="button" data-map="${f.id}">${Number.isFinite(f.lat)?"Auf der Karte zeigen":"Ort auf der Karte setzen"}</button><button type="button" data-edit="${f.id}">Bearbeiten</button><button class="del" data-del="${f.id}">Löschen</button></details></div></div>`).join(""):`<p class="mut">Keine Fangeinträge in diesem Zeitraum.</p>`;
+  $("#logList").innerHTML=catches.length?catches.slice(0,bookLimit).map(f=>`<div class="it" id="catch-${f.id}" tabindex="-1"><div class="row" style="align-items:center"><div style="flex:3"><b>${esc(f.art)}</b>${f.len!=null?` · ${f.len} cm`:""}${f.n>1?` · ${f.n} Stk.`:""} <span class="pill ${f.kept?"p-ok":"p-mut"}">${f.kept?"behalten":"zurück"}</span><div class="mut small">${new Date(f.ts).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"})} · ${esc((f.canton||"SO")==="SO"?waterLabel("SO",f.sec):cname(f.canton)+((f.waterName||cwLabel(f.canton,f.sec))?" · "+(f.waterName||cwLabel(f.canton,f.sec)):""))}${f.note?" · "+esc(f.note):""}</div><small class="share-status" id="share-status-${esc(f.id)}">${esc(shareStatus(f.id))}</small></div>${f.photoKey?`<button type="button" class="book-photo" data-photo="${esc(f.photoKey)}" aria-label="Fangfoto vergrössern: ${esc(f.art)}">Foto laden …</button>`:`<button type="button" data-add-photo="${esc(f.id)}">Foto hinzufügen</button>`}<details class="entry-menu"><summary>Mehr</summary><button type="button" data-map="${f.id}">${Number.isFinite(f.lat)?"Auf der Karte zeigen":"Ort auf der Karte setzen"}</button><button type="button" data-edit="${f.id}">Bearbeiten</button>${shareButton(f)}<button class="del" data-del="${f.id}">Löschen</button></details></div></div>`).join(""):`<p class="mut">Keine Fangeinträge in diesem Zeitraum.</p>`;
   for(const button of $("#logList").querySelectorAll("[data-photo]")){
     if(bookPhotoObserver)bookPhotoObserver.observe(button);else loadBookPhoto(button);
   }
@@ -2645,6 +2672,7 @@ function luMeasurements(rev){
     (d.areas?item(d.areas>1?"Gesamtfläche · "+d.areas+" Teilflächen":"Fläche",d.m2,"m²"):"")+'</dl>';
 }
 function chooseWater(c,name,cw,rev=""){
+  rememberReportSection(mapSel,c,name);
   chosenMapHit=mapSel?Object.assign(mapSel,{choiceName:name}):null;
   if(c!==state.canton)state.canton=c;
   state.cantonAuto=false;state.secAuto=false;
@@ -3282,7 +3310,7 @@ function renderSheet(){
   const el=$("#mapSheet");if(!el||!map)return;
   if(shoreView&&!$("#shorePanel").hidden){if(sheetState!=="closed")placeSheet("closed");return}
   updateHint();renderTop();
-  const right=mapSel&&!pendingSelection?mapRight(mapSel):null,access=rightsPanel(right);
+  const right=mapSel&&!pendingSelection&&mapSel.t!=="public"?mapRight(mapSel):null,access=rightsPanel(right);
   const evidence={section:"Amtlicher Abschnitt",water:"Regel für dieses Gewässer",guide:"Kantonale Auskunft",unknown:"Zuordnung ungeklärt",restriction:"Einschränkung"};
   const rightBadge=right?'<span class="pill '+(["unknown","restriction"].includes(right.level)?"p-warn":"p-mut")+'">'+evidence[right.level]+'</span>':"";
   const canFit=!pendingSelection&&(mapSel?.t==="sec"||mapSel?.t==="x"||mapSel?.parts?.length);
@@ -3291,8 +3319,8 @@ function renderSheet(){
   const head=(title,pills)=>`<div class="sh-h"><div class="sh-t">${esc(title)}</div><div class="sh-controls">${fit}<button type="button" class="sh-x" data-sh="close" aria-label="Schliessen">${XICON}</button></div></div><div class="sh-p">${pills}</div>`;
   const chip=c=>`<span class="pill p-mut">${esc(cname(c))}</span>`;
   let top="",actions="",body="",photo=null;
-  if(mapSel?.t==="spot"||mapSel?.t==="catch"){
-    const o=mapSel.t==="spot"?spotSheet():catchSheet();
+  if(["spot","catch","public"].includes(mapSel?.t)){
+    const o=mapSel.t==="spot"?spotSheet():mapSel.t==="public"?publicSheet():catchSheet();
     if(!o)mapSel=null;else{top=`<div class="sh-h"><div class="sh-t">${esc(o.title)}</div><div class="sh-controls"><button type="button" class="sh-x" data-sh="close" aria-label="Schliessen">${XICON}</button></div></div><div class="sh-p">${o.pills}</div>`;actions=o.actions;body=o.body;photo=o.photo}
   } else if(mapSel&&mapSel.t==="sec"){
     const f=GEO.features.find(x=>x.id===mapSel.id)||{t:""},sec=secById(mapSel.id),st=secStatus(sec),k=sec.kind;
@@ -3345,7 +3373,10 @@ function renderSheet(){
         body+='<details class="sh-more"><summary>Weitere Abschnitte hier ('+(mapHits.length-1)+')</summary><div class="chips">'+mapHits.map((z,i)=>z===mapSel?"":`<button type="button" data-sh="hit-${i}">${esc(z.name)} · ${esc(z.code||"SO")} ${esc(z.rev||"")} · ${esc(z.kind)}</button>`).join("")+"</div></details>";
       }
       if(mapHits.includes(mapSel)&&hitWarning)top+=`<p class="sh-warn">${esc(hitWarning)}</p>`;
-      if(!mapSel.districtView)body+=hitRules(mapSel);
+      if(!mapSel.districtView){
+        if(["sec","x","zone","w"].includes(mapSel.t)&&mapFilter.publicReports!==false)body='<button type="button" class="report-link" data-sh="reports">Öffentliche Fänge ansehen</button>'+body;
+        body+=hitRules(mapSel);
+      }
       if(mapSel?.code){
         const built=mapSel.t==="x"?xg(mapSel.code).built:mapSel.built;
         const stand=built?`<p class="sh-d">Kartenstand der App · ${esc(fmtD(built))}</p>`:"";
@@ -3375,6 +3406,11 @@ document.addEventListener("keydown",e=>{
 });
 function sheetAction(a){
   if(pendingSelection&&a!=="close")return;
+  if(a==="reports"&&mapSel){
+    const hit=mapSel;void idForReportHit(hit).then(id=>{if(mapSel===hit)openPublicSection(id,hit.name,[hit.lon,hit.lat]);});
+    return;
+  }
+  if(a==="report-retry"&&mapSel?.t==="public"){openPublicSection(mapSel.id,mapSel.name,[mapSel.lon,mapSel.lat]);return;}
   if(a==="lu-retry"){loadLUDistricts(true);return}
   if(spotAction(a))return;
   if(pendingSelection){pendingSelection=false;hitWarning=""}
@@ -3842,7 +3878,7 @@ function addOverlays(){
   map.addLayer({id:"fb-so-labels",type:"symbol",source:"fb-so",minzoom:12,filter:["!=",["get","lb"],""],
     layout:{"symbol-placement":"line-center","text-field":["get","lb"],"text-font":labelFont,"text-size":12,"text-padding":8,"text-allow-overlap":false},
     paint:{"text-color":["case",["==",["get","ls"],1],"#c93745","#12222a"],"text-halo-color":"#fff","text-halo-width":2.2}});
-  addCatchLayers();
+  addReportLayers();addCatchLayers();
   map.addSource("fb-me",{type:"geojson",data:state.pos?FC([{type:"Feature",geometry:{type:"Point",coordinates:[state.pos.lon,state.pos.lat]},properties:{}}]):FC([])});
   map.addLayer({id:"fb-me-acc",type:"circle",source:"fb-me",paint:{"circle-radius":state.pos?accuracyRadius(state.pos):0,"circle-color":"#1c7ed6","circle-opacity":.1,"circle-stroke-color":"#1c7ed6","circle-stroke-opacity":.45,"circle-stroke-width":1,"circle-pitch-alignment":"map"}});
   map.addSource("fb-pins",{type:"geojson",data:pinFC});
@@ -3926,7 +3962,7 @@ function prepareSections(){
   sectionMap.preload(view.center,(view.zoom??5)+1);
 }
 async function initMap(){
-  if(map){refreshMapDate();requestAnimationFrame(()=>{map.resize();sectionMap.sync();scheduleWest();loadX()});renderSheet();drawSel();showShoreMarkers();if(mapReady)focusRequestedLU();return}
+  if(map){refreshMapDate();requestAnimationFrame(()=>{map.resize();sectionMap.sync();scheduleWest();loadX();refreshReports()});renderSheet();drawSel();showShoreMarkers();if(mapReady)focusRequestedLU();return}
   if(initMap.loading)return;
   initMap.loading=true;
   const msg=$("#mapMsg");msg.className="";msg.textContent="Karte wird geladen …";
@@ -3980,7 +4016,7 @@ async function initMap(){
   bindLongPress();
   map.on("style.load",()=>{if(mapReady)return;
     updateDetailBounds();drawGeo();drawX();addOverlays();mapReady=true;
-    drawLakes();loadX();drawCatches();refreshSpots();updateMe();sectionMap.sync();renderSheet();drawSel();showShoreMarkers();updateHint();focusRequestedLU()});
+    drawLakes();loadX();drawCatches();refreshSpots();updateMe();sectionMap.sync();renderSheet();drawSel();showShoreMarkers();updateHint();focusRequestedLU();refreshReports()});
   map.on("click",e=>{
     if(!mapReady)return;
     if(placeMode){applyPlace(e.lngLat);return}
@@ -3990,6 +4026,7 @@ async function initMap(){
     if(cluster){map.getSource("fb-catches").getClusterExpansionZoom(cluster.properties.cluster_id).then(z=>map.easeTo({center:cluster.geometry.coordinates,zoom:z+.3,duration:450}));return}
     const fishHit=map.queryRenderedFeatures(box,{layers:["fb-catches"]})[0];
     if(fishHit){openCatch(fishHit.properties.id);return}
+    if(publicMapClick(box))return;
     mapTap({latlng:{lat:e.lngLat.lat,lng:e.lngLat.lng},point:e.point});
   });
   map.on("dragstart",()=>{if(follow){follow=false;syncLocateButton()}});
@@ -4000,7 +4037,7 @@ async function initMap(){
   map.on("zoomend",()=>{const z=Math.floor(lz());if(z!==zoomLevel){zoomLevel=z;drawGeo();scheduleWest()}});
   map.on("moveend",()=>{
     if(!$("#v-karte").classList.contains("on")||!mapReady)return;
-    loadX();sectionMap.sync();updateHint();
+    loadX();sectionMap.sync();updateHint();refreshReports();
     const c=map.getCenter();store.set("mapViewGL",[c.lat,c.lng,map.getZoom()]);
   });
   map.on("error",e=>{
@@ -4262,6 +4299,7 @@ function renderLayerPanel(){
   const withPos=state.log.filter(f=>Number.isFinite(f.lat)).length,noPos=state.log.length-withPos;
   p.innerHTML=`<div class="ml-head"><strong>Auf der Karte</strong><button type="button" class="ml-x" data-ml="close" aria-label="Schliessen">${XICON}</button></div>
     <label class="ml-row"><span><b>Offene Gewässer hervorheben</b><small>Grün: Saison heute offen</small></span><input type="checkbox" class="ios-switch" data-ml="openFocus"${mapFilter.openFocus!==false?" checked":""}></label>
+    ${reportPanel()}
     <label class="ml-row"><span><b>Meine Fänge</b><small>${withPos} mit Ort${noPos?` · ${noPos} ohne Ort`:""}</small></span><input type="checkbox" class="ios-switch" data-ml="catches"${mapFilter.catches?" checked":""}></label>
     <div class="ml-sub"${mapFilter.catches?"":" hidden"}>
       ${arts.length>1?`<div class="ml-arts" role="group" aria-label="Fischart">${["",...arts].map(a=>`<button type="button" data-art="${esc(a)}" class="${a===mapFilter.art?"on":""}" aria-pressed="${a===mapFilter.art}">${a?esc(a):"Alle"}</button>`).join("")}</div>`:""}
@@ -4275,6 +4313,10 @@ function bindLayerPanel(){
   const p=$("#mapLayers");
   $("#mapLayersBtn").onclick=e=>{e.stopPropagation();if(p.hidden){renderLayerPanel();p.hidden=false}else p.hidden=true};
   p.addEventListener("click",e=>{
+    const days=e.target.closest("[data-report-days]");
+    if(days){mapFilter.publicDays=Number(days.dataset.reportDays);store.set("mapFilter",mapFilter);renderLayerPanel();refreshReports(true);
+      if(mapSel?.t==="public")openPublicSection(mapSel.id,mapSel.name,[mapSel.lon,mapSel.lat]);return;}
+    if(e.target.closest("[data-report-retry]")){refreshReports(true);return;}
     const art=e.target.closest("[data-art]");
     if(art){mapFilter={...mapFilter,art:art.dataset.art};store.set("mapFilter",mapFilter);drawCatches();const sc=p.querySelector(".ml-arts").scrollLeft;renderLayerPanel();p.querySelector(".ml-arts").scrollLeft=sc;return}
     const per=e.target.closest("[data-period]");
@@ -4288,6 +4330,7 @@ function bindLayerPanel(){
     const k=e.target.dataset.ml;if(!k)return;
     mapFilter={...mapFilter,[k]:e.target.type==="checkbox"?e.target.checked:e.target.value};store.set("mapFilter",mapFilter);
     if(k==="openFocus")applyZoneDim(zoneDim,true);
+    if(k==="publicReports"){if(!mapFilter.publicReports&&mapSel?.t==="public")sheetAction("close");refreshReports(true);}
     drawCatches();refreshSpots();renderLayerPanel();
   });
   document.addEventListener("pointerdown",e=>{if(!p.hidden&&!e.target.closest("#mapLayers,#mapLayersBtn"))p.hidden=true},true);
@@ -4394,6 +4437,267 @@ function addGroupLayers(){
     paint:{"line-color":"#ffd43b","line-width":selWidth(1.6),"line-opacity":.62}});
 }
 
+/* Freiwillige Fangmeldungen. Nur der Server bestimmt die Position des Abschnitts. */
+const reportApi="https://fishappch-fangmeldungen.felinesunflower4.chatgpt.site/v1/";
+const sharePrefix="fb_publicCatch_";
+const activeShares=new Set();
+let draftSection=null,draftWaterKey="",sectionDialogSeq=0,reportTimer=null;
+async function reportRequest(path, options={}) {
+  const response=await fetch(reportApi+path,{credentials:"omit",referrerPolicy:"no-referrer",cache:"no-store",signal:AbortSignal.timeout(10000),...options});
+  const data=await response.json();
+  if(!response.ok)throw Object.assign(new Error(data.error||"Fangmeldungen nicht erreichbar."),{status:response.status});
+  return data;
+}
+function reportHint(f) {
+  if(f.reportSection && /^[A-Z]{2}:[\w-]{1,32}$/.test(f.reportSection))return f.reportSection;
+  const code=f.canton||"SO";
+  if(code==="SO" && f.sec)return "SO:"+f.sec;
+  if(code==="LU" && f.luRev)return "LU:R"+f.luRev;
+  return "";
+}
+function formCatch() {
+  const pinned=store.get("publicWaterRef",null),name=selectedWaterName(),code=state.canton;
+  return {canton:code,sec:currentSec().id,waterName:name,luRev:code==="LU"&&name?state.luRev:"",
+    reportSection:pinned?.canton===code&&pinned.name===name?pinned.id:"",day:dayKey(new Date())};
+}
+function shareState(id) { return store.get("publicCatch_"+id,null); }
+function shareWrite(id,record) {
+  if(!store.set("publicCatch_"+id,record)){toast("Freigabe konnte auf dem Gerät nicht gespeichert werden.");return false;}
+  return true;
+}
+function shareIds(){
+  try{return Object.keys(localStorage).filter(key=>key.startsWith(sharePrefix)).map(key=>key.slice(sharePrefix.length));}catch{return [];}
+}
+function reportFields(f,section) {
+  return {section:section.id,day:f.day,species:f.art,len:f.len==null||f.len===""?null:Number(f.len),count:Number(f.n)||1};
+}
+function shareStatus(id) {
+  const record=shareState(id);
+  if(!record)return "";
+  if(record.remove)return "Rückzug ausstehend";
+  if(record.error)return record.error;
+  if(!record.pending&&Date.parse(swissCalendar.format(new Date()))-Date.parse(record.body.day)>=30*86400000)return "Freigabe abgelaufen";
+  return record.pending?"Freigabe ausstehend":"Öffentlich geteilt";
+}
+function shareButton(f) {
+  const rec=shareState(f.id);
+  const label=rec?.remove?"Rückzug erneut versuchen":rec?"Freigabe verwalten":"Auf der Fangkarte teilen";
+  return '<button type="button" data-share="'+esc(f.id)+'">'+label+'</button>';
+}
+function updateShareUI(id) {
+  const tag=document.getElementById("share-status-"+id);
+  if(tag)tag.textContent=shareStatus(id);
+  const row=document.getElementById("catch-"+id),button=row?.querySelector("[data-share]");
+  if(button)button.outerHTML=shareButton({id});
+}
+function queueShare(f,section) {
+  const prior=shareState(f.id);
+  if(prior?.remove){toast("Der Rückzug wird noch übertragen.");return false;}
+  const key=prior?.key||Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,"0")).join("");
+  const rec={key,revision:(prior?.revision||0)+1,pending:true,section,body:reportFields(f,section)};
+  if(!shareWrite(f.id,rec))return false;
+  updateShareUI(f.id);void syncShare(f.id);return true;
+}
+function withdrawShare(id) {
+  const old=shareState(id);
+  if(!old)return true;
+  if(!old.remove && !shareWrite(id,{key:old.key,revision:old.revision+1,remove:true,pending:true}))return false;
+  updateShareUI(id);void syncShare(id);return true;
+}
+async function syncShare(id) {
+  id=String(id);
+  if(activeShares.has(id)||!navigator.onLine)return;
+  activeShares.add(id);
+  try{
+    for(;;){
+      const row=shareState(id);
+      if(!row?.pending)return;
+      const body={revision:row.revision,...(row.remove?{}:row.body)};
+      try{
+        const result=await reportRequest("report",{method:row.remove?"DELETE":"PUT",headers:{"Content-Type":"application/json","X-Report-Key":row.key},body:JSON.stringify(body)});
+        const current=shareState(id);
+        if(current?.revision!==row.revision || current.key!==row.key)continue;
+        if(row.remove&&!result.shared)localStorage.removeItem(sharePrefix+id);
+        else if(result.shared&&!row.remove)shareWrite(id,{...row,pending:false,error:""});
+        else throw new Error("Freigabestatus unklar.");
+        updateShareUI(id);refreshReports(true);return;
+      }catch(error){
+        const current=shareState(id);
+        if(current?.revision!==row.revision||current.key!==row.key)continue;
+        const permanent=[400,409,422].includes(error.status);
+        shareWrite(id,{...row,pending:!permanent,error:permanent?error.message:"Übertragung ausstehend"});
+        updateShareUI(id);
+        if(!permanent&&navigator.onLine&&!reportTimer)reportTimer=setTimeout(()=>{reportTimer=null;retryShares();},60000);
+        return;
+      }
+    }
+  }finally{activeShares.delete(id);}
+}
+function retryShares() { for(const id of shareIds())if(shareState(id)?.pending)void syncShare(id); }
+function resetShareDraft(){
+  draftSection=null;$("#shareNew").checked=false;
+  $("#shareSectionLabel").textContent="Abschnitt, Art, Länge, Anzahl und Fangdatum";
+}
+function updateShareContext(){
+  const f=formCatch(),key=JSON.stringify([f.canton,f.sec,f.waterName,f.luRev]);
+  if(key!==draftWaterKey){draftWaterKey=key;resetShareDraft();}
+}
+function chooseShareSection(f,done) {
+  const dlg=$("#shareDialog"),search=$("#shareSearch"),list=$("#shareResults"),msg=$("#shareMessage"),confirm=$("#shareConfirm");
+  const initialKey=draftWaterKey;
+  const hint=reportHint(f),code=f.canton||"SO";
+  let chosen=null,request=0,timer;
+  const seq=++sectionDialogSeq;
+  $("#sharePlace").textContent="Gewässerabschnitt · "+cname(code);
+  search.value="";confirm.disabled=true;confirm.textContent=f.id?"Fang öffentlich teilen":"Abschnitt übernehmen";
+  const initialQuery=String(f.waterName||"").split(" · ")[0];
+  async function find(initial=false){
+    const n=++request;
+    chosen=null;confirm.disabled=true;list.replaceChildren();msg.textContent="Abschnitte werden geladen …";
+    try{
+      const q=new URLSearchParams({canton:code,q:search.value.trim()});
+      if(initial&&hint)q.set("id",hint);
+      const data=await reportRequest("sections?"+q);
+      if(seq!==sectionDialogSeq||n!==request||!dlg.open)return;
+      for(const place of data.sections){const option=new Option(place.name,place.id);list.add(option);}
+      if(data.sections.length){
+        const exact=initial&&data.sections.find(x=>x.id===hint);
+        list.selectedIndex=exact?data.sections.indexOf(exact):-1;
+        if(exact){chosen=exact;confirm.disabled=false;}
+        msg.textContent=chosen?"Vorgeschlagener Abschnitt.":data.sections.length===30?"Suche mit Name oder Reviernummer eingrenzen.":"Abschnitt in der Liste antippen.";
+      }else msg.textContent="Kein passender Abschnitt. Suche anpassen oder das Gewässer auf der Karte wählen.";
+    }catch{if(n===request&&seq===sectionDialogSeq)msg.textContent="Abschnitte nicht erreichbar. Verbindung prüfen und erneut suchen.";}
+  }
+  search.oninput=()=>{++request;chosen=null;confirm.disabled=true;list.replaceChildren();clearTimeout(timer);timer=setTimeout(find,220);};
+  list.onchange=()=>{const o=list.selectedOptions[0];chosen=o?{id:o.value,name:o.text}:null;confirm.disabled=!chosen;};
+  $("#shareFindAgain").onclick=()=>find(!search.value);
+  $("#shareCancel").onclick=()=>dlg.close();
+  confirm.onclick=()=>{if(!chosen)return;const place=chosen;dlg.close();if(!f.id&&initialKey!==draftWaterKey)return;done(place);};
+  dlg.onclose=()=>{clearTimeout(timer);++sectionDialogSeq;if(!f.id&&!draftSection)resetShareDraft();};
+  search.value=hint?"":initialQuery;
+  dlg.showModal();void find(true);
+}
+function bookShare(id) {
+  const f=state.log.find(row=>String(row.id)===String(id));if(!f)return;
+  const rec=shareState(id);
+  if(rec?.remove){void syncShare(id);toast("Rückzug wird bei Verbindung übertragen.");return;}
+  if(rec){
+    ask('<h2>Öffentliche Fangmeldung</h2><p>'+esc(rec.section.name)+'</p><p>'+esc(shareStatus(id))+'</p><p>Freigabe für diesen Fang zurückziehen?</p>',()=>{if(withdrawShare(id))toast("Rückzug gespeichert.");});
+  }else{
+    const age=(Date.parse(swissCalendar.format(new Date()))-Date.parse(f.day))/86400000;
+    if(!(age>=0&&age<30)){toast("Öffentlich teilbar sind Fänge der letzten 30 Tage.");return;}
+    chooseShareSection(f,section=>{if(queueShare(f,section))toast("Freigabe gespeichert.");});
+  }
+}
+$("#shareNew").onchange=e=>{
+  if(!e.target.checked){resetShareDraft();return;}
+  chooseShareSection(formCatch(),s=>{draftSection=s;$("#shareNew").checked=true;$("#shareSectionLabel").textContent=s.name;});
+};
+addEventListener("online",()=>{retryShares();refreshReports(true);});
+addEventListener("storage",e=>{if(e.key?.startsWith(sharePrefix))updateShareUI(e.key.slice(sharePrefix.length));});
+addEventListener("pageshow",retryShares);
+
+async function idForReportHit(z) {
+  if(!z)return "";
+  if(z.t==="sec")return "SO:"+z.id;
+  if(z.t==="w")return /^ch\.swisstopo\.swisstlm3d-gewaessernetz\/(\d{1,12})$/.test(z.zoneId)?"CH:"+z.zoneId.split("/")[1]:"";
+  let parts;
+  if(z.t==="zone"){
+    if(z.code==="LU"&&z.kind==="Fischereirevier"&&z.rev)return "LU:R"+z.rev;
+    if(!["AG","ZH","LU","SG","GR"].includes(z.code)||!(z.water||z.region))return "";
+    parts=[z.water||z.region,z.rev||"",z.kind];
+  }else if(z.t==="x"){
+    const [code,layer,id,kind,name,description]=JSON.parse(z.zoneId);
+    parts=[layer,id,name,description||""];
+  }else return "";
+  const hash=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(JSON.stringify(parts)));
+  return z.code+":"+Array.from(new Uint8Array(hash).slice(0,10),b=>b.toString(16).padStart(2,"0")).join("");
+}
+function rememberReportSection(hit,canton,name) {
+  store.set("publicWaterRef",null);
+  if(hit)void idForReportHit(hit).then(id=>{
+    if(id&&state.canton===canton&&selectedWaterName()===name)store.set("publicWaterRef",{id,canton,name});
+  }).catch(()=>{});
+}
+
+let reportData=FC([]),reportQuery="",reportUpdated=0,reportAbort=null,reportDebounce=null;
+let reportMapStatus="Freiwillig geteilte Fänge pro Gewässerabschnitt";
+const reportDays=()=>mapFilter.publicDays===7?7:30;
+function reportPanel(){
+  return '<label class="ml-row"><span><b>Öffentliche Fänge</b><small data-report-status>'+esc(reportMapStatus)+'</small></span><input class="ios-switch" type="checkbox" data-ml="publicReports"'+(mapFilter.publicReports!==false?' checked':'')+'></label>'+
+    '<button type="button" data-report-retry'+(mapFilter.publicReports!==false&&reportMapStatus==="Fangmeldungen nicht erreichbar"?'':' hidden')+'>Erneut laden</button>'+
+    (mapFilter.publicReports!==false?'<div class="ml-seg report-period" role="group" aria-label="Zeitraum für öffentliche Fänge">'+[7,30].map(days=>'<button type="button" data-report-days="'+days+'" aria-pressed="'+(days===reportDays())+'" class="'+(days===reportDays()?'on':'')+'">'+days+' Tage</button>').join("")+'</div>':"");
+}
+function setReportStatus(s){
+  reportMapStatus=s;
+  const el=document.querySelector("[data-report-status]"),retry=document.querySelector("[data-report-retry]");
+  if(el)el.textContent=s;if(retry)retry.hidden=s!=="Fangmeldungen nicht erreichbar";
+}
+function addReportLayers(){
+  map.addSource("fb-public",{type:"geojson",data:reportData,cluster:true,clusterMaxZoom:12,clusterRadius:38,
+    clusterProperties:{total:["+",["get","count"]]}});
+  const number=["coalesce",["get","total"],["get","count"],1];
+  map.addLayer({id:"fb-public-dots",source:"fb-public",type:"circle",paint:{"circle-radius":["step",number,12,10,15,100,18],"circle-color":"#077786","circle-stroke-color":"#fff","circle-stroke-width":2}});
+  map.addLayer({id:"fb-public-count",source:"fb-public",type:"symbol",layout:{"text-field":["to-string",number],"text-font":labelFont,"text-size":12,"text-allow-overlap":true,"text-ignore-placement":true},paint:{"text-color":"#fff"}});
+}
+function refreshReports(force=false) {
+  if(!mapReady||!map||!$("#v-karte").classList.contains("on"))return;
+  if(mapFilter.publicReports===false){
+    clearTimeout(reportDebounce);reportAbort?.abort();reportAbort=null;reportQuery="";reportData=FC([]);map.getSource("fb-public")?.setData(reportData);return;
+  }
+  const b=map.getBounds(),bounds=[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].map((v,i)=>(i<2?Math.floor(v*10):Math.ceil(v*10))/10);
+  const query=new URLSearchParams({days:reportDays(),bbox:bounds.join(",")}).toString();
+  if(!force&&query===reportQuery&&(reportAbort||Date.now()-reportUpdated<45000))return;
+  clearTimeout(reportDebounce);reportAbort?.abort();
+  const controller=new AbortController();reportAbort=controller;reportQuery=query;
+  reportDebounce=setTimeout(async()=>{
+    if(controller.signal.aborted)return;
+    const timeout=setTimeout(()=>controller.abort(),10000);
+    try{
+      setReportStatus("Fangmeldungen werden geladen …");
+      const data=await reportRequest("map?"+query,{signal:controller.signal});
+      if(reportAbort!==controller)return;
+      reportData=FC(data.sections.map(s=>({type:"Feature",geometry:{type:"Point",coordinates:[s.lon,s.lat]},properties:{id:s.id,name:s.name,count:s.count}})));
+      map.getSource("fb-public")?.setData(reportData);reportUpdated=Date.now();
+      setReportStatus(data.more?"Viele Abschnitte · zum Eingrenzen zoomen":data.sections.length?data.sections.length+" Abschnitte mit Meldungen":"Keine Meldungen im Kartenausschnitt");
+    }catch{
+      if(reportAbort!==controller)return;
+      reportQuery="";reportData=FC([]);map.getSource("fb-public")?.setData(reportData);
+      setReportStatus("Fangmeldungen nicht erreichbar");
+    }finally{clearTimeout(timeout);if(reportAbort===controller)reportAbort=null;}
+  },180);
+}
+function publicSheet() {
+  const z=mapSel;
+  let body;
+  if(z.error)body='<p class="sh-d">Fangmeldungen nicht erreichbar.</p><button type="button" data-sh="report-retry">Erneut laden</button>';
+  else if(!z.rows)body='<p class="sh-d">Meldungen werden geladen …</p>';
+  else if(!z.rows.length)body='<p class="sh-d">Für diesen Abschnitt wurden in diesem Zeitraum keine Fänge geteilt.</p>';
+  else body=z.rows.map(row=>{
+    const length=row.min==null?"Länge nicht angegeben":row.min===row.max?row.min+" cm":row.min+"–"+row.max+" cm";
+    return '<div class="report-species"><b>'+esc(row.species)+'</b><span>'+row.count+' × · '+esc(length)+'</span><small>Letzter Fang am '+esc(fmtD(row.last))+'</small></div>';
+  }).join("");
+  return {title:z.name,pills:'<span class="pill p-mut">Öffentliche Fänge · '+z.days+' Tage</span>',body,actions:""};
+}
+async function openPublicSection(id,name,position) {
+  if(!id){toast("Für diesen Abschnitt fehlt eine eindeutige Zuordnung.");return;}
+  cancelMapQuery();closePress();
+  const z={t:"public",id,name,days:reportDays(),lon:position[0],lat:position[1]};
+  mapSel=z;mapHits=[];renderSheet();drawSel();placeSheet("half");
+  try{z.rows=(await reportRequest("section?"+new URLSearchParams({id,days:z.days}))).species;}
+  catch{z.error=true;}
+  if(mapSel===z)renderSheet();
+}
+function publicMapClick(box) {
+  if(mapFilter.publicReports===false||!map.getLayer("fb-public-dots"))return false;
+  const f=map.queryRenderedFeatures(box,{layers:["fb-public-dots"]})[0];
+  if(!f)return false;
+  if(f.properties.cluster)map.getSource("fb-public").getClusterExpansionZoom(f.properties.cluster_id).then(zoom=>map.easeTo({center:f.geometry.coordinates,zoom:zoom+.2})).catch(()=>{});
+  else void openPublicSection(f.properties.id,f.properties.name,f.geometry.coordinates);
+  return true;
+}
+addEventListener("focus",()=>refreshReports());
+
 /* ================= UPDATES (Regeln/Hinweise) ================= */
 function applyData(j){
   if(!j||typeof j.version!=="number")return false;
@@ -4485,6 +4789,7 @@ $("#artList").onclick=e=>{
 };
 $("#logList").onclick=e=>{
   const onMap=e.target.closest("[data-map]");if(onMap){openCatchOnMap(onMap.dataset.map);return}
+  const share=e.target.closest("[data-share]");if(share){bookShare(share.dataset.share);return}
   const edit=e.target.closest("[data-edit]");
   if(edit){
     const f=state.log.find(f=>String(f.id)===edit.dataset.edit);
@@ -4494,7 +4799,10 @@ $("#logList").onclick=e=>{
       if(!Number.isInteger(n)||n<1||len<0){toast("Bitte gültige Länge und Anzahl eingeben.");return}
       const log=state.log.map(row=>row.id===f.id?{...row,art:$("#editSpecies").value,len:Number.isFinite(len)?len:null,n,note:$("#editNote").value}:row);
       if(!store.set("log",log)){toast("Speichern fehlgeschlagen");return}
-      state.log=log;renderStats();if(map)drawCatches();toast("Änderungen gespeichert");
+      state.log=log;
+      const rec=shareState(f.id),changed=log.find(entry=>entry.id===f.id);
+      if(rec&&!rec.remove&&(changed.art!==f.art||changed.len!==f.len||changed.n!==f.n))queueShare(changed,rec.section);
+      renderStats();if(map)drawCatches();toast("Änderungen gespeichert");
     });
     for(const art of new Set([f.art,...SPECIES]))$("#editSpecies").add(new Option(art,art));
     $("#editLen").value=f.len??"";$("#editCount").value=f.n||1;$("#editNote").value=f.note||"";return;
@@ -4506,6 +4814,7 @@ $("#logList").onclick=e=>{
   const id=e.target.closest("[data-del]")?.dataset.del;
   if(id)ask("<h2>Fang löschen?</h2>",async()=>{
     const entry=state.log.find(f=>String(f.id)===id);
+    if(!withdrawShare(id))return;
     const log=state.log.filter(f=>String(f.id)!==id);
     if(!store.set("log",log)){toast("Fang konnte nicht gelöscht werden.");return}
     state.log=log;renderStats();if(map)drawCatches();

@@ -1,4 +1,15 @@
 /* ---- MapLibre-Karte ---- */
+/* Öffentliche Fangmeldungen */
+.share-catch{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;min-height:48px}
+.share-catch small,.share-status{color:var(--mut);display:block;font-size:.82rem}
+.share-status:empty{display:none}
+#shareDialog{max-height:86dvh;overflow:auto}
+#shareResults{margin-top:10px;min-height:7rem}
+#shareConfirm,#shareCancel,#shareFindAgain,.report-link,#mapLayers .report-period button{min-height:44px}
+#shareMessage{min-height:1.3em}
+.report-species{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.report-species small{grid-column:1/-1;color:var(--mut)}
+.report-link{margin-bottom:12px}
 #map{position:absolute;inset:0;background:#d9e1de}
 #map canvas{outline:none}
 .maplibregl-ctrl-bottom-right,.maplibregl-ctrl-bottom-left{display:none}

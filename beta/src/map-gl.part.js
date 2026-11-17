@@ -1,7 +1,7 @@
 /* ================= KARTE (MapLibre GL) ================= */
 // Zoom conventions: MapLibre uses 512 px tiles. All data thresholds below are written
 // in Leaflet/WMTS zoom levels (256 px tiles), therefore lz() = map zoom + 1.
-let map=null,mapReady=false,follow=false,meMarker=null,meAnim=null,mePos=null;
+let map=null,mapReady=false,follow=false,meAnim=null,mePos=null;
 const lz=()=>map?map.getZoom()+1:0;
 const swissCalendar=new Intl.DateTimeFormat("sv-SE",{timeZone:"Europe/Zurich",year:"numeric",month:"2-digit",day:"2-digit"});
 let mapDate=swissCalendar.format(new Date());
@@ -156,25 +156,34 @@ function accuracyRadius(p){
   const r0=p.acc/mpp0;
   return ["interpolate",["exponential",2],["zoom"],0,r0,22,r0*2**22];
 }
+function locationPoint(p){
+  return FC(p?[{type:"Feature",geometry:{type:"Point",coordinates:[p.lon,p.lat]},properties:{}}]:[]);
+}
 function updateMe(){
   const p=state.pos;if(!map||!p)return;
-  if(!meMarker){
-    const el=document.createElement("div");el.className="me-wrap";el.innerHTML='<span class="medot"></span>';
-    meMarker=new maplibregl.Marker({element:el}).setLngLat([p.lon,p.lat]).addTo(map);mePos={lat:p.lat,lon:p.lon};
-  }else{
-    // Glide smoothly from the previous fix to the new one.
-    const from={...mePos},to={lat:p.lat,lon:p.lon},start=performance.now(),dur=700;
-    cancelAnimationFrame(meAnim);
-    const step=t=>{const k=Math.min(1,(t-start)/dur),e=1-(1-k)**3;
-      mePos={lat:from.lat+(to.lat-from.lat)*e,lon:from.lon+(to.lon-from.lon)*e};meMarker.setLngLat([mePos.lon,mePos.lat]);
-      if(k<1)meAnim=requestAnimationFrame(step)};
-    meAnim=requestAnimationFrame(step);
-  }
   if(mapReady){
-    map.getSource("fb-me")?.setData(FC([{type:"Feature",geometry:{type:"Point",coordinates:[p.lon,p.lat]},properties:{}}]));
+    const source=map.getSource("fb-me"),from=mePos;
+    cancelAnimationFrame(meAnim);
+    const paint=pos=>{mePos=pos;source.setData(locationPoint(pos))};
+    if(!from||!$("#v-karte").classList.contains("on")||matchMedia("(prefers-reduced-motion: reduce)").matches)paint(p);
+    else if(from.lat!==p.lat||from.lon!==p.lon){
+      const start=performance.now();let last=start;
+      const step=now=>{
+        if(!mapReady||map.getSource("fb-me")!==source)return;
+        const k=Math.min(1,(now-start)/700);
+        if(k===1){paint(p);return}
+        // Bound worker updates while the GPS dot glides between two fixes.
+        if(now-last>=50){const e=1-(1-k)**3;paint({lat:from.lat+(p.lat-from.lat)*e,lon:from.lon+(p.lon-from.lon)*e});last=now}
+        meAnim=requestAnimationFrame(step);
+      };
+      meAnim=requestAnimationFrame(step);
+    }
     map.setPaintProperty("fb-me-acc","circle-radius",accuracyRadius(p));
   }
-  if(follow)map.easeTo({center:[p.lon,p.lat],duration:700});
+  if(follow){
+    const target=[p.lon,p.lat];
+    if(map.project(target).dist(map.project(map.getCenter()))>1)map.easeTo({center:target,duration:700});
+  }
   syncLocateButton();
 }
 
@@ -1181,9 +1190,9 @@ function addOverlays(){
   map.addLayer({id:"fb-so-labels",type:"symbol",source:"fb-so",minzoom:12,filter:["!=",["get","lb"],""],
     layout:{"symbol-placement":"line-center","text-field":["get","lb"],"text-font":labelFont,"text-size":12,"text-padding":8,"text-allow-overlap":false},
     paint:{"text-color":["case",["==",["get","ls"],1],"#c93745","#12222a"],"text-halo-color":"#fff","text-halo-width":2.2}});
-  addReportLayers();addCatchLayers();
-  map.addSource("fb-me",{type:"geojson",data:state.pos?FC([{type:"Feature",geometry:{type:"Point",coordinates:[state.pos.lon,state.pos.lat]},properties:{}}]):FC([])});
+  map.addSource("fb-me",{type:"geojson",data:locationPoint(mePos||state.pos)});
   map.addLayer({id:"fb-me-acc",type:"circle",source:"fb-me",paint:{"circle-radius":state.pos?accuracyRadius(state.pos):0,"circle-color":"#1c7ed6","circle-opacity":.1,"circle-stroke-color":"#1c7ed6","circle-stroke-opacity":.45,"circle-stroke-width":1,"circle-pitch-alignment":"map"}});
+  map.addLayer({id:"fb-me-dot",type:"circle",source:"fb-me",paint:{"circle-radius":8,"circle-color":"#1c7ed6","circle-stroke-color":"#fff","circle-stroke-width":2.5}});
   map.addSource("fb-pins",{type:"geojson",data:pinFC});
   map.addLayer({id:"fb-pins",type:"circle",source:"fb-pins",paint:{
     "circle-radius":["case",["==",["get","t"],"preview"],9,6.5],
@@ -1192,6 +1201,7 @@ function addOverlays(){
   map.addLayer({id:"fb-district-label",type:"symbol",source:"fb-pins",filter:["has","name"],
     layout:{"text-field":["get","name"],"text-font":labelFont,"text-size":13,"text-anchor":"bottom","text-offset":[0,-.8],"text-padding":5},
     paint:{"text-color":FishSections.highlight,"text-halo-color":"#17292d","text-halo-width":2}});
+  addReportLayers();addCatchLayers();
 }
 let coarseImages=[];
 function addCoarse(img){
@@ -1317,6 +1327,7 @@ async function initMap(){
   const sheet=$("#mapSheet");
   sheet.onclick=e=>{const b=e.target.closest("[data-sh]");if(b)sheetAction(b.dataset.sh)};
   bindLongPress();
+  map.on("styleimagemissing",addCatchImage);
   map.on("style.load",()=>{if(mapReady)return;
     updateDetailBounds();drawGeo();drawX();addOverlays();mapReady=true;
     drawLakes();loadX();drawCatches();refreshSpots();updateMe();sectionMap.sync();renderSheet();drawSel();showShoreMarkers();updateHint();focusRequestedLU();refreshReports()});
@@ -1325,11 +1336,7 @@ async function initMap(){
     if(placeMode){applyPlace(e.lngLat);return}
     if(pressMarker){closePress();return}
     const box=[[e.point.x-12,e.point.y-12],[e.point.x+12,e.point.y+12]];
-    const cluster=map.queryRenderedFeatures(box,{layers:["fb-catch-cluster"]})[0];
-    if(cluster){map.getSource("fb-catches").getClusterExpansionZoom(cluster.properties.cluster_id).then(z=>map.easeTo({center:cluster.geometry.coordinates,zoom:z+.3,duration:450}));return}
-    const fishHit=map.queryRenderedFeatures(box,{layers:["fb-catches"]})[0];
-    if(fishHit){openCatch(fishHit.properties.id);return}
-    if(publicMapClick(box))return;
+    if(catchMapClick(e.point,box))return;
     mapTap({latlng:{lat:e.lngLat.lat,lng:e.lngLat.lng},point:e.point});
   });
   map.on("dragstart",()=>{if(follow){follow=false;syncLocateButton()}});

@@ -249,12 +249,8 @@ async function openPublicSection(id,name,position) {
   catch{z.error=true;}
   if(mapSel===z)renderSheet();
 }
-function publicMapClick(box) {
-  if(mapFilter.publicReports===false||!map.getLayer("fb-public-dots"))return false;
-  const f=map.queryRenderedFeatures(box,{layers:["fb-public-dots"]})[0];
-  if(!f)return false;
+function openPublicMapFeature(f) {
   if(f.properties.cluster)map.getSource("fb-public").getClusterExpansionZoom(f.properties.cluster_id).then(zoom=>map.easeTo({center:f.geometry.coordinates,zoom:zoom+.2})).catch(()=>{});
   else void openPublicSection(f.properties.id,f.properties.name,f.geometry.coordinates);
-  return true;
 }
 addEventListener("focus",()=>refreshReports());

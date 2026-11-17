@@ -3132,7 +3132,8 @@ function fontFrom(style){
 function addOverlays(){
   map.addSource("fb-hydro",{type:"raster",tiles:["https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swisstlm3d-gewaessernetz/default/current/3857/{z}/{x}/{y}.png"],tileSize:256,minzoom:5,maxzoom:17,
     attribution:'Gewässer © <a href="https://www.swisstopo.admin.ch/de/landschaftsmodell-swisstlm3d">swisstopo</a>'});
-  map.addLayer({id:"fb-hydro",type:"raster",source:"fb-hydro",paint:{"raster-opacity":hydroOpacity(),"raster-fade-duration":150,"raster-saturation":.3}});
+  // The national water network is dense at country scale; show it once rivers become legible.
+  map.addLayer({id:"fb-hydro",type:"raster",source:"fb-hydro",minzoom:9,paint:{"raster-opacity":hydroOpacity(),"raster-fade-duration":150,"raster-saturation":-.35}});
   for(const [c,url,layers,b] of eastWms){
     const id="fb-wms-"+c;
     map.addSource(id,{type:"raster",tileSize:256,minzoom:10,bounds:[b[0][1],b[0][0],b[1][1],b[1][0]],

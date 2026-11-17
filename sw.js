@@ -23,9 +23,10 @@ const nextTrim=new Map();
 async function cacheFirst(req, name, limit) {
   const c = await caches.open(name);
   const hit = await c.match(req);
-  if (hit) return hit;
+  // An opaque copy (stored for an <img>) cannot answer a CORS request of the GL map.
+  if (hit && !(hit.type === "opaque" && req.mode === "cors")) return hit;
   const res = await fetch(req);
-  if (res.ok || res.type === "opaque") {
+  if (res.ok || (res.type === "opaque" && !hit)) {
     try {
       await c.put(req,res.clone());
       if(limit){

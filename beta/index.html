@@ -383,6 +383,54 @@ button:disabled{opacity:.55;cursor:wait}
 @media (prefers-reduced-motion:reduce){#mapSheet,.mui-locate,.mui-bottom-left{transition:none!important}}
 /* Offene Suche: Knöpfe darunter ausblenden, damit die Trefferliste frei liegt. */
 #mapUI:has(.mui-search.open) :is(.mui-row,.mui-right){visibility:hidden}
+/* ---- Eigene Spots ---- */
+.spot-pin{position:relative;width:40px;height:50px;min-height:0;padding:0;border:0;background:none;cursor:pointer;filter:drop-shadow(0 3px 4px rgba(0,0,0,.35));transform-origin:50% 100%;transition:transform .18s cubic-bezier(.2,.8,.2,1)}
+.spot-pin .spot-shape{position:absolute;inset:0;width:40px;height:50px}
+.spot-pin .spot-glyph{position:absolute;left:9px;top:8px;width:22px;height:22px;border-radius:50%;background:#fff;display:grid;place-items:center}
+.spot-pin.selected{transform:scale(1.22)}
+.spot-pin:focus-visible{outline:none}.spot-pin:focus-visible .spot-shape path{stroke:#ffd43b;stroke-width:4}
+.press-menu{display:flex;flex-direction:column;align-items:center;pointer-events:auto}
+.press-dot{order:2;width:16px;height:16px;margin-top:6px;border-radius:50%;background:#ffd43b;border:3px solid #12222a;box-shadow:0 1px 6px rgba(0,0,0,.4)}
+.press-card{order:1;display:flex;align-items:stretch;gap:4px;padding:5px;border-radius:16px;background:var(--sf);color:var(--tx);box-shadow:0 6px 22px rgba(10,20,24,.32);animation:pressIn .16s ease-out}
+.press-card button{display:flex;align-items:center;gap:6px;min-height:44px;padding:6px 12px;border:0;border-radius:12px;background:var(--sf2);color:var(--tx);font-size:13.5px;font-weight:600;white-space:nowrap}
+.press-card button svg{color:var(--acc);flex:none}
+.press-card .press-x{padding:6px 10px;background:none;color:var(--mut)}.press-card .press-x svg{width:18px;height:18px;color:var(--mut)}
+@keyframes pressIn{from{opacity:0;transform:translateY(6px) scale(.96)}}
+.spot-types{display:flex;flex-wrap:wrap;gap:6px}
+.spot-type input{position:absolute;opacity:0;pointer-events:none}
+.spot-type span{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:6px 12px;border-radius:20px;border:1.5px solid var(--line);font-size:14px;font-weight:600;color:var(--tx);cursor:pointer}
+.spot-type span svg{color:var(--c)}
+.spot-type input:checked+span{border-color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent)}
+.spot-type input:focus-visible+span{outline:2px solid var(--acc);outline-offset:2px}
+.spot-pill{display:inline-flex;align-items:center;gap:5px;background:color-mix(in srgb,var(--c) 16%,var(--sf));color:var(--c)}
+.sh-note{margin:10px 0 0;font-size:15px;line-height:1.5;white-space:pre-wrap}
+.sh-photo:empty{display:none}.sh-photo img{display:block;width:100%;max-height:240px;object-fit:cover;border-radius:12px;margin-top:10px}
+#mapSheet a.btn{display:flex;align-items:center;justify-content:center;flex:1 1 auto;min-height:46px;padding:10px 16px;border-radius:var(--rc);text-decoration:none;font-weight:600}
+#mapSheet a.btn.pri{background:var(--acc);color:var(--acc-tx)}
+#mapSheet .sh-a .del{color:var(--bad)}
+/* ---- Ebenen-Panel ---- */
+.mui-layers{position:absolute;right:66px;top:68px;z-index:6;width:min(320px,calc(100% - 86px));max-height:calc(100% - 160px);overflow:auto;padding:12px 14px 14px;border-radius:18px;background:var(--sf);color:var(--tx);box-shadow:0 8px 28px rgba(10,20,24,.3)}
+.mui-layers[hidden]{display:none}
+.ml-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.ml-x{width:36px;height:36px;min-height:0;padding:8px;border:0;border-radius:50%;background:var(--sf2);color:var(--mut)}.ml-x svg{width:18px;height:18px;display:block}
+.ml-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0 0;color:var(--tx);font-size:15px}
+.ml-row small{display:block;font-size:12.5px;color:var(--mut);font-weight:400}
+.ml-row input{width:44px;height:26px;min-height:0;appearance:none;border-radius:13px;background:var(--line);position:relative;cursor:pointer;transition:background .15s;flex:none;border:0;padding:0}
+.ml-row input::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .15s}
+.ml-row input:checked{background:var(--acc)}.ml-row input:checked::after{transform:translateX(18px)}
+.ml-sub{margin:8px 0 2px}.ml-sub[hidden]{display:none}.ml-sub select{min-height:42px;margin-bottom:6px}
+.ml-seg{display:flex;gap:3px;padding:3px;border-radius:12px;background:var(--sf2)}
+.ml-seg button{flex:1;min-height:34px;padding:4px;border:0;border-radius:9px;background:none;color:var(--mut);font-size:12.5px;font-weight:600}
+.ml-seg button.on{background:var(--sf);color:var(--tx);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.ml-spots{display:flex;flex-direction:column;margin-top:6px}
+.ml-spots button{display:flex;align-items:center;gap:10px;min-height:48px;padding:6px 2px;border:0;border-radius:0;border-bottom:1px solid var(--line);background:none;color:var(--tx);text-align:left;font-weight:600;font-size:14px}
+.ml-spots small{display:block;font-weight:400;font-size:12px;color:var(--mut)}
+.ml-ico{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--c);color:#fff}
+.ml-ico svg{width:15px;height:15px}
+.ml-tip{margin:12px 0 0;font-size:12.5px;line-height:1.45;color:var(--mut)}
+#placeBar{position:absolute;left:12px;right:12px;top:68px;z-index:7;display:flex;align-items:center;gap:10px;padding:10px 10px 10px 14px;border-radius:16px;background:#12222a;color:#fff;font-size:14px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.35)}
+#placeBar[hidden]{display:none}#placeBar span{flex:1}
+#placeBar button{min-height:40px;padding:6px 12px;border:0;border-radius:10px;background:rgba(255,255,255,.16);color:#fff}
 </style>
 </head>
 <body>
@@ -847,7 +895,7 @@ function renderTop(){
   if($("#v-karte").classList.contains("on")){
     const z=mapSel;
     t=z?.districtView?"Revier "+z.rev:z?(z.name||z.water?.name||"Gewässer"):"Gewässerkarte";
-    s=z?((z.code?cname(z.code):"Solothurn")+(z.rev?" · Revier "+z.rev:"")+" · Kartenauskunft"):"Grün · offene Fangsaison";
+    s=z?.t==="spot"?"Mein Spot":z?.t==="catch"?"Mein Fang":z?((z.code?cname(z.code):"Solothurn")+(z.rev?" · Revier "+z.rev:"")+" · Kartenauskunft"):"Grün · offene Fangsaison";
     if(z?.districtView)s=cname(z.code)+" · Revierübersicht";
     cls=z&&!z.districtView&&restrictedHit(z)?"warn":"none";
     $("#tbCanton").textContent=z?.border?.length>1?z.border.join("/"):z?.code||"CH";
@@ -1142,7 +1190,7 @@ function saveFang(){
   if(unknownWater()||(isCM()&&!sec.id)||ruleFor(sec,sp).pickW){openWater();return}
   if(c.needLen){$("#afterSave").innerHTML=`<div class="verdict v-warn"><div class="ln">Bitte zuerst die Länge eingeben – sonst kann das Mindestmass nicht geprüft werden.</div></div>`;$("#fLen").focus();return}
   const doSave=async kept=>{
-    const now=new Date(),p=state.pos;
+    const now=new Date(),p=catchAt||state.pos;
     const f={id:Date.now(),ts:now.getTime(),day:dayKey(now),canton:state.canton,sec:sec.id,art:sp,len,n,kept,note:$("#fNote").value.trim(),lat:p?+p.lat.toFixed(5):null,lon:p?+p.lon.toFixed(5):null};
     if(!isSO()&&selectedWaterName())f.waterName=selectedWaterName();
     const photo=draftPhoto;
@@ -1157,7 +1205,7 @@ function saveFang(){
         if(photo)await accessPhoto("delete",f.photoKey);
         throw new Error();
       }
-      state.log=log;
+      state.log=log;catchAt=null;renderCatchAt();
     }catch(e){
       $("#afterSave").textContent="Fang konnte nicht gespeichert werden. Bitte Gerätespeicher prüfen und erneut versuchen.";
       return;
@@ -1252,7 +1300,7 @@ function renderStats(){
   bookPhotoObserver?.disconnect();
   for(const url of previewUrls)URL.revokeObjectURL(url);
   previewUrls.clear();
-  $("#logList").innerHTML=catches.length?catches.slice(0,bookLimit).map(f=>`<div class="it" id="catch-${f.id}" tabindex="-1"><div class="row" style="align-items:center"><div style="flex:3"><b>${esc(f.art)}</b>${f.len!=null?` · ${f.len} cm`:""}${f.n>1?` · ${f.n} Stk.`:""} <span class="pill ${f.kept?"p-ok":"p-mut"}">${f.kept?"behalten":"zurück"}</span><div class="mut small">${new Date(f.ts).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"})} · ${esc((f.canton||"SO")==="SO"?waterLabel("SO",f.sec):cname(f.canton)+((f.waterName||cwLabel(f.canton,f.sec))?" · "+(f.waterName||cwLabel(f.canton,f.sec)):""))}${f.note?" · "+esc(f.note):""}</div></div>${f.photoKey?`<button type="button" class="book-photo" data-photo="${esc(f.photoKey)}" aria-label="Fangfoto vergrössern: ${esc(f.art)}">Foto laden …</button>`:`<button type="button" data-add-photo="${esc(f.id)}">Foto hinzufügen</button>`}<details class="entry-menu"><summary>Mehr</summary><button type="button" data-edit="${f.id}">Bearbeiten</button><button class="del" data-del="${f.id}">Löschen</button></details></div></div>`).join(""):`<p class="mut">Keine Fangeinträge in diesem Zeitraum.</p>`;
+  $("#logList").innerHTML=catches.length?catches.slice(0,bookLimit).map(f=>`<div class="it" id="catch-${f.id}" tabindex="-1"><div class="row" style="align-items:center"><div style="flex:3"><b>${esc(f.art)}</b>${f.len!=null?` · ${f.len} cm`:""}${f.n>1?` · ${f.n} Stk.`:""} <span class="pill ${f.kept?"p-ok":"p-mut"}">${f.kept?"behalten":"zurück"}</span><div class="mut small">${new Date(f.ts).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"})} · ${esc((f.canton||"SO")==="SO"?waterLabel("SO",f.sec):cname(f.canton)+((f.waterName||cwLabel(f.canton,f.sec))?" · "+(f.waterName||cwLabel(f.canton,f.sec)):""))}${f.note?" · "+esc(f.note):""}</div></div>${f.photoKey?`<button type="button" class="book-photo" data-photo="${esc(f.photoKey)}" aria-label="Fangfoto vergrössern: ${esc(f.art)}">Foto laden …</button>`:`<button type="button" data-add-photo="${esc(f.id)}">Foto hinzufügen</button>`}<details class="entry-menu"><summary>Mehr</summary><button type="button" data-map="${f.id}">${Number.isFinite(f.lat)?"Auf der Karte zeigen":"Ort auf der Karte setzen"}</button><button type="button" data-edit="${f.id}">Bearbeiten</button><button class="del" data-del="${f.id}">Löschen</button></details></div></div>`).join(""):`<p class="mut">Keine Fangeinträge in diesem Zeitraum.</p>`;
   for(const button of $("#logList").querySelectorAll("[data-photo]")){
     if(bookPhotoObserver)bookPhotoObserver.observe(button);else loadBookPhoto(button);
   }
@@ -2273,12 +2321,6 @@ function drawGeo(){
   }
   setZones("fb-so",FC(features));
 }
-function drawCatches(){
-  if(!map)return;
-  const features=state.log.filter(f=>Number.isFinite(f.lat)&&Number.isFinite(f.lon)).map(f=>({type:"Feature",geometry:{type:"Point",coordinates:[f.lon,f.lat]},
-    properties:{t:`<b>${esc(f.art)}</b>${f.len!=null?" · "+f.len+" cm":""}<br>${new Date(f.ts).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"})}`}}));
-  catchData=FC(features);if(mapReady)map.getSource("fb-catches")?.setData(catchData);
-}
 let catchData=FC([]);
 function accuracyRadius(p){
   const mpp0=156543.03392*Math.cos(p.lat*Math.PI/180)/2; // metres per px at GL zoom 0 (512 px tiles)
@@ -2536,7 +2578,7 @@ let pinFC=FC([]),selFC=FC([]);
 function setPins(){
   const features=[];
   const hit=mapSel||currentConfirmed();
-  if(Number.isFinite(hit?.lat)&&Number.isFinite(hit?.lon))features.push({type:"Feature",geometry:{type:"Point",coordinates:[hit.lon,hit.lat]},properties:{t:"pin"}});
+  if(Number.isFinite(hit?.lat)&&Number.isFinite(hit?.lon)&&hit.t!=="spot"&&hit.t!=="catch")features.push({type:"Feature",geometry:{type:"Point",coordinates:[hit.lon,hit.lat]},properties:{t:"pin"}});
   if(tapPreview)features.push({type:"Feature",geometry:{type:"Point",coordinates:[tapPreview.lon,tapPreview.lat]},properties:{t:"preview"}});
   pinFC=FC(features);if(mapReady)map.getSource("fb-pins")?.setData(pinFC);
 }
@@ -2569,6 +2611,7 @@ function drawSel(){
   }
   applyZoneDim(mapSel?.districtView?.28:mapSel&&parts.length?.46:1);
   setPins();
+  if(spotMarkers.size)for(const [id,m] of spotMarkers)m.getElement().classList.toggle("selected",mapSel?.t==="spot"&&mapSel.id===id);
   if(hit?.group&&!hit.fullParts&&!hit.loading&&!hit.partial){
     hit.loading=true;
     sectionMap.wholeZone(hit).then(all=>{hit.fullParts=all},()=>{hit.partial=true}).finally(()=>{
@@ -2748,8 +2791,11 @@ function renderSheet(){
   const fit=canFit?'<button type="button" class="sh-fit" data-sh="extent" aria-label="Ganzen Abschnitt auf der Karte zeigen" title="Ganzen Abschnitt zeigen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5"/></svg></button>':"";
   const head=(title,pills)=>`<div class="sh-h"><div class="sh-t">${esc(title)}</div><div class="sh-controls">${fit}<button type="button" class="sh-x" data-sh="close" aria-label="Schliessen">${XICON}</button></div></div><div class="sh-p">${pills}</div>`;
   const chip=c=>`<span class="pill p-mut">${esc(cname(c))}</span>`;
-  let top="",actions="",body="";
-  if(mapSel&&mapSel.t==="sec"){
+  let top="",actions="",body="",photo=null;
+  if(mapSel?.t==="spot"||mapSel?.t==="catch"){
+    const o=mapSel.t==="spot"?spotSheet():catchSheet();
+    if(!o)mapSel=null;else{top=`<div class="sh-h"><div class="sh-t">${esc(o.title)}</div><div class="sh-controls"><button type="button" class="sh-x" data-sh="close" aria-label="Schliessen">${XICON}</button></div></div><div class="sh-p">${o.pills}</div>`;actions=o.actions;body=o.body;photo=o.photo}
+  } else if(mapSel&&mapSel.t==="sec"){
     const f=GEO.features.find(x=>x.id===mapSel.id)||{t:""},sec=secById(mapSel.id),st=secStatus(sec),k=sec.kind;
     const pill=k==="schon"?`<span class="pill p-bad">Schonstrecke</span>`:st.some(x=>x.lvl==="bad")?`<span class="pill p-bad">Heute gesperrt</span>`:rightBadge;
     const r=k==="patent"?soRule(sec,"Bachforelle"):null;
@@ -2815,6 +2861,7 @@ function renderSheet(){
     else placeSheet(sheetState,false);
   }else if(sheetState!=="closed"){el.sheetKey=null;placeSheet("closed")}
   el.sheetContent=h;
+  if(photo&&changed)fillSheetPhoto(photo);
 }
 function pickCW(c,names,lake,pref){
   const R=RULES[c];if(!R||!R.w)return"";
@@ -2838,6 +2885,7 @@ document.addEventListener("keydown",e=>{
 });
 function sheetAction(a){
   if(pendingSelection&&a!=="close")return;
+  if(spotAction(a))return;
   if(pendingSelection){pendingSelection=false;hitWarning=""}
   ++tapSeq;clearTapPreview();
   if(a==="extent"&&mapSel){showMapExtent(mapSel);return}
@@ -2904,7 +2952,7 @@ function labelAt(point){
   return Number.isFinite(p.d)?{ll:{lat:p.lat,lng:p.lon},row}:null;
 }
 async function mapTap(e){
-  clearShore();
+  clearShore();closePress();
   pendingSelection=false;
   const seq=++tapSeq;clearTapPreview();$("#mapMsg").className="hide";flashHint("");
   const previewTimer=setTimeout(()=>{
@@ -3188,10 +3236,12 @@ function buildControls(){
     </div>
     <div class="mui-right">
       <div class="mui-zoom"><button type="button" id="mapZoomIn" aria-label="Vergrössern">${ICONS.plus}</button><button type="button" id="mapZoomOut" aria-label="Verkleinern">${ICONS.minus}</button></div>
+      <button type="button" class="mui-round" id="mapLayersBtn" aria-label="Fänge und Spots" aria-controls="mapLayers">${ICONS.layers}</button>
       <button type="button" class="mui-round" id="mapCompass" aria-label="Karte nach Norden ausrichten" hidden>${ICONS.compass}</button>
     </div>
     <div class="mui-bottom-left"><button type="button" class="mui-chip" id="mapLegendBtn" aria-haspopup="dialog" aria-controls="legendDialog">Legende</button><button type="button" class="mui-credit" id="mapCreditBtn" aria-haspopup="dialog" aria-controls="legendDialog">© swisstopo u. a.</button></div>
-    <button type="button" class="mui-round mui-locate" id="mapLocate" aria-label="Zu meinem Standort">${ICONS.locate}</button>`;
+    <button type="button" class="mui-round mui-locate" id="mapLocate" aria-label="Zu meinem Standort">${ICONS.locate}</button>
+    <div id="mapLayers" class="mui-layers" hidden></div>`;
   host.append(ui);
   $("#mapZoomIn").onclick=()=>map.zoomIn({duration:250});
   $("#mapZoomOut").onclick=()=>map.zoomOut({duration:250});
@@ -3218,6 +3268,7 @@ function buildControls(){
     if(secStatus(sec).some(s=>s.lvl==="bad")){toast("Dieses Gewässer ist gesperrt.");return}
     shoreView={key};showShoreMarkers();
   };
+  bindLayerPanel();
   const seg=ui.querySelector(".mseg");
   const drawSeg=()=>{const cur=store.get("base","luft")==="topo"?"topo":"luft";seg.querySelectorAll("button").forEach(b=>{b.classList.toggle("on",b.dataset.b===cur);b.setAttribute("aria-pressed",String(b.dataset.b===cur))})};
   drawSeg();
@@ -3272,8 +3323,7 @@ function addOverlays(){
   map.addLayer({id:"fb-so-labels",type:"symbol",source:"fb-so",minzoom:12,filter:["!=",["get","lb"],""],
     layout:{"symbol-placement":"line-center","text-field":["get","lb"],"text-font":labelFont,"text-size":12,"text-padding":8,"text-allow-overlap":false},
     paint:{"text-color":["case",["==",["get","ls"],1],"#c93745","#12222a"],"text-halo-color":"#fff","text-halo-width":2.2}});
-  map.addSource("fb-catches",{type:"geojson",data:catchData});
-  map.addLayer({id:"fb-catches",type:"circle",source:"fb-catches",paint:{"circle-radius":6,"circle-color":"#713fad","circle-stroke-color":"#fff","circle-stroke-width":2}});
+  addCatchLayers();
   map.addSource("fb-me",{type:"geojson",data:state.pos?FC([{type:"Feature",geometry:{type:"Point",coordinates:[state.pos.lon,state.pos.lat]},properties:{}}]):FC([])});
   map.addLayer({id:"fb-me-acc",type:"circle",source:"fb-me",paint:{"circle-radius":state.pos?accuracyRadius(state.pos):0,"circle-color":"#1c7ed6","circle-opacity":.1,"circle-stroke-color":"#1c7ed6","circle-stroke-opacity":.45,"circle-stroke-width":1,"circle-pitch-alignment":"map"}});
   map.addSource("fb-pins",{type:"geojson",data:pinFC});
@@ -3387,13 +3437,18 @@ async function initMap(){
   bindSheetDrag();
   const sheet=$("#mapSheet");
   sheet.onclick=e=>{const b=e.target.closest("[data-sh]");if(b)sheetAction(b.dataset.sh)};
+  bindLongPress();
   map.on("style.load",()=>{if(mapReady)return;addOverlays();mapReady=true;
-    drawGeo();drawX();loadX();drawCatches();updateMe();sectionMap.sync();renderSheet();drawSel();showShoreMarkers();updateHint()});
+    drawGeo();drawX();loadX();drawCatches();refreshSpots();updateMe();sectionMap.sync();renderSheet();drawSel();showShoreMarkers();updateHint()});
   map.on("click",e=>{
     if(!mapReady)return;
-    const box=[[e.point.x-8,e.point.y-8],[e.point.x+8,e.point.y+8]];
+    if(placeMode){applyPlace(e.lngLat);return}
+    if(pressMarker){closePress();return}
+    const box=[[e.point.x-12,e.point.y-12],[e.point.x+12,e.point.y+12]];
+    const cluster=map.queryRenderedFeatures(box,{layers:["fb-catch-cluster"]})[0];
+    if(cluster){map.getSource("fb-catches").getClusterExpansionZoom(cluster.properties.cluster_id).then(z=>map.easeTo({center:cluster.geometry.coordinates,zoom:z+.3,duration:450}));return}
     const fishHit=map.queryRenderedFeatures(box,{layers:["fb-catches"]})[0];
-    if(fishHit){new maplibregl.Popup({closeButton:false,maxWidth:"240px"}).setLngLat(fishHit.geometry.coordinates).setHTML(fishHit.properties.t).addTo(map);return}
+    if(fishHit){openCatch(fishHit.properties.id);return}
     mapTap({latlng:{lat:e.lngLat.lat,lng:e.lngLat.lng},point:e.point});
   });
   map.on("dragstart",()=>{if(follow){follow=false;syncLocateButton()}});
@@ -3417,6 +3472,279 @@ function onGeoChanged(){if(map){soFeatureCache.key="";drawGeo()}if(state.pos)upd
 function onCantonChanged(){
   if(map){drawGeo();drawX();loadX();}
   updateHere();
+}
+
+/* ================= FÄNGE UND EIGENE SPOTS AUF DER KARTE ================= */
+// Everything here stays on the device (localStorage "spots", catches in "log").
+const SPOT_TYPES={
+  hotspot:{label:"Hotspot",color:"#e8590c",icon:'<path d="M12 2.5c.8 3.6-2.6 4.8-2.6 8.4a2.6 2.6 0 0 0 5.2 0c0-.9-.4-1.8-.9-2.6 2.7 1.7 3.6 3.6 3.6 5.5a5.3 5.3 0 0 1-10.6 0c0-4.6 5.3-6.2 5.3-11.3z" fill="currentColor"/>'},
+  zugang:{label:"Zugang / Ufer",color:"#2b8a3e",icon:'<path d="M4 19h4v-4h4v-4h4V7h4" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>'},
+  parkplatz:{label:"Parkplatz",color:"#1c7ed6",icon:'<path d="M8 20V4h5a4.5 4.5 0 0 1 0 9H8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>'},
+  boot:{label:"Bootsplatz",color:"#0b7285",icon:'<path d="M3.5 14.5h17l-3 5h-11zM12 3.5v11M12 4.5l6 8.5h-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>'},
+  notiz:{label:"Notiz",color:"#495057",icon:'<path d="M7 3.5h10v17l-5-4-5 4z" fill="currentColor"/>'}
+};
+let spots=store.get("spots",[]);
+let spotMarkers=new Map(),placeMode=null,catchAt=null,pressMarker=null;
+let mapFilter=Object.assign({catches:true,spots:true,art:"",period:"alle"},store.get("mapFilter",{}));
+const saveSpots=()=>store.set("spots",spots);
+function spotIcon(type,size=18){const t=SPOT_TYPES[type]||SPOT_TYPES.notiz;return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true">${t.icon}</svg>`}
+function spotPinHTML(s){
+  const t=SPOT_TYPES[s.type]||SPOT_TYPES.notiz;
+  return `<svg class="spot-shape" viewBox="0 0 40 50" aria-hidden="true"><path d="M20 48c-1.2 0-13-14.5-13-27a13 13 0 0 1 26 0c0 12.5-11.8 27-13 27z" fill="${t.color}" stroke="#fff" stroke-width="2.5"/></svg><span class="spot-glyph" style="color:${t.color}">${spotIcon(s.type,16)}</span>`;
+}
+function refreshSpots(){
+  spots=store.get("spots",[]);
+  if(!map)return;
+  const keep=new Set();
+  for(const s of mapFilter.spots?spots:[]){
+    keep.add(s.id);
+    let m=spotMarkers.get(s.id);
+    if(!m){
+      const el=document.createElement("button");el.type="button";el.className="spot-pin";
+      el.addEventListener("click",e=>{e.stopPropagation();openSpot(s.id)});
+      m=new maplibregl.Marker({element:el,anchor:"bottom"}).setLngLat([s.lon,s.lat]).addTo(map);
+      spotMarkers.set(s.id,m);
+    }
+    const el=m.getElement();
+    el.innerHTML=spotPinHTML(s);el.setAttribute("aria-label",(SPOT_TYPES[s.type]?.label||"Spot")+": "+s.name);el.title=s.name;
+    el.classList.toggle("selected",mapSel?.t==="spot"&&mapSel.id===s.id);
+    m.setLngLat([s.lon,s.lat]);
+  }
+  for(const [id,m] of spotMarkers)if(!keep.has(id)){m.remove();spotMarkers.delete(id)}
+}
+function catchVisible(f){
+  if(!Number.isFinite(f.lat)||!Number.isFinite(f.lon))return false;
+  if(mapFilter.art&&f.art!==mapFilter.art)return false;
+  if(mapFilter.period==="saison"&&!String(f.day).startsWith(String(new Date().getFullYear())))return false;
+  if(mapFilter.period==="30"&&Date.now()-f.ts>30*864e5)return false;
+  return true;
+}
+// Badge images for the GPU layer (re-added after every style change).
+function catchImages(){
+  const make=(kept)=>{
+    const r=devicePixelRatio>1?2:1,size=34*r,c=document.createElement("canvas");c.width=c.height=size;
+    const g=c.getContext("2d");g.scale(r,r);
+    g.shadowColor="rgba(0,0,0,.35)";g.shadowBlur=4;g.shadowOffsetY=1;
+    g.beginPath();g.arc(17,17,12.5,0,Math.PI*2);g.fillStyle=kept?"#713fad":"#fff";g.fill();
+    g.shadowColor="transparent";g.lineWidth=2.5;g.strokeStyle=kept?"#fff":"#713fad";g.stroke();
+    g.fillStyle=kept?"#fff":"#713fad";
+    g.beginPath();g.moveTo(8,17);g.bezierCurveTo(10.5,13,15,11.5,19,12.5);g.bezierCurveTo(21,13,22.5,14.4,23.3,15.6);g.lineTo(26.5,13);g.lineTo(26.5,21);g.lineTo(23.3,18.4);
+    g.bezierCurveTo(22.5,19.6,21,21,19,21.5);g.bezierCurveTo(15,22.5,10.5,21,8,17);g.fill();
+    g.fillStyle=kept?"#713fad":"#fff";g.beginPath();g.arc(12.2,16.3,1.15,0,Math.PI*2);g.fill();
+    return {data:g.getImageData(0,0,size,size),pixelRatio:r};
+  };
+  for(const [id,kept] of [["fb-catch-kept",true],["fb-catch-back",false]]){
+    if(map.hasImage(id))continue;const {data,pixelRatio}=make(kept);map.addImage(id,data,{pixelRatio});
+  }
+}
+function addCatchLayers(){
+  catchImages();
+  map.addSource("fb-catches",{type:"geojson",data:catchData,cluster:true,clusterRadius:42,clusterMaxZoom:15});
+  map.addLayer({id:"fb-catch-cluster",type:"circle",source:"fb-catches",filter:["has","point_count"],paint:{
+    "circle-color":"#713fad","circle-radius":["step",["get","point_count"],15,10,18,30,22],
+    "circle-stroke-color":"#fff","circle-stroke-width":2.5,"circle-opacity":.95}});
+  map.addLayer({id:"fb-catch-count",type:"symbol",source:"fb-catches",filter:["has","point_count"],layout:{
+    "text-field":["get","point_count_abbreviated"],"text-font":labelFont,"text-size":13,"text-allow-overlap":true},paint:{"text-color":"#fff"}});
+  map.addLayer({id:"fb-catches",type:"symbol",source:"fb-catches",filter:["!",["has","point_count"]],layout:{
+    "icon-image":["case",["get","kept"],"fb-catch-kept","fb-catch-back"],"icon-allow-overlap":true,"icon-ignore-placement":true,
+    "icon-size":["interpolate",["linear"],["zoom"],8,.75,14,1]}});
+}
+function drawCatches(){
+  if(!map)return;
+  const features=mapFilter.catches?state.log.filter(catchVisible).map(f=>({type:"Feature",geometry:{type:"Point",coordinates:[f.lon,f.lat]},
+    properties:{id:String(f.id),kept:!!f.kept}})):[];
+  catchData=FC(features);if(mapReady)map.getSource("fb-catches")?.setData(catchData);
+}
+
+/* ---- Langes Drücken: Spot speichern oder Fang hier erfassen ---- */
+function closePress(){if(pressMarker){pressMarker.remove();pressMarker=null}}
+function openPlaceMenu(ll){
+  if(placeMode)return;
+  closePress();cancelMapQuery();
+  const el=document.createElement("div");el.className="press-menu";
+  el.innerHTML=`<div class="press-dot"></div><div class="press-card" role="dialog" aria-label="Diese Stelle">
+    <button type="button" data-press="spot">${spotIcon("hotspot",18)}<span>Spot speichern</span></button>
+    <button type="button" data-press="catch"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M2 12c3-4 7-6 12-5 3 .6 5 2.3 6 3.5L23 8v8l-3-2.5c-1 1.2-3 2.9-6 3.5-5 1-9-1-12-5z" fill="currentColor"/></svg><span>Fang hier erfassen</span></button>
+    <button type="button" data-press="close" class="press-x" aria-label="Schliessen">${XICON}</button></div>`;
+  el.addEventListener("click",e=>{
+    e.stopPropagation();
+    const b=e.target.closest("[data-press]");if(!b)return;
+    const a=b.dataset.press;closePress();
+    if(a==="spot")editSpot(null,{lat:ll.lat,lon:ll.lng});
+    if(a==="catch"){catchAt={lat:+ll.lat.toFixed(5),lon:+ll.lng.toFixed(5)};show("fang");toast("Der nächste Fang wird an der markierten Stelle gespeichert.");renderCatchAt()}
+  });
+  el.addEventListener("pointerdown",e=>e.stopPropagation());
+  pressMarker=new maplibregl.Marker({element:el,anchor:"bottom"}).setLngLat(ll).addTo(map);
+  if(navigator.vibrate)navigator.vibrate(12);
+}
+function renderCatchAt(){
+  const box=$("#catchAtNote");
+  if(!catchAt){box?.remove();return}
+  const host=$("#btnSave")?.parentElement;if(!host)return;
+  const el=box||Object.assign(document.createElement("div"),{id:"catchAtNote",className:"verdict v-warn"});
+  el.innerHTML='<div class="ln">Ort: auf der Karte markierte Stelle statt deinem Standort.</div><button type="button" class="full" id="catchAtClear">Wieder meinen Standort verwenden</button>';
+  if(!box)$("#btnSave").before(el);
+  $("#catchAtClear").onclick=()=>{catchAt=null;renderCatchAt()};
+}
+function bindLongPress(){
+  let timer=null,start=null,lastMenu=0;
+  const open=ll=>{if(Date.now()-lastMenu<700)return;lastMenu=Date.now();openPlaceMenu(ll)};
+  map.on("contextmenu",e=>{e.preventDefault?.();open(e.lngLat)});
+  const cancel=()=>{clearTimeout(timer);timer=null};
+  map.on("touchstart",e=>{
+    cancel();if(e.originalEvent.touches.length!==1)return;
+    start=e.point;const ll=e.lngLat;
+    timer=setTimeout(()=>{timer=null;open(ll)},550);
+  });
+  map.on("touchmove",e=>{if(timer&&start&&Math.hypot(e.point.x-start.x,e.point.y-start.y)>9)cancel()});
+  map.on("touchend",cancel);map.on("touchcancel",cancel);map.on("movestart",cancel);
+}
+
+/* ---- Spots bearbeiten ---- */
+function editSpot(id,at){
+  const s=id?spots.find(x=>x.id===id):null;
+  const type=s?.type||"hotspot";
+  const chips=Object.entries(SPOT_TYPES).map(([k,t])=>`<label class="spot-type"><input type="radio" name="spotType" value="${k}"${k===type?" checked":""}><span style="--c:${t.color}">${spotIcon(k,16)}${esc(t.label)}</span></label>`).join("");
+  ask(`<h2>${s?"Spot bearbeiten":"Spot speichern"}</h2>
+    <label for="spotName">Name</label><input id="spotName" maxlength="60" placeholder="z.B. Kiesbank unter der Brücke" value="${esc(s?.name||"")}">
+    <label>Art</label><div class="spot-types">${chips}</div>
+    <label for="spotNote">Notiz</label><textarea id="spotNote" rows="3" maxlength="500" placeholder="Was ist hier gut? Tiefe, Köder, Zugang …">${esc(s?.note||"")}</textarea>`,()=>{
+    const name=$("#spotName").value.trim()||(SPOT_TYPES[document.querySelector('input[name=spotType]:checked')?.value]?.label||"Spot");
+    const t=document.querySelector('input[name=spotType]:checked')?.value||"hotspot";
+    const note=$("#spotNote").value.trim();
+    if(s)Object.assign(s,{name,type:t,note,edited:Date.now()});
+    else spots.push({id:crypto.randomUUID(),lat:+at.lat.toFixed(6),lon:+at.lon.toFixed(6),name,type:t,note,ts:Date.now()});
+    if(!saveSpots()){toast("Spot konnte nicht gespeichert werden.");return}
+    refreshSpots();toast(s?"Spot gespeichert":"Spot gespeichert: "+name);
+    if(s&&mapSel?.t==="spot"&&mapSel.id===s.id)renderSheet();
+  });
+  setTimeout(()=>$("#spotName")?.focus(),60);
+}
+function openSpot(id){
+  const s=spots.find(x=>x.id===id);if(!s)return;
+  ++tapSeq;closePress();clearTapPreview();
+  mapSel={t:"spot",id,name:s.name,lat:s.lat,lon:s.lon};mapHits=[];renderSheet();drawSel();refreshSpots();revealHit();
+}
+async function openCatch(id){
+  const f=state.log.find(x=>String(x.id)===String(id));if(!f)return;
+  ++tapSeq;closePress();clearTapPreview();
+  mapSel={t:"catch",id:f.id,name:f.art,lat:f.lat,lon:f.lon};mapHits=[];renderSheet();drawSel();refreshSpots();revealHit();
+}
+function openCatchOnMap(id){
+  const f=state.log.find(x=>String(x.id)===String(id));if(!f)return;
+  show("karte");
+  const go=()=>{
+    if(Number.isFinite(f.lat)){if(!mapFilter.catches||!catchVisible(f)){mapFilter={...mapFilter,catches:true,art:"",period:"alle"};store.set("mapFilter",mapFilter);drawCatches()}
+      map.flyTo({center:[f.lon,f.lat],zoom:Math.max(map.getZoom(),14),duration:700});openCatch(f.id)}
+    else startPlace({type:"catch",id:f.id},"Tippe auf die Stelle, an der du "+f.art+" gefangen hast.");
+  };
+  if(mapReady)go();else{const t=setInterval(()=>{if(mapReady){clearInterval(t);go()}},150)}
+}
+function distanceText(lat,lon){
+  if(!state.pos)return "";
+  const d=Math.hypot((lat-state.pos.lat)*111320,(lon-state.pos.lon)*111320*Math.cos(lat*Math.PI/180));
+  return d<1000?Math.round(d)+" m entfernt":(d/1000).toFixed(d<10000?1:0)+" km entfernt";
+}
+function spotSheet(){
+  const s=spots.find(x=>x.id===mapSel.id);if(!s)return null;
+  const t=SPOT_TYPES[s.type]||SPOT_TYPES.notiz,dist=distanceText(s.lat,s.lon);
+  const nav=`https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lon}`;
+  return {
+    title:s.name,pills:`<span class="pill spot-pill" style="--c:${t.color}">${spotIcon(s.type,14)}${esc(t.label)}</span>${dist?`<span class="pill p-mut">${dist}</span>`:""}`,
+    actions:`<a class="btn pri" href="${nav}" target="_blank" rel="noopener">Navigation starten</a><button type="button" data-sh="spot-edit">Bearbeiten</button>`,
+    body:(s.note?`<p class="sh-note">${esc(s.note)}</p>`:'<p class="sh-d">Keine Notiz.</p>')+
+      `<p class="sh-d">Gespeichert am ${new Date(s.ts).toLocaleDateString("de-CH")} · ${s.lat.toFixed(5)}, ${s.lon.toFixed(5)}</p>
+      <div class="sh-a"><button type="button" data-sh="spot-move">Verschieben</button><button type="button" class="del" data-sh="spot-del">Löschen</button></div>`
+  };
+}
+function catchSheet(){
+  const f=state.log.find(x=>String(x.id)===String(mapSel.id));if(!f)return null;
+  const water=(f.canton||"SO")==="SO"?(typeof waterLabel==="function"?waterLabel("SO",f.sec):f.sec):cname(f.canton)+((f.waterName||cwLabel(f.canton,f.sec))?" · "+(f.waterName||cwLabel(f.canton,f.sec)):"");
+  return {
+    title:f.art+(f.len!=null?" · "+f.len+" cm":""),
+    pills:`<span class="pill ${f.kept?"p-ok":"p-mut"}">${f.kept?"behalten":"zurückgesetzt"}</span>${f.n>1?`<span class="pill p-mut">${f.n} Stück</span>`:""}`,
+    actions:`<button type="button" class="pri" data-sh="catch-book">Im Fangbuch öffnen</button>`,
+    body:`<div class="sh-photo" id="shPhoto"></div><p class="sh-d">${new Date(f.ts).toLocaleString("de-CH",{dateStyle:"full",timeStyle:"short"})}<br>${esc(water||"")}</p>${f.note?`<p class="sh-note">${esc(f.note)}</p>`:""}
+      <div class="sh-a"><button type="button" data-sh="catch-move">Ort ändern</button></div>`,
+    photo:f.photoKey
+  };
+}
+let sheetPhotoUrl=null;
+async function fillSheetPhoto(key){
+  const box=$("#shPhoto");if(!box||!key)return;
+  try{const blob=await accessPhoto("get",key);if(!blob||$("#shPhoto")!==box)return;
+    if(sheetPhotoUrl)URL.revokeObjectURL(sheetPhotoUrl);sheetPhotoUrl=URL.createObjectURL(blob);
+    box.innerHTML=`<img src="${sheetPhotoUrl}" alt="Fangfoto">`;}catch{}
+}
+function startPlace(mode,text){
+  placeMode=mode;mapSel=null;renderSheet();drawSel();
+  let bar=$("#placeBar");
+  if(!bar){bar=document.createElement("div");bar.id="placeBar";$("#v-karte").append(bar)}
+  bar.innerHTML=`<span>${esc(text)}</span><button type="button" id="placeCancel">Abbrechen</button>`;bar.hidden=false;
+  $("#placeCancel").onclick=endPlace;
+}
+function endPlace(){placeMode=null;const bar=$("#placeBar");if(bar)bar.hidden=true}
+function applyPlace(ll){
+  const mode=placeMode;endPlace();
+  const lat=+ll.lat.toFixed(5),lon=+ll.lng.toFixed(5);
+  if(mode.type==="spot"){
+    const s=spots.find(x=>x.id===mode.id);if(!s)return;
+    s.lat=+ll.lat.toFixed(6);s.lon=+ll.lng.toFixed(6);saveSpots();refreshSpots();openSpot(s.id);toast("Spot verschoben");
+  }else{
+    const log=state.log.map(r=>String(r.id)===String(mode.id)?{...r,lat,lon}:r);
+    if(!store.set("log",log)){toast("Ort konnte nicht gespeichert werden.");return}
+    state.log=log;drawCatches();if(typeof renderStats==="function"&&$("#v-stat").classList.contains("on"))renderStats();openCatch(mode.id);toast("Fangort gespeichert");
+  }
+}
+function spotAction(a){
+  if(a==="spot-edit"&&mapSel?.t==="spot"){editSpot(mapSel.id);return true}
+  if(a==="spot-move"&&mapSel?.t==="spot"){startPlace({type:"spot",id:mapSel.id},"Tippe auf die neue Stelle für den Spot.");return true}
+  if(a==="spot-del"&&mapSel?.t==="spot"){
+    const s=spots.find(x=>x.id===mapSel.id);
+    ask(`<h2>Spot löschen?</h2><p>«${esc(s?.name||"")}» wird von diesem Handy entfernt.</p>`,()=>{
+      spots=spots.filter(x=>x.id!==s.id);saveSpots();mapSel=null;renderSheet();drawSel();refreshSpots();toast("Spot gelöscht")});
+    return true;
+  }
+  if(a==="catch-book"&&mapSel?.t==="catch"){
+    const id=mapSel.id;mapSel=null;renderSheet();show("stat");
+    setTimeout(()=>{const row=document.getElementById("catch-"+id);if(row){row.scrollIntoView({block:"center"});row.focus({preventScroll:true})}},60);return true;
+  }
+  if(a==="catch-move"&&mapSel?.t==="catch"){startPlace({type:"catch",id:mapSel.id},"Tippe auf die richtige Stelle des Fangs.");return true}
+  return false;
+}
+
+/* ---- Ebenen: Fänge und Spots filtern ---- */
+function renderLayerPanel(){
+  const p=$("#mapLayers");if(!p)return;
+  const arts=[...new Set(state.log.filter(f=>Number.isFinite(f.lat)).map(f=>f.art))].sort((a,b)=>a.localeCompare(b,"de"));
+  const withPos=state.log.filter(f=>Number.isFinite(f.lat)).length,noPos=state.log.length-withPos;
+  p.innerHTML=`<div class="ml-head"><strong>Auf der Karte</strong><button type="button" class="ml-x" data-ml="close" aria-label="Schliessen">${XICON}</button></div>
+    <label class="ml-row"><span><b>Meine Fänge</b><small>${withPos} mit Ort${noPos?` · ${noPos} ohne Ort`:""}</small></span><input type="checkbox" data-ml="catches"${mapFilter.catches?" checked":""}></label>
+    <div class="ml-sub"${mapFilter.catches?"":" hidden"}>
+      <select data-ml="art" aria-label="Fischart"><option value="">Alle Arten</option>${arts.map(a=>`<option${a===mapFilter.art?" selected":""}>${esc(a)}</option>`).join("")}</select>
+      <div class="ml-seg">${[["alle","Alle"],["saison","Diese Saison"],["30","30 Tage"]].map(([k,l])=>`<button type="button" data-period="${k}" class="${mapFilter.period===k?"on":""}">${l}</button>`).join("")}</div>
+    </div>
+    <label class="ml-row"><span><b>Meine Spots</b><small>${spots.length} gespeichert</small></span><input type="checkbox" data-ml="spots"${mapFilter.spots?" checked":""}></label>
+    ${spots.length?`<div class="ml-spots">${spots.slice().sort((a,b)=>b.ts-a.ts).map(s=>`<button type="button" data-spot="${esc(s.id)}"><span class="ml-ico" style="--c:${(SPOT_TYPES[s.type]||SPOT_TYPES.notiz).color}">${spotIcon(s.type,15)}</span><span>${esc(s.name)}<small>${esc(distanceText(s.lat,s.lon)||(SPOT_TYPES[s.type]||SPOT_TYPES.notiz).label)}</small></span></button>`).join("")}</div>`:""}
+    <p class="ml-tip">Lange auf die Karte drücken, um einen Spot zu speichern oder einen Fang an dieser Stelle zu erfassen. Alles bleibt nur auf diesem Handy.</p>`;
+}
+function bindLayerPanel(){
+  const p=$("#mapLayers");
+  $("#mapLayersBtn").onclick=e=>{e.stopPropagation();if(p.hidden){renderLayerPanel();p.hidden=false}else p.hidden=true};
+  p.addEventListener("click",e=>{
+    const per=e.target.closest("[data-period]");
+    if(per){mapFilter={...mapFilter,period:per.dataset.period};store.set("mapFilter",mapFilter);drawCatches();renderLayerPanel();return}
+    const sp=e.target.closest("[data-spot]");
+    if(sp){p.hidden=true;const s=spots.find(x=>x.id===sp.dataset.spot);if(s){if(!mapFilter.spots){mapFilter={...mapFilter,spots:true};store.set("mapFilter",mapFilter);refreshSpots()}
+      map.flyTo({center:[s.lon,s.lat],zoom:Math.max(map.getZoom(),15),duration:700});openSpot(s.id)}return}
+    if(e.target.closest('[data-ml="close"]'))p.hidden=true;
+  });
+  p.addEventListener("change",e=>{
+    const k=e.target.dataset.ml;if(!k)return;
+    mapFilter={...mapFilter,[k]:e.target.type==="checkbox"?e.target.checked:e.target.value};store.set("mapFilter",mapFilter);
+    drawCatches();refreshSpots();renderLayerPanel();
+  });
+  document.addEventListener("pointerdown",e=>{if(!p.hidden&&!e.target.closest("#mapLayers,#mapLayersBtn"))p.hidden=true},true);
 }
 
 /* ================= UPDATES (Regeln/Hinweise) ================= */
@@ -3490,6 +3818,7 @@ $("#artTags").onclick=e=>{const b=e.target.closest("[data-tag]");if(b){artFilter
 $("#artList").addEventListener("toggle",e=>{const d=e.target;if(d.open)artOpen=d.dataset.sp;else if(artOpen===d.dataset.sp)artOpen=null},true);
 $("#artList").onclick=e=>{const b=e.target.closest("[data-catch]");if(!b)return;const sp=b.dataset.catch;if(FISH[sp]&&FISH[sp].koeder){show("fang");setSpecies(sp)}else show("regeln")};
 $("#logList").onclick=e=>{
+  const onMap=e.target.closest("[data-map]");if(onMap){openCatchOnMap(onMap.dataset.map);return}
   const edit=e.target.closest("[data-edit]");
   if(edit){
     const f=state.log.find(f=>String(f.id)===edit.dataset.edit);
@@ -3524,7 +3853,7 @@ function photoData(blob){return new Promise((resolve,reject)=>{
 })}
 $("#backup").onclick=async()=>{
   try{
-    const data={format:"fangbuch-v1",log:state.log.slice(),sessions:store.get("sessions",[]),active:state.sess,photos:{}};
+    const data={format:"fangbuch-v1",spots:store.get("spots",[]),log:state.log.slice(),sessions:store.get("sessions",[]),active:state.sess,photos:{}};
     for(const f of data.log)if(f.photoKey)data.photos[f.photoKey]=await photoData(await accessPhoto("get",f.photoKey));
     const url=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:"application/json"}));
     const a=document.createElement("a");a.href=url;a.download="fangbuch-"+dayKey(new Date())+".json";a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);
@@ -3553,6 +3882,7 @@ async function restoreBackup(file){
     const log=[...state.log,...imported].sort((a,b)=>b.ts-a.ts);
     if(!store.set("sessions",sessions))throw Error();
     if(!store.set("sess",active)||!store.set("log",log)){store.set("sessions",old);store.set("sess",state.sess);throw Error()}
+    if(Array.isArray(data.spots)){const cur=store.get("spots",[]);const add=data.spots.filter(s=>s&&typeof s.id==="string"&&Number.isFinite(s.lat)&&Number.isFinite(s.lon)&&typeof s.name==="string"&&!cur.some(c=>c.id===s.id));if(add.length){store.set("spots",cur.concat(add));refreshSpots()}}
     state.log=log;state.sess=active;renderStats();if(map)drawCatches();toast(imported.length+" Fangeinträge ergänzt");
   }catch(e){for(const key of added)await accessPhoto("delete",key);toast("Sicherung konnte nicht eingelesen werden.")}
 }

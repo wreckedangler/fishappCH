@@ -68,3 +68,51 @@
 @media (prefers-reduced-motion:reduce){#mapSheet,.mui-locate,.mui-bottom-left{transition:none!important}}
 /* Offene Suche: Knöpfe darunter ausblenden, damit die Trefferliste frei liegt. */
 #mapUI:has(.mui-search.open) :is(.mui-row,.mui-right){visibility:hidden}
+/* ---- Eigene Spots ---- */
+.spot-pin{position:relative;width:40px;height:50px;min-height:0;padding:0;border:0;background:none;cursor:pointer;filter:drop-shadow(0 3px 4px rgba(0,0,0,.35));transform-origin:50% 100%;transition:transform .18s cubic-bezier(.2,.8,.2,1)}
+.spot-pin .spot-shape{position:absolute;inset:0;width:40px;height:50px}
+.spot-pin .spot-glyph{position:absolute;left:9px;top:8px;width:22px;height:22px;border-radius:50%;background:#fff;display:grid;place-items:center}
+.spot-pin.selected{transform:scale(1.22)}
+.spot-pin:focus-visible{outline:none}.spot-pin:focus-visible .spot-shape path{stroke:#ffd43b;stroke-width:4}
+.press-menu{display:flex;flex-direction:column;align-items:center;pointer-events:auto}
+.press-dot{order:2;width:16px;height:16px;margin-top:6px;border-radius:50%;background:#ffd43b;border:3px solid #12222a;box-shadow:0 1px 6px rgba(0,0,0,.4)}
+.press-card{order:1;display:flex;align-items:stretch;gap:4px;padding:5px;border-radius:16px;background:var(--sf);color:var(--tx);box-shadow:0 6px 22px rgba(10,20,24,.32);animation:pressIn .16s ease-out}
+.press-card button{display:flex;align-items:center;gap:6px;min-height:44px;padding:6px 12px;border:0;border-radius:12px;background:var(--sf2);color:var(--tx);font-size:13.5px;font-weight:600;white-space:nowrap}
+.press-card button svg{color:var(--acc);flex:none}
+.press-card .press-x{padding:6px 10px;background:none;color:var(--mut)}.press-card .press-x svg{width:18px;height:18px;color:var(--mut)}
+@keyframes pressIn{from{opacity:0;transform:translateY(6px) scale(.96)}}
+.spot-types{display:flex;flex-wrap:wrap;gap:6px}
+.spot-type input{position:absolute;opacity:0;pointer-events:none}
+.spot-type span{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:6px 12px;border-radius:20px;border:1.5px solid var(--line);font-size:14px;font-weight:600;color:var(--tx);cursor:pointer}
+.spot-type span svg{color:var(--c)}
+.spot-type input:checked+span{border-color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent)}
+.spot-type input:focus-visible+span{outline:2px solid var(--acc);outline-offset:2px}
+.spot-pill{display:inline-flex;align-items:center;gap:5px;background:color-mix(in srgb,var(--c) 16%,var(--sf));color:var(--c)}
+.sh-note{margin:10px 0 0;font-size:15px;line-height:1.5;white-space:pre-wrap}
+.sh-photo:empty{display:none}.sh-photo img{display:block;width:100%;max-height:240px;object-fit:cover;border-radius:12px;margin-top:10px}
+#mapSheet a.btn{display:flex;align-items:center;justify-content:center;flex:1 1 auto;min-height:46px;padding:10px 16px;border-radius:var(--rc);text-decoration:none;font-weight:600}
+#mapSheet a.btn.pri{background:var(--acc);color:var(--acc-tx)}
+#mapSheet .sh-a .del{color:var(--bad)}
+/* ---- Ebenen-Panel ---- */
+.mui-layers{position:absolute;right:66px;top:68px;z-index:6;width:min(320px,calc(100% - 86px));max-height:calc(100% - 160px);overflow:auto;padding:12px 14px 14px;border-radius:18px;background:var(--sf);color:var(--tx);box-shadow:0 8px 28px rgba(10,20,24,.3)}
+.mui-layers[hidden]{display:none}
+.ml-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.ml-x{width:36px;height:36px;min-height:0;padding:8px;border:0;border-radius:50%;background:var(--sf2);color:var(--mut)}.ml-x svg{width:18px;height:18px;display:block}
+.ml-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0 0;color:var(--tx);font-size:15px}
+.ml-row small{display:block;font-size:12.5px;color:var(--mut);font-weight:400}
+.ml-row input{width:44px;height:26px;min-height:0;appearance:none;border-radius:13px;background:var(--line);position:relative;cursor:pointer;transition:background .15s;flex:none;border:0;padding:0}
+.ml-row input::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .15s}
+.ml-row input:checked{background:var(--acc)}.ml-row input:checked::after{transform:translateX(18px)}
+.ml-sub{margin:8px 0 2px}.ml-sub[hidden]{display:none}.ml-sub select{min-height:42px;margin-bottom:6px}
+.ml-seg{display:flex;gap:3px;padding:3px;border-radius:12px;background:var(--sf2)}
+.ml-seg button{flex:1;min-height:34px;padding:4px;border:0;border-radius:9px;background:none;color:var(--mut);font-size:12.5px;font-weight:600}
+.ml-seg button.on{background:var(--sf);color:var(--tx);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.ml-spots{display:flex;flex-direction:column;margin-top:6px}
+.ml-spots button{display:flex;align-items:center;gap:10px;min-height:48px;padding:6px 2px;border:0;border-radius:0;border-bottom:1px solid var(--line);background:none;color:var(--tx);text-align:left;font-weight:600;font-size:14px}
+.ml-spots small{display:block;font-weight:400;font-size:12px;color:var(--mut)}
+.ml-ico{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--c);color:#fff}
+.ml-ico svg{width:15px;height:15px}
+.ml-tip{margin:12px 0 0;font-size:12.5px;line-height:1.45;color:var(--mut)}
+#placeBar{position:absolute;left:12px;right:12px;top:68px;z-index:7;display:flex;align-items:center;gap:10px;padding:10px 10px 10px 14px;border-radius:16px;background:#12222a;color:#fff;font-size:14px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.35)}
+#placeBar[hidden]{display:none}#placeBar span{flex:1}
+#placeBar button{min-height:40px;padding:6px 12px;border:0;border-radius:10px;background:rgba(255,255,255,.16);color:#fff}

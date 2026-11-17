@@ -2171,7 +2171,8 @@ const FC=features=>({type:"FeatureCollection",features});
 /* ---- Zonenstil ---- */
 const DASHED={private:[2.5,1.4],unknown:[1,1.4],culvert:[2.5,1.8],closed:[1.4,1.8]};
 const RULE_MARKS=["protected","closed","condition"];
-const colorExpr=["match",["get","k"],...Object.entries(FishSections.symbols).flatMap(([k,s])=>[k,s.color]),"#7b8c92"];
+// FishSections is loaded with the map, so styles are built on demand.
+const colorExpr=()=>["match",["get","k"],...Object.entries(FishSections.symbols).flatMap(([k,s])=>[k,s.color]),"#7b8c92"];
 const isArea=["==",["get","a"],1];
 const kIs=k=>["==",["get","k"],k];
 // Line width as in the Leaflet brush, stops in MapLibre zoom (= Leaflet zoom - 1).
@@ -2209,7 +2210,7 @@ function tierFilter(tier,extra){
 function zoneLayerSpecs(){
   const specs=[];
   for(const src of ZONE_SOURCES)specs.push({id:src+"-fill",type:"fill",source:src,filter:isArea,
-    paint:{"fill-color":colorExpr,"fill-opacity":fillOpacity(),"fill-antialias":false},meta:"fill"});
+    paint:{"fill-color":colorExpr(),"fill-opacity":fillOpacity(),"fill-antialias":false},meta:"fill"});
   const lineLayout={"line-cap":"round","line-join":"round"};
   for(const tier of ["normal","open","rule"]){
     for(const src of ZONE_SOURCES)specs.push({id:`${src}-case-${tier}`,type:"line",source:src,filter:tierFilter(tier),layout:lineLayout,
@@ -2217,9 +2218,9 @@ function zoneLayerSpecs(){
     for(const src of ZONE_SOURCES){
       const dashed=Object.keys(DASHED).filter(k=>tier==="rule"?RULE_MARKS.includes(k):tier==="normal"&&!RULE_MARKS.includes(k));
       specs.push({id:`${src}-ink-${tier}`,type:"line",source:src,filter:tierFilter(tier,["!",["in",["get","k"],["literal",dashed]]]),layout:lineLayout,
-        paint:{"line-color":colorExpr,"line-width":inkWidth(),"line-opacity":inkOpacity()},meta:"ink"});
+        paint:{"line-color":colorExpr(),"line-width":inkWidth(),"line-opacity":inkOpacity()},meta:"ink"});
       for(const k of dashed)specs.push({id:`${src}-ink-${tier}-${k}`,type:"line",source:src,filter:kIs(k),layout:{"line-join":"round"},
-        paint:{"line-color":colorExpr,"line-width":inkWidth(),"line-opacity":inkOpacity(),"line-dasharray":DASHED[k]},meta:"ink"});
+        paint:{"line-color":colorExpr(),"line-width":inkWidth(),"line-opacity":inkOpacity(),"line-dasharray":DASHED[k]},meta:"ink"});
     }
   }
   return specs;
@@ -3147,10 +3148,10 @@ function addOverlays(){
   for(const spec of zoneLayerSpecs()){const {meta,...layer}=spec;map.addLayer(layer)}
   map.addSource("fb-sel",{type:"geojson",data:selFC,tolerance:.2});
   const selWidth=["+",inkWidth(),0];
-  map.addLayer({id:"fb-sel-fill",type:"fill",source:"fb-sel",filter:isArea,paint:{"fill-color":colorExpr,"fill-opacity":["case",["in",["get","k"],["literal",RULE_MARKS]],.62,.25]}});
+  map.addLayer({id:"fb-sel-fill",type:"fill",source:"fb-sel",filter:isArea,paint:{"fill-color":colorExpr(),"fill-opacity":["case",["in",["get","k"],["literal",RULE_MARKS]],.62,.25]}});
   map.addLayer({id:"fb-sel-dark",type:"line",source:"fb-sel",filter:["==",["get","fp"],0],layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#203038","line-width":["+",selWidth,7.4],"line-opacity":.92}});
   map.addLayer({id:"fb-sel-edge",type:"line",source:"fb-sel",filter:["==",["get","fp"],0],layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":FishSections.highlight,"line-width":["+",selWidth,5]}});
-  map.addLayer({id:"fb-sel-ink",type:"line",source:"fb-sel",filter:["==",["get","fp"],0],layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":colorExpr,"line-width":selWidth}});
+  map.addLayer({id:"fb-sel-ink",type:"line",source:"fb-sel",filter:["==",["get","fp"],0],layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":colorExpr(),"line-width":selWidth}});
   map.addLayer({id:"fb-labels",type:"symbol",source:"fb-sec",minzoom:8,filter:["all",["!=",["get","n"],""],["==",["get","a"],0]],
     layout:{"symbol-placement":"line","text-field":["get","n"],"text-font":labelFont,"text-size":["interpolate",["linear"],["zoom"],8,11,14,13.5],
       "text-max-angle":35,"symbol-spacing":420,"text-padding":6,"text-letter-spacing":.02},

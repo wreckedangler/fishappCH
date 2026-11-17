@@ -3213,8 +3213,9 @@ function revealHit(){
 }
 // Short "Gewässer" fragments (bridges, culverts) lie on top of the Revier line and carry no right.
 // If a Revier or Patent zone of the same canton runs right there, it is the answer.
+const unclearHit=h=>(h.t==="zone"||h.t==="x")&&FishSections.symbol(h.kind)==="water";
 function dropFragments(hits,metresPerPixel){
-  const unclear=h=>(h.t==="zone"||h.t==="x")&&FishSections.symbol(h.kind)==="water";
+  const unclear=unclearHit;
   const reach=Math.max(25,metresPerPixel*12);
   return hits.filter(h=>!unclear(h)||!hits.some(o=>o!==h&&o.code===h.code&&!unclear(o)&&!restrictedHit(o)&&
     ["district","permit"].includes(FishSections.symbol(o.kind))&&o.d<=h.d+reach));
@@ -3307,6 +3308,15 @@ async function resolveMapTap(e,seq){
     if(seq!==tapSeq)return;
   }
   if(failed.length)hitWarning="Zonenabfrage unvollständig ("+failed.join(", ")+"). Berechtigung unbekannt.";
+  // Only an unclear fragment found: look a little further for the Revier it belongs to.
+  if(hits.length&&sectionMap&&hits.every(unclearHit)){
+    try{
+      const near=Math.min(...hits.map(h=>h.d));
+      const more=await sectionMap.hits(lat,lon,Math.min(400,near+30));
+      if(seq!==tapSeq)return;
+      hits.push(...more.filter(h=>!unclearHit(h)&&!hits.some(x=>x.zoneId===h.zoneId)));
+    }catch{}
+  }
   if(hits.length){chooseHits(hits,metresPerPixel,e.preferred);return}
   mapSel=null;mapHits=[];flashHint("");renderSheet();drawSel();
   if(!navigator.onLine){mapFailure(()=>mapTap(e));return}

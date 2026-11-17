@@ -1057,7 +1057,8 @@ const STYLE_URL={luft:"https://vectortiles.geo.admin.ch/styles/ch.swisstopo.imag
   topo:"https://vectortiles.geo.admin.ch/styles/ch.swisstopo.basemap.vt/style.json"};
 const styleCache={};
 async function baseStyle(kind){
-  if(!styleCache[kind])styleCache[kind]=fetch(STYLE_URL[kind]).then(r=>{if(!r.ok)throw Error("Stil "+r.status);return r.json()}).catch(e=>{delete styleCache[kind];throw e});
+  const read=async url=>{const response=await fetch(url,{signal:AbortSignal.timeout(6500)});if(!response.ok)throw Error("Stil "+response.status);return response.json()};
+  if(!styleCache[kind])styleCache[kind]=read(STYLE_URL[kind]).catch(()=>read("./data/basemaps/"+kind+".json")).catch(e=>{delete styleCache[kind];throw e});
   const s=structuredClone(await styleCache[kind]);
   // Keep the aerial view calm: no hiking paths, points of interest or park outlines.
   const hide=new Set(["road_paths","road_via_ferrata","tunnel_pedestrian","park","park_label","aerialway","poi_rank1","poi_rank2","spot_elevation"]);
@@ -1126,14 +1127,16 @@ function setCoarse(list){
   coarseImages=list;
   if(mapReady)list.forEach(addCoarse);
 }
+let baseChange=0;
 async function setBase(kind){
   if(!map)return;
+  const change=++baseChange;
   try{
-    const style=await baseStyle(kind);labelFont=fontFrom(style);
+    const style=await baseStyle(kind);if(change!==baseChange)return;
+    labelFont=fontFrom(style);
     mapReady=false;
     map.setStyle(style,{diff:false});
-    map.once("style.load",()=>{addOverlays();mapReady=true;applyZoneDim(zoneDim);updateMe();drawSel();updateHint()});
-  }catch(e){toast("Kartenhintergrund konnte nicht geladen werden.")}
+  }catch(e){if(change===baseChange)toast("Kartenhintergrund konnte nicht geladen werden.")}
 }
 function bindMapCredits(){
   const cantons=$("#permitCanton"),directory=$("#permitDirectory");
@@ -1147,8 +1150,8 @@ function bindMapCredits(){
   updateCredits();
 }
 function loadScript(src){return new Promise((resolve,reject)=>{const s=document.createElement("script");s.src=src;s.onload=resolve;s.onerror=()=>{s.remove();reject(Error(src))};
-  if(/^https:/.test(src)){s.crossOrigin="anonymous";s.integrity=MAPLIBRE_SRI.js}document.head.append(s)})}
-const MAPLIBRE={js:"https://unpkg.com/maplibre-gl@5.13.0/dist/maplibre-gl.js",css:"https://unpkg.com/maplibre-gl@5.13.0/dist/maplibre-gl.css"};
+  if(src===MAPLIBRE.js)s.integrity=MAPLIBRE_SRI.js;document.head.append(s)})}
+const MAPLIBRE={js:"./vendor/maplibre-gl/maplibre-gl.js",css:"./vendor/maplibre-gl/maplibre-gl.css"};
 const MAPLIBRE_SRI={js:"sha384-Nvz6wITR4vEzcMz/FWUFgkrmKDhnaQbjYxIIbwwbAFha9kWiRhmR4QjJ3zhrlnR8",css:"sha384-mnM9NG1099tBMNxdDQNDKIxYcn/fmqQXFJvbT5l1MsrWvzfxBEffceBsw75/cW2R"};
 function focusMapPlace(place,fitDistrict=false){
   cancelMapQuery();map.stop();follow=false;syncLocateButton();clearShore();mapSel=null;mapHits=[];renderSheet();drawSel();
@@ -1195,7 +1198,8 @@ async function initMap(){
   const kind=store.get("base","luft")==="topo"?"topo":"luft";
   try{style=await baseStyle(kind)}catch{initMap.starting=false;mapFailure(initMap);return}
   labelFont=fontFrom(style);
-  const saved=store.get("mapViewGL",null);
+  const oldView=store.get("mapView",null);
+  const saved=store.get("mapViewGL",null)||(Array.isArray(oldView)&&oldView.length===3&&oldView.every(Number.isFinite)?[oldView[0],oldView[1],oldView[2]-1]:null);
   const view=Array.isArray(saved)&&saved.length===3&&saved.every(Number.isFinite)&&saved[0]>=45.6&&saved[0]<=48&&saved[1]>=5.7&&saved[1]<=10.7?
     {center:[saved[1],saved[0]],zoom:Math.max(5,Math.min(19,saved[2]))}:state.pos?{center:[state.pos.lon,state.pos.lat],zoom:13}:{bounds:[[5.95,45.81],[10.5,47.82]]};
   map=new maplibregl.Map({container:"map",style,...(view.bounds?{bounds:view.bounds,fitBoundsOptions:{padding:16}}:view),

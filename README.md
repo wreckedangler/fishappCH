@@ -56,14 +56,14 @@ Seite in Chrome (Android) bzw. Safari (iOS) öffnen → Menü →
 | Satellitenübersicht des Alpenraums | [NASA Blue Marble Next Generation, GIBS](https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=BlueMarble_NextGeneration&STYLES=&CRS=EPSG:3857&BBOX=-313086.07,4383204.95,2191602.47,7200979.56&WIDTH=1024&HEIGHT=1152&FORMAT=image/jpeg) | Gebündeltes Hintergrundbild für die weitesten Luftbild-Zoomstufen |
 | Regeln, Preise, Verfügungen | `data/updates.json` in diesem Repo | App lädt bei jedem Start; Inhalt wird regelmässig gegen die kantonalen Quellen geprüft |
 
-### Testversion der neuen Karte (MapLibre)
+### Karte (MapLibre)
 
-Unter https://wreckedangler.github.io/fishappCH/beta/ läuft die App mit der neuen
-GPU-Karte (swisstopo-Vektorkarte bzw. Luftbild mit Beschriftung, ziehbares Infoblatt).
-Die Kartenlogik steht in `beta/src/map-gl.part.js`, `beta/src/map-gl.css` und
-`beta/map-sections-gl.js`. `python3 tools/build_beta.py` baut daraus und aus der
-aktuellen `index.html` die Testseite `beta/index.html`. Mit `--promote` wird die neue
-Karte zur Hauptversion (danach `index.html` auf `./beta/map-sections-gl.js` prüfen).
+Die [Karte in der Haupt-App](https://wreckedangler.github.io/fishappCH/#karte) verwendet
+MapLibre GL mit swisstopo-Vektorkarte, Luftbild und verschiebbarem Infoblatt. Der bisherige
+Einstieg unter `/beta/` bleibt erreichbar. Die Kartenlogik liegt in `beta/src/map-gl.part.js`,
+`beta/src/map-gl.css` und `beta/map-sections-gl.js`. Nach Änderungen erzeugt
+`python3 tools/build_beta.py` beide App-Einstiege. Die gebündelten swisstopo-Stile in
+`data/basemaps/` ermöglichen den Kartenstart auch ohne Verbindung zum Stildienst.
 
 ### Gewässerabschnitte aktualisieren
 

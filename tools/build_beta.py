@@ -23,27 +23,36 @@ def replace_once(text, old, new):
     return text.replace(old, new)
 
 
-start = src.index("/* ================= KARTE ================= */")
+old_marker = "/* ================= KARTE ================= */"
+gl_marker = "/* ================= KARTE (MapLibre GL) ================= */"
+already_live = gl_marker in src
+start = src.index(gl_marker if already_live else old_marker)
 end = src.index("/* ================= UPDATES (Regeln/Hinweise) ================= */")
 out = src[:start] + part.rstrip() + "\n\n" + src[end:]
 
 # Datumswechsel: Neuzeichnen über die MapLibre-Quellen.
-out = replace_once(out,
-    'if(!map?._loaded)return;\n  xStamp="";selKey="";sectionMap.stamp="";sectionMap.drawnBounds=null;',
-    'if(!mapReady)return;\n  xStamp="";selKey="";soFeatureCache.key="";sectionMap.stamp="";sectionMap.drawnBounds=null;sectionMap.painted="";')
+if not already_live:
+    out = replace_once(out,
+        'if(!map?._loaded)return;\n  xStamp="";selKey="";sectionMap.stamp="";sectionMap.drawnBounds=null;',
+        'if(!mapReady)return;\n  xStamp="";selKey="";soFeatureCache.key="";sectionMap.stamp="";sectionMap.drawnBounds=null;sectionMap.painted="";')
 
+css_start = "/* ---- MapLibre-Karte ---- */"
+if css_start in out:
+    a = out.index(css_start)
+    out = out[:a] + out[out.index("</style>", a):]
 out = replace_once(out, "</style>", css.rstrip() + "\n</style>")
 
-if not promote:
-    # Testversion unter /beta/: alle relativen Pfade zeigen auf das Hauptverzeichnis.
-    out = re.sub(r"<head>", '<head>\n<base href="../">', out, count=1)
-    out = replace_once(out, "<title>", '<meta name="robots" content="noindex">\n<title>')
-    # Mit <base> würden Hash-Links sonst auf die Hauptversion zeigen.
-    out = replace_once(out, 'history.pushState(null,"","#"+(v==="stat"?"fangbuch":v));',
-        'history.pushState(null,"",location.pathname+location.search+"#"+(v==="stat"?"fangbuch":v));')
-    target = os.path.join(root, "beta", "index.html")
-else:
-    target = os.path.join(root, "index.html")
+def write(target, html):
+    with open(os.path.join(root, target), "w", encoding="utf-8", newline="\n") as dest:
+        dest.write(html)
+    print("geschrieben:", target, len(html), "Zeichen")
 
-open(target, "w", encoding="utf-8").write(out)
-print("geschrieben:", os.path.relpath(target, root), len(out), "Zeichen")
+if promote or already_live:
+    write("index.html", out)
+
+# Der bisherige /beta/-Einstieg verwendet dieselben Dateien und behält seine Route.
+out = re.sub(r"<head>", '<head>\n<base href="../">', out, count=1)
+out = replace_once(out, "<title>", '<meta name="robots" content="noindex">\n<title>')
+out = replace_once(out, 'history.pushState(null,"","#"+(v==="stat"?"fangbuch":v));',
+    'history.pushState(null,"",location.pathname+location.search+"#"+(v==="stat"?"fangbuch":v));')
+write("beta/index.html", out)

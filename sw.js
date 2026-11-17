@@ -1,12 +1,12 @@
 // Fischer-Begleiter Service Worker
-const APP = "fb-app-v45";      // versionierte App-Dateien
+const APP = "fb-app-v46";      // versionierte App-Dateien
 const LIB = "fb-lib-v1";      // Kartenbibliothek: Cache zuerst
 const TILES = "fb-tiles-v1";  // Kartenkacheln: Cache zuerst, begrenzt
 const MAX_TILES = 600;
 const IMG = "fb-img-v1";     // Fischfotos (Wikimedia): Cache zuerst
 const SECTIONS = "fb-sections-v1"; // Abschnittsdateien mit Inhalts-Hash
 
-const FILES = ["./", "./index.html", "./map-sections.js", "./map-search.js", "./data/sections/index.json", "./data/so-sections.json", "./manifest.webmanifest", "./icon.svg", "./data/updates.json", "./vendor/leaflet/leaflet.js", "./vendor/leaflet/leaflet.css", "./vendor/leaflet/images/layers-2x.png", "./vendor/leaflet/images/layers.png", "./vendor/leaflet/images/marker-icon-2x.png", "./vendor/leaflet/images/marker-icon.png", "./vendor/leaflet/images/marker-shadow.png"];
+const FILES = ["./", "./index.html", "./beta/index.html", "./beta/map-sections-gl.js", "./map-search.js", "./data/sections/index.json", "./data/so-sections.json", "./manifest.webmanifest", "./icon.svg", "./data/updates.json", "./vendor/maplibre-gl/maplibre-gl.js", "./vendor/maplibre-gl/maplibre-gl.css", "./data/basemaps/luft.json", "./data/basemaps/topo.json"];
 FILES.push("./map-sources.js","./map-rights.js","./map-rights-registers.js","./data/map-overview.json","./data/alpenraum.webp","./data/luzern-reviere.json",...["BE","FR","GE","GL","NW","SH","TG","VD","VS"].map(c=>"./data/fisheries/"+c+".json"));
 FILES.push(...["favicon-32","schild-apple-180","schild-192","schild-512","schild-maskable-512"].map(name=>"./assets/"+name+".png"));
 
@@ -58,13 +58,13 @@ self.addEventListener("fetch", e => {
   if (url.origin === location.origin) {
     if (url.pathname.endsWith("/data/updates.json")) return e.respondWith(networkFirst(req));
     if (/\/data\/sections\/[\w-]+-[0-9a-f]{10}\.json$/.test(url.pathname)) return e.respondWith(cacheFirst(req, SECTIONS, 160));
-    // Testversion der Karte: immer frisch vom Netz, nicht die gespeicherte App-Hülle.
-    if (url.pathname.includes("/beta/")) return e.respondWith(fetch(req).catch(()=>caches.match(req)));
-    const shell = req.mode === "navigate" ? new URL("./index.html",self.registration.scope).href : req;
+    const page = /\/beta\/(?:index\.html)?$/.test(url.pathname) ? "./beta/index.html" : "./index.html";
+    const shell = req.mode === "navigate" ? new URL(page,self.registration.scope).href : req;
     return e.respondWith(caches.open(APP).then(async cache=>(await cache.match(shell)) || fetch(req)));
   }
   if (url.hostname === "unpkg.com") return e.respondWith(cacheFirst(req, LIB));
   if (url.hostname === "wmts.geo.admin.ch") return e.respondWith(cacheFirst(req, TILES, MAX_TILES));
+  if (url.hostname === "vectortiles.geo.admin.ch"&&!url.pathname.endsWith("/style.json")) return e.respondWith(cacheFirst(req, TILES, MAX_TILES));
   if (url.hostname === "upload.wikimedia.org" || url.hostname === "thumb.wikimedia.org") return e.respondWith(cacheFirst(req, IMG, 80));
   // geo.so.ch und api3.geo.admin.ch: direkt ans Netz (App speichert die Daten selbst)
 });

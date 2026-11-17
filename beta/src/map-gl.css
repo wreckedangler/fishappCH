@@ -9,7 +9,7 @@
 #shareMessage{min-height:1.3em}
 .report-species{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:12px 0;border-bottom:1px solid var(--line)}
 .report-species small{grid-column:1/-1;color:var(--mut)}
-.report-link{margin-bottom:12px}
+.report-link{margin-block:16px 12px}
 #mapCatchOptions{display:grid;gap:6px;max-height:52dvh;overflow:auto}
 #mapCatchOptions button{display:grid;gap:3px;text-align:left;min-height:46px}
 #mapCatchOptions small{color:var(--mut)}

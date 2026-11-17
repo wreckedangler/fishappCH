@@ -32,6 +32,9 @@ out = replace_once(out,
     'if(!map?._loaded)return;\n  xStamp="";selKey="";sectionMap.stamp="";sectionMap.drawnBounds=null;',
     'if(!mapReady)return;\n  xStamp="";selKey="";soFeatureCache.key="";sectionMap.stamp="";sectionMap.drawnBounds=null;sectionMap.painted="";')
 
+# Uferstellen eines auf der Karte gewählten Gewässers nicht beim nächsten Neuzeichnen schliessen.
+out = replace_once(out, 'if(shoreView&&(unknownWater()', 'if(shoreView&&!shoreView.fromMap&&(unknownWater()')
+
 out = replace_once(out, "</style>", css.rstrip() + "\n</style>")
 
 if not promote:

@@ -603,6 +603,7 @@ function bindSheetDrag(){
 }
 function renderSheet(){
   const el=$("#mapSheet");if(!el||!map)return;
+  if(shoreView&&!$("#shorePanel").hidden){if(sheetState!=="closed")placeSheet("closed");return}
   updateHint();renderTop();
   const right=mapSel&&!pendingSelection?mapRight(mapSel):null,access=rightsPanel(right);
   const evidence={section:"Amtlicher Abschnitt",water:"Regel für dieses Gewässer",guide:"Kantonale Auskunft",unknown:"Zuordnung ungeklärt",restriction:"Einschränkung"};
@@ -878,12 +879,22 @@ function clearShore(){
   shoreView=null;
   shoreMarkers.forEach(m=>m.remove());shoreMarkers=[];
   const panel=$("#shorePanel");
-  if(!panel.hidden){panel.hidden=true;map?.resize()}
+  if(!panel.hidden){panel.hidden=true;map?.resize();if(mapSel)renderSheet()}
+}
+// Uferstellen-Schlüssel (Kanton/Gewässergruppe) für ein auf der Karte angetipptes Gewässer.
+function hitShoreKey(hit){
+  if(!hit)return "";
+  if(hit.t==="sec")return "SO/"+hit.id;
+  if(hit.t==="x"){const f=xg(hit.code).feats[hit.id];return f?hit.code+"/"+pickCW(hit.code,[f.name,f.name.split(/[\s\d(]/)[0]],f.poly,f.cw):""}
+  if(hit.t==="zone")return hit.code+"/"+zoneGroup(hit);
+  if(hit.t==="w")return hit.code+"/"+pickCW(hit.code,hit.water.names,hit.water.lake);
+  return "";
 }
 function showShoreMarkers(){
   if(!shoreView||!map||shoreMarkers.length)return;
   const {fish,key,season}=shoreView,sec=currentSec();
-  if(key!==state.canton+"/"+sec.id){clearShore();return}
+  if(!shoreView.fromMap&&key!==state.canton+"/"+sec.id){clearShore();return}
+  const title=shoreView.title||sec.name;
   const points=shoreSites[key];
   const [,depth,time]=fish?waterApproach[fish][season]:[];
   const spot=shoreView.spot;
@@ -891,9 +902,11 @@ function showShoreMarkers(){
   const distance=p=>state.pos?Math.hypot((p[0]-state.pos.lat)*111000,(p[1]-state.pos.lon)*75000):0;
   const ranked=fish?[...points].sort((a,b)=>Number(b[2].includes(preference))-Number(a[2].includes(preference))||distance(a)-distance(b)).slice(0,3):points;
   ++tapSeq;
-  follow=false;syncLocateButton();mapSel=null;renderSheet();drawSel();
+  follow=false;syncLocateButton();
+  if(!shoreView.fromMap)mapSel=null;
   const panel=$("#shorePanel");panel.hidden=false;
-  panel.innerHTML=`<div class="shore-head"><strong>${fish?esc(fish)+" · ":""}${esc(sec.name)}</strong><button type="button" data-shore-close>Schliessen</button></div><div class="shore-options" role="group" aria-label="Uferstelle wählen"></div><div class="shore-detail" aria-live="polite">Nummer auf der Karte oder hier antippen.</div><p class="small">Suchpunkte an kartierten Wegen. Zugang, Sperren und Ufer vor Ort prüfen.</p><small>Geodaten © swisstopo</small>`;
+  renderSheet();drawSel();
+  panel.innerHTML=`<div class="shore-head"><strong>${fish?esc(fish)+" · ":""}${esc(title)}</strong><button type="button" data-shore-close>Schliessen</button></div><div class="shore-options" role="group" aria-label="Uferstelle wählen"></div><div class="shore-detail" aria-live="polite">Nummer auf der Karte oder hier antippen.</div><p class="small">Suchpunkte an kartierten Wegen. Zugang, Sperren und Ufer vor Ort prüfen.</p><small>Geodaten © swisstopo</small>`;
   panel.querySelector("[data-shore-close]").onclick=clearShore;
   const locationButtons=panel.querySelector(".shore-options");
   ranked.forEach(([lat,lon,tags],i)=>{
@@ -1056,6 +1069,13 @@ function buildControls(){
     map.easeTo({center:[state.pos.lon,state.pos.lat],zoom:Math.max(map.getZoom(),14.5),duration:600});
   };
   $("#mapShore").onclick=()=>{
+    if(mapSel&&!pendingSelection){
+      // Uferstellen für das auf der Karte markierte Gewässer.
+      const key=hitShoreKey(mapSel),name=mapSel.t==="sec"?secById(mapSel.id).name:mapSel.name||"dieses Gewässer";
+      if(restrictedHit(mapSel)){toast(name+" ist hier gesperrt oder geschützt.");return}
+      if(!shoreSites[key]?.length){toast("Für "+name+" sind keine Uferstellen kartiert.");return}
+      shoreView={key,fromMap:true,title:name};showShoreMarkers();return;
+    }
     const sec=currentSec(),key=state.canton+"/"+sec.id;
     if(unknownWater()){show("hier");openWater();return}
     if(!shoreSites[key]?.length){toast("Für dieses Gewässer sind keine Uferstellen kartiert.");return}

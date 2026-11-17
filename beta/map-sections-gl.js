@@ -123,6 +123,26 @@ const FishSections = (() => {
     return response.json();
   }
   const unproject=(x,y,z)=>{const s=256*2**z;return [x/s*360-180,Math.atan(Math.sinh(Math.PI*(1-2*y/s)))*180/Math.PI]};
+  async function composeOverview(id,zoom,rows,marks){
+    const images=await Promise.all(rows.map(async row=>{
+      const img=new Image();img.src="data:image/png;base64,"+row[7];await img.decode();return img;
+    }));
+    const left=Math.min(...rows.map(r=>r[3])),top=Math.min(...rows.map(r=>r[4]));
+    const right=Math.max(...rows.map(r=>r[3]+r[5])),bottom=Math.max(...rows.map(r=>r[4]+r[6]));
+    const canvas=document.createElement("canvas"),mask=document.createElement("canvas");
+    canvas.width=right-left;canvas.height=bottom-top;
+    const ctx=canvas.getContext("2d"),ink=mask.getContext("2d");
+    rows.forEach((row,i)=>{
+      const [,,,x,y,width,height]=row,mark=marks[i];
+      mask.width=width;mask.height=height;
+      ink.drawImage(images[i],0,0);ink.globalCompositeOperation="source-in";
+      ink.fillStyle=symbols[mark].color;ink.fillRect(0,0,width,height);
+      ctx.globalAlpha=["protected","closed","condition","open"].includes(mark)?1:.64;
+      ctx.drawImage(mask,x-left,y-top);
+    });
+    const [w,n]=unproject(left,top,zoom),[e,s]=unproject(right,bottom,zoom);
+    return [{id,canvas,coordinates:[[w,n],[e,n],[e,s],[w,s]]}];
+  }
   class Layer {
     // sink: {features(fc), coarse(list), credits(Set)}
     constructor(map, notify, markFor=row=>symbol(row.meta[1],row.meta[5]), sink={}) {
@@ -137,13 +157,21 @@ const FishSections = (() => {
       this.selectionFiles=new Map();
       this.selectedParts=new Map();
       this.searchFiles=new Map();
-      this.tinted=new WeakMap();
+      this.overviews=new Map();
       this.coarse=[];
       this.epoch=0;
     }
     manifest() {
       if(!this.index)this.index=fetchJSON("index.json").catch(e=>{this.index=null;throw e});
       return this.index;
+    }
+    async preload(center,zoom){
+      try{
+        if(!center||zoom<10){await Promise.all([this.manifest(),this.overviewAtlas()]);return}
+        const [lon,lat]=center,index=await this.manifest();
+        const files=this.files(index,[lon,lat,lon,lat],zoom<12);
+        await Promise.all(files.map(file=>this.load(file)));
+      }catch{/* The first visible viewport retries any failed request. */}
     }
     files(index,box,overview) {
       const files=[];
@@ -182,13 +210,19 @@ const FishSections = (() => {
       if(forTap)job.taps++;
       try{return await job.promise}finally{if(forTap)job.taps--}
     }
-    async sync() {
+    async sync(force=false) {
       const zoom=this.map.getZoom(),bounds=boxOf(this.map.getBounds()),zkey=Math.round(zoom*4)/4;
-      if(!this.busy&&!this.error&&this.drawnZoom===zkey&&contains(this.drawnBounds,bounds))return;
-      const epoch=++this.epoch,view=pad(bounds,.24);
+      if(!force&&!this.busy&&!this.error&&this.drawnZoom===zkey&&contains(this.drawnBounds,bounds))return;
+      const view=pad(bounds,.24);
       const stamp=JSON.stringify([zkey,view]);
-      if(stamp===this.stamp&&!this.error&&!this.busy)return;
-      this.busy=true;this.error=false;
+      if(!force&&this.busy&&stamp===this.loadingStamp)return this.syncJob;
+      if(!force&&stamp===this.stamp&&!this.error&&!this.busy)return;
+      const epoch=++this.epoch;
+      this.busy=true;this.loadingStamp=stamp;this.error=false;
+      this.syncJob=this.loadViewport(zoom,zkey,view,stamp,epoch);
+      return this.syncJob;
+    }
+    async loadViewport(zoom,zkey,view,stamp,epoch){
       try {
         const index=await this.manifest();
         if(epoch!==this.epoch)return;
@@ -233,29 +267,20 @@ const FishSections = (() => {
         if(epoch===this.epoch){this.busy=false;this.notify()}
       }
     }
-    async coarseImages(zoom,active){
+    overviewAtlas(){
       if(!this.atlas)this.atlas=fetch("./data/map-overview.json",{signal:AbortSignal.timeout(9000)})
         .then(r=>{if(!r.ok)throw Error("Übersicht "+r.status);return r.json()}).catch(e=>{this.atlas=null;throw e});
-      const atlas=await this.atlas;
-      return Promise.all(atlas[zoom].filter(row=>active.has(row[0])).map(async row=>{
-        const [code,kind,rule,x,y,width,height,png]=row;
-        const mark=this.markFor({code,meta:["",kind,"","","",false,rule]});
-        let colors=this.tinted.get(row);
-        if(!colors){colors=new Map();this.tinted.set(row,colors)}
-        if(!colors.has(mark)){
-          const job=(async()=>{
-            const source=new Image();source.src="data:image/png;base64,"+png;await source.decode();
-            const canvas=document.createElement("canvas");canvas.width=width;canvas.height=height;
-            const ctx=canvas.getContext("2d");ctx.drawImage(source,0,0);ctx.globalCompositeOperation="source-in";
-            ctx.fillStyle=symbols[mark].color;ctx.fillRect(0,0,width,height);
-            const [w,n]=unproject(x,y,zoom),[e,s]=unproject(x+width,y+height,zoom);
-            const rule=["protected","closed","condition"].includes(mark);
-            return {id:[code,kind,rule,zoom,x,y,mark].join("_"),url:canvas.toDataURL(),coordinates:[[w,n],[e,n],[e,s],[w,s]],opacity:rule||mark==="open"?1:.64};
-          })().catch(e=>{colors.delete(mark);throw e});
-          colors.set(mark,job);
-        }
-        return colors.get(mark);
-      }));
+      return this.atlas;
+    }
+    async coarseImages(zoom,active){
+      const atlas=await this.overviewAtlas(),rows=atlas[zoom].filter(row=>active.has(row[0]));
+      if(!rows.length)return [];
+      const marks=rows.map(([code,kind,rule])=>this.markFor({code,meta:["",kind,"","","",false,rule]}));
+      const id=[zoom,...active,...marks].join("_"),old=this.overviews.get(zoom);
+      if(old?.id===id)return old.job;
+      const job=composeOverview(id,zoom,rows,marks);
+      this.overviews.set(zoom,{id,job});
+      try{return await job}catch(error){if(this.overviews.get(zoom)?.job===job)this.overviews.delete(zoom);throw error}
     }
     paint(zoom) {
       const features=[];

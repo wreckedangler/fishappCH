@@ -62,8 +62,10 @@ Die [Karte in der Haupt-App](https://wreckedangler.github.io/fishappCH/#karte) v
 MapLibre GL mit swisstopo-Vektorkarte, Luftbild und verschiebbarem Infoblatt. Der bisherige
 Einstieg unter `/beta/` bleibt erreichbar. Die Kartenlogik liegt in `beta/src/map-gl.part.js`,
 `beta/src/map-gl.css` und `beta/map-sections-gl.js`. Nach Änderungen erzeugt
-`python3 tools/build_beta.py` beide App-Einstiege. Die gebündelten swisstopo-Stile in
-`data/basemaps/` ermöglichen den Kartenstart auch ohne Verbindung zum Stildienst.
+`python3 tools/build_beta.py` beide App-Einstiege. Die Karte lädt die swisstopo-Stile aus
+`data/basemaps/` parallel zur Kartenbibliothek. Die Vektorquellen enthalten die Kacheladressen,
+Zoomgrenzen und Ausdehnung aus dem jeweiligen versionierten swisstopo-TileJSON. Beim
+Aktualisieren eines Stils diese Angaben mit der zugehörigen Kachelversion abgleichen.
 
 ### Gewässerabschnitte aktualisieren
 

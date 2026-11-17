@@ -210,6 +210,31 @@ test("Luzern keeps private rights, patent areas and overlapping local conditions
   assert.equal(noPatent.rule,"");
 });
 
+test("the GL startup shares its centre tile with viewport loads and retries a failed preload",async()=>{
+  const gl=fs.readFileSync(path.join(root,"beta","map-sections-gl.js"),"utf8");
+  let offline=true;
+  const {layer,requests}=mapAt(18,url=>offline&&!url.endsWith("index.json"),gl);
+  const point=[7.99492,46.93513];
+  layer.map.getBounds=()=>({getWest:()=>7.994,getSouth:()=>46.934,getEast:()=>7.996,getNorth:()=>46.936});
+  await layer.preload(point,18);
+  assert.equal(layer.cache.size,0);
+  offline=false;requests.length=0;
+  const preload=layer.preload(point,18),first=layer.sync();
+  await layer.sync();
+  assert.ok([...layer.visible.values()].some(row=>row.code==="LU"&&row.meta[2]==="123"));
+  await Promise.all([preload,first]);
+  assert.ok(requests.some(url=>url.includes("LU-")));
+  assert.equal(requests.length,new Set(requests).size);
+  assert.ok(!requests.some(url=>url.includes("overview")||url.includes("groups")));
+});
+
+test("opening the country overview preloads just the shared atlas and index",async()=>{
+  const gl=fs.readFileSync(path.join(root,"beta","map-sections-gl.js"),"utf8");
+  const {layer,requests}=mapAt(7,()=>false,gl);
+  await Promise.all([layer.preload(),layer.preload([8.2,46.8],7)]);
+  assert.deepEqual(requests.sort(),["./data/map-overview.json","./data/sections/index.json"]);
+});
+
 test("Luzern preserves the full Uffikoner Weiher district and clips neutral lakes to the canton",async()=>{
   const {layer,api}=mapAt(15);
   const ponds=await Promise.all([[47.2066878,8.0245598],[47.205713,8.0240744],[47.2057042,8.0203227]].map(

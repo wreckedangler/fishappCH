@@ -2308,6 +2308,8 @@ function sectionMark(c,kind,buried,rule,rev,region){
   if(buried||FishSections.restriction(kind))return mark;
   if(c==="SG"&&FishRights.sgProtection(rev,region))return "condition";
   if(rule&&RULES[c]?.closed?.some(cl=>cl.w.includes(rule)&&inRange(mapRuleDate(),cl.from,cl.to)))return "closed";
+  // Known water class with cantonal rules and no general closure today: season open.
+  if(rule&&(mark==="permit"||mark==="district")&&RULES[c]?.w?.some(([k])=>k===rule))return "open";
   return mark;
 }
 function westMark(c,f){
@@ -2369,10 +2371,16 @@ const inkWidth=()=>zstep(bandInk);
 const casingWidth=()=>zstep(b=>["+",bandInk(b),b===0?1:["case",isArea,["case",zoneAreaK(),2,1],b<3?1.5:2.2]]);
 const selWidth=extra=>zstep(b=>["+",LINE_W[b],extra,["case",kIs("protected"),.6,0]]);
 let zoneDim=1;
-const casingOpacity=()=>zstep(b=>b===0?["case",kIs("open"),.73*zoneDim,.22*zoneDim]:.73*zoneDim);
-const inkOpacity=()=>zstep(b=>b===0?["case",["any",kIs("open"),ruleK()],zoneDim,.64*zoneDim]:zoneDim);
+// "Offene hervorheben": everything that is not open fades back.
+const openFocus=()=>mapFilter.openFocus!==false;
+const notOpenF=()=>openFocus()?.5:1;
+const focusMul=v=>["*",v,["case",kIs("open"),1,notOpenF()]];
+const casingOpacity=()=>zstep(b=>focusMul(b===0?["case",kIs("open"),.73*zoneDim,.22*zoneDim]:.73*zoneDim));
+const inkOpacity=()=>zstep(b=>focusMul(b===0?["case",["any",kIs("open"),ruleK()],zoneDim,.64*zoneDim]:zoneDim));
+const glowOpacity=()=>zstep(b=>(b===0?.42:b<3?.5:.4)*zoneDim*(openFocus()?1:.6));
+const glowWidth=()=>zstep(b=>["+",bandInk(b),b===0?5:b<3?7:9]);
 function fillOpacity(){
-  return ["*",zoneDim,["case",ruleK(),.62,["any",zoneAreaK(),kIs("open")],.23,.12]];
+  return focusMul(["*",zoneDim,["case",ruleK(),.62,kIs("open"),.3,zoneAreaK(),.23,.12]]);
 }
 const ZONE_SOURCES=["fb-sec","fb-west","fb-so"];
 const zoneData={"fb-sec":FC([]),"fb-west":FC([]),"fb-so":FC([])};
@@ -2386,6 +2394,8 @@ function zoneLayerSpecs(){
   for(const src of ZONE_SOURCES)specs.push({id:src+"-fill",type:"fill",source:src,filter:isArea,
     paint:{"fill-color":colorExpr(),"fill-opacity":fillOpacity(),"fill-antialias":false},meta:"fill"});
   const lineLayout={"line-cap":"round","line-join":"round"};
+  for(const src of ZONE_SOURCES)specs.push({id:src+"-glow",type:"line",source:src,filter:kIs("open"),layout:lineLayout,
+    paint:{"line-color":"#12c28e","line-width":glowWidth(),"line-blur":["step",["zoom"],3,11,4.5],"line-opacity":glowOpacity()},meta:"glow"});
   for(const tier of ["normal","open","rule"]){
     for(const src of ZONE_SOURCES)specs.push({id:`${src}-case-${tier}`,type:"line",source:src,filter:tierFilter(tier),layout:lineLayout,
       paint:{"line-color":"#fff","line-width":casingWidth(),"line-opacity":casingOpacity()},meta:"casing"});
@@ -2399,13 +2409,14 @@ function zoneLayerSpecs(){
   }
   return specs;
 }
-function applyZoneDim(f){
-  if(f===zoneDim||!mapReady)return;zoneDim=f;
+function applyZoneDim(f,force){
+  if((f===zoneDim&&!force)||!mapReady)return;zoneDim=f;
   for(const s of zoneLayerSpecs()){
     if(!map.getLayer(s.id))continue;
     if(s.meta==="fill")map.setPaintProperty(s.id,"fill-opacity",fillOpacity());
-    else map.setPaintProperty(s.id,"line-opacity",s.meta==="casing"?casingOpacity():inkOpacity());
+    else map.setPaintProperty(s.id,"line-opacity",s.meta==="casing"?casingOpacity():s.meta==="glow"?glowOpacity():inkOpacity());
   }
+  if(map.getLayer("fb-lakes-fill")){map.setPaintProperty("fb-lakes-fill","fill-opacity",lakeFillOpacity());map.setPaintProperty("fb-lakes-line","line-opacity",lakeLineOpacity())}
   if(map.getLayer("fb-hydro"))map.setPaintProperty("fb-hydro","raster-opacity",hydroOpacity());
 }
 function hydroOpacity(){
@@ -2565,6 +2576,7 @@ function scheduleWest(){
 }
 function drawX(){
   if(!map)return;
+  drawLakes();
   // All bundled zones go to the GPU at once; only redraw on data, date or detail-level change.
   const zoom=Math.floor(lz()),stamp=[zoom<=11?zoom:12,xVersion,mapDate,DATA_META.version,mapTime?.glNight].join("|");
   if(stamp===xStamp)return;
@@ -2712,11 +2724,12 @@ function drawSel(){
     for(const id of g.zones.get(f.zoneId)){const row=g.feats[id];if(row.poly)part.polygons.push(row.l);else part.lines.push(...row.l)}
     parts=[part];
   }
+  parts=syncGroup(hit,parts);
   if(hit?.t==="zone"&&!hit.districtView){
     const mark=sectionMark(hit.code,hit.kind,hit.buried,hit.rule,hit.rev,hit.region);
     if(mark==="closed"||mark==="condition")parts=parts.map(p=>({...p,symbol:mark}));
   }
-  const key=[identity,mapDate,DATA_META.version,xVersion,!!hit?.districtView,(hit?.group||hit?.wholeDistrict)&&!hit.fullParts?hit.id:"",parts.length].join("|");
+  const key=[identity,hit?.t==="x"?hit.id:"",mapDate,DATA_META.version,xVersion,!!hit?.districtView,(hit?.group||hit?.wholeDistrict)&&!hit.fullParts?hit.id:"",parts.length].join("|");
   if(key!==selKey){
     selKey=key;selParts=parts;selFC=selectionFC(parts);
     if(mapReady)map.getSource("fb-sel")?.setData(selFC);
@@ -3406,7 +3419,9 @@ function addOverlays(){
   }
   for(const src of ZONE_SOURCES)map.addSource(src,{type:"geojson",data:zoneData[src],tolerance:.3,buffer:64});
   for(const img of coarseImages)addCoarse(img);
+  addLakeLayers();
   for(const spec of zoneLayerSpecs()){const {meta,...layer}=spec;map.addLayer(layer)}
+  addGroupLayers();
   map.addSource("fb-sel",{type:"geojson",data:selFC,tolerance:.2});
   map.addLayer({id:"fb-sel-fill",type:"fill",source:"fb-sel",filter:isArea,paint:{"fill-color":colorExpr(),"fill-opacity":["case",["in",["get","k"],["literal",RULE_MARKS]],.62,.25]}});
   map.addLayer({id:"fb-sel-dark",type:"line",source:"fb-sel",filter:["==",["get","fp"],0],layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#203038","line-width":selWidth(7.4),"line-opacity":.92}});
@@ -3832,6 +3847,7 @@ function renderLayerPanel(){
   const arts=[...new Set(state.log.filter(f=>Number.isFinite(f.lat)).map(f=>f.art))].sort((a,b)=>a.localeCompare(b,"de"));
   const withPos=state.log.filter(f=>Number.isFinite(f.lat)).length,noPos=state.log.length-withPos;
   p.innerHTML=`<div class="ml-head"><strong>Auf der Karte</strong><button type="button" class="ml-x" data-ml="close" aria-label="Schliessen">${XICON}</button></div>
+    <label class="ml-row"><span><b>Offene Gewässer hervorheben</b><small>Grün: Fangsaison heute offen. Patent oder Pachtkarte trotzdem nötig.</small></span><input type="checkbox" data-ml="openFocus"${mapFilter.openFocus!==false?" checked":""}></label>
     <label class="ml-row"><span><b>Meine Fänge</b><small>${withPos} mit Ort${noPos?` · ${noPos} ohne Ort`:""}</small></span><input type="checkbox" data-ml="catches"${mapFilter.catches?" checked":""}></label>
     <div class="ml-sub"${mapFilter.catches?"":" hidden"}>
       <select data-ml="art" aria-label="Fischart"><option value="">Alle Arten</option>${arts.map(a=>`<option${a===mapFilter.art?" selected":""}>${esc(a)}</option>`).join("")}</select>
@@ -3855,9 +3871,111 @@ function bindLayerPanel(){
   p.addEventListener("change",e=>{
     const k=e.target.dataset.ml;if(!k)return;
     mapFilter={...mapFilter,[k]:e.target.type==="checkbox"?e.target.checked:e.target.value};store.set("mapFilter",mapFilter);
+    if(k==="openFocus")applyZoneDim(zoneDim,true);
     drawCatches();refreshSpots();renderLayerPanel();
   });
   document.addEventListener("pointerdown",e=>{if(!p.hidden&&!e.target.closest("#mapLayers,#mapLayersBtn"))p.hidden=true},true);
+}
+
+/* ================= OFFENE GEWÄSSER UND REVIERE ================= */
+// Large lakes (swisstopo VECTOR200, generalised). w lists canton and rule key of RULES.
+let lakeData=null,lakeLoading=null,lakeFC=FC([]),lakeStamp="";
+function decodeLakes(list){
+  return list.map(l=>({type:"Feature",properties:{n:l.n,w:l.w},geometry:{type:"MultiPolygon",coordinates:l.p.map(poly=>poly.map(r=>{
+    let x=0,y=0;const out=[];for(let i=0;i<r.length;i+=2){x+=r[i];y+=r[i+1];out.push([x/1000,y/1000])}return out}))}}));
+}
+// Only the Swiss part of Lago Maggiore counts for the Ticino patent.
+function clipNorth(ring,lat){
+  const out=[];
+  for(let i=0;i<ring.length;i++){
+    const a=ring[i],b=ring[(i+1)%ring.length],ina=a[1]>=lat,inb=b[1]>=lat;
+    if(ina)out.push(a);
+    if(ina!==inb){const t=(lat-a[1])/(b[1]-a[1]);out.push([a[0]+t*(b[0]-a[0]),lat])}
+  }
+  if(out.length&&(out[0][0]!==out.at(-1)[0]||out[0][1]!==out.at(-1)[1]))out.push(out[0]);
+  return out;
+}
+function lakeOpen(w){
+  const d=mapRuleDate();let known=false;
+  for(const [c,key] of w){
+    const r=RULES[c];if(!r?.w?.some(([k])=>k===key))continue;known=true;
+    if(!r.closed?.some(cl=>cl.w.includes(key)&&inRange(d,cl.from,cl.to)))return "open";
+  }
+  return known?"closed":"";
+}
+function loadLakes(){
+  if(lakeData||lakeLoading)return lakeLoading;
+  lakeLoading=fetch("./data/lakes.json").then(r=>{if(!r.ok)throw Error(r.status);return r.json()}).then(list=>{
+    lakeData=decodeLakes(list);
+    for(const f of lakeData)if(f.properties.n==="Lago Maggiore")
+      f.geometry.coordinates=f.geometry.coordinates.map(p=>p.map(r=>clipNorth(r,46.094)).filter(r=>r.length>=4)).filter(p=>p.length);
+    lakeStamp="";drawLakes();
+  }).catch(()=>{lakeLoading=null});
+  return lakeLoading;
+}
+function drawLakes(){
+  if(!mapReady)return;
+  if(!lakeData){loadLakes();return}
+  const stamp=mapDate+"|"+DATA_META.version;if(stamp===lakeStamp)return;lakeStamp=stamp;
+  lakeFC=FC(lakeData.map(f=>({...f,properties:{n:f.properties.n,k:lakeOpen(f.properties.w)}})));
+  map.getSource("fb-lakes")?.setData(lakeFC);
+}
+const lakeFillOpacity=()=>["interpolate",["linear"],["zoom"],5,.42*zoneDim,9,.34*zoneDim,11,.2*zoneDim,12.5,0];
+const lakeLineOpacity=()=>["interpolate",["linear"],["zoom"],5,.95*zoneDim,10,.8*zoneDim,12,.35*zoneDim,13.5,0];
+function addLakeLayers(){
+  map.addSource("fb-lakes",{type:"geojson",data:lakeFC,tolerance:.4});
+  map.addLayer({id:"fb-lakes-fill",type:"fill",source:"fb-lakes",filter:kIs("open"),paint:{"fill-color":"#0fb886","fill-opacity":lakeFillOpacity(),"fill-antialias":true}});
+  map.addLayer({id:"fb-lakes-line",type:"line",source:"fb-lakes",filter:kIs("open"),layout:{"line-join":"round"},
+    paint:{"line-color":"#039873","line-width":["interpolate",["linear"],["zoom"],5,1,10,2],"line-opacity":lakeLineOpacity()}});
+}
+
+/* ---- Zugehöriges Revier dezent mitmarkieren ---- */
+let groupFC=FC([]),groupKey="";
+function groupLines(parts){
+  const features=[];
+  for(const part of parts){
+    for(const rings of part.polygons||[])features.push({type:"Feature",geometry:{type:"Polygon",coordinates:FishSections.orient(rings)},properties:{a:1}});
+    if(part.lines?.length)features.push({type:"Feature",geometry:{type:"MultiLineString",coordinates:part.lines},properties:{a:0}});
+  }
+  return FC(features);
+}
+function setGroup(key,parts){
+  if(key===groupKey)return;groupKey=key;groupFC=groupLines(parts||[]);
+  if(mapReady)map.getSource("fb-group")?.setData(groupFC);
+}
+// Called from drawSel: decides what belongs to the same Revier as the tapped part.
+function syncGroup(hit,parts){
+  if(!hit||hit.districtView||hit.wholeDistrict||hit.t==="spot"||hit.t==="catch"){setGroup("",[]);return parts}
+  if(hit.t==="x"){
+    const g=xg(hit.code),f=g?.feats?.[hit.id];
+    if(f){
+      const ids=g.zones.get(f.zoneId)||[];
+      if(ids.length>1){
+        setGroup("x|"+hit.code+"|"+f.zoneId,parts);
+        return [{symbol:parts[0]?.symbol,lines:f.poly?[]:f.l,polygons:f.poly?[f.l]:[]}];
+      }
+    }
+    setGroup("",[]);return parts;
+  }
+  if(hit.t==="zone"&&hit.hasDistrict){
+    if(hit.districtParts){setGroup("d|"+hit.code+"|"+hit.rev,hit.districtParts);return parts}
+    if(!hit.districtLoading){
+      hit.districtLoading=true;
+      sectionMap.district(hit).then(all=>{hit.districtParts=all}).catch(()=>{hit.districtParts=[]}).finally(()=>{
+        hit.districtLoading=false;if(mapSel===hit||(!mapSel&&chosenMapHit===hit))drawSel();
+      });
+    }
+    return parts;
+  }
+  setGroup("",[]);return parts;
+}
+function addGroupLayers(){
+  map.addSource("fb-group",{type:"geojson",data:groupFC,tolerance:.3});
+  map.addLayer({id:"fb-group-fill",type:"fill",source:"fb-group",filter:["==",["get","a"],1],paint:{"fill-color":"#ffd43b","fill-opacity":.13}});
+  map.addLayer({id:"fb-group-dark",type:"line",source:"fb-group",layout:{"line-cap":"round","line-join":"round"},
+    paint:{"line-color":"#203038","line-width":selWidth(3.2),"line-opacity":.38}});
+  map.addLayer({id:"fb-group-edge",type:"line",source:"fb-group",layout:{"line-cap":"round","line-join":"round"},
+    paint:{"line-color":"#ffd43b","line-width":selWidth(1.6),"line-opacity":.62}});
 }
 
 /* ================= UPDATES (Regeln/Hinweise) ================= */

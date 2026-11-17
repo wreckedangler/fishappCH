@@ -12,6 +12,8 @@ function sectionMark(c,kind,buried,rule,rev,region){
   if(buried||FishSections.restriction(kind))return mark;
   if(c==="SG"&&FishRights.sgProtection(rev,region))return "condition";
   if(rule&&RULES[c]?.closed?.some(cl=>cl.w.includes(rule)&&inRange(mapRuleDate(),cl.from,cl.to)))return "closed";
+  // Known water class with cantonal rules and no general closure today: season open.
+  if(rule&&(mark==="permit"||mark==="district")&&RULES[c]?.w?.some(([k])=>k===rule))return "open";
   return mark;
 }
 function westMark(c,f){
@@ -73,10 +75,16 @@ const inkWidth=()=>zstep(bandInk);
 const casingWidth=()=>zstep(b=>["+",bandInk(b),b===0?1:["case",isArea,["case",zoneAreaK(),2,1],b<3?1.5:2.2]]);
 const selWidth=extra=>zstep(b=>["+",LINE_W[b],extra,["case",kIs("protected"),.6,0]]);
 let zoneDim=1;
-const casingOpacity=()=>zstep(b=>b===0?["case",kIs("open"),.73*zoneDim,.22*zoneDim]:.73*zoneDim);
-const inkOpacity=()=>zstep(b=>b===0?["case",["any",kIs("open"),ruleK()],zoneDim,.64*zoneDim]:zoneDim);
+// "Offene hervorheben": everything that is not open fades back.
+const openFocus=()=>mapFilter.openFocus!==false;
+const notOpenF=()=>openFocus()?.5:1;
+const focusMul=v=>["*",v,["case",kIs("open"),1,notOpenF()]];
+const casingOpacity=()=>zstep(b=>focusMul(b===0?["case",kIs("open"),.73*zoneDim,.22*zoneDim]:.73*zoneDim));
+const inkOpacity=()=>zstep(b=>focusMul(b===0?["case",["any",kIs("open"),ruleK()],zoneDim,.64*zoneDim]:zoneDim));
+const glowOpacity=()=>zstep(b=>(b===0?.42:b<3?.5:.4)*zoneDim*(openFocus()?1:.6));
+const glowWidth=()=>zstep(b=>["+",bandInk(b),b===0?5:b<3?7:9]);
 function fillOpacity(){
-  return ["*",zoneDim,["case",ruleK(),.62,["any",zoneAreaK(),kIs("open")],.23,.12]];
+  return focusMul(["*",zoneDim,["case",ruleK(),.62,kIs("open"),.3,zoneAreaK(),.23,.12]]);
 }
 const ZONE_SOURCES=["fb-sec","fb-west","fb-so"];
 const zoneData={"fb-sec":FC([]),"fb-west":FC([]),"fb-so":FC([])};
@@ -90,6 +98,8 @@ function zoneLayerSpecs(){
   for(const src of ZONE_SOURCES)specs.push({id:src+"-fill",type:"fill",source:src,filter:isArea,
     paint:{"fill-color":colorExpr(),"fill-opacity":fillOpacity(),"fill-antialias":false},meta:"fill"});
   const lineLayout={"line-cap":"round","line-join":"round"};
+  for(const src of ZONE_SOURCES)specs.push({id:src+"-glow",type:"line",source:src,filter:kIs("open"),layout:lineLayout,
+    paint:{"line-color":"#12c28e","line-width":glowWidth(),"line-blur":["step",["zoom"],3,11,4.5],"line-opacity":glowOpacity()},meta:"glow"});
   for(const tier of ["normal","open","rule"]){
     for(const src of ZONE_SOURCES)specs.push({id:`${src}-case-${tier}`,type:"line",source:src,filter:tierFilter(tier),layout:lineLayout,
       paint:{"line-color":"#fff","line-width":casingWidth(),"line-opacity":casingOpacity()},meta:"casing"});
@@ -103,13 +113,14 @@ function zoneLayerSpecs(){
   }
   return specs;
 }
-function applyZoneDim(f){
-  if(f===zoneDim||!mapReady)return;zoneDim=f;
+function applyZoneDim(f,force){
+  if((f===zoneDim&&!force)||!mapReady)return;zoneDim=f;
   for(const s of zoneLayerSpecs()){
     if(!map.getLayer(s.id))continue;
     if(s.meta==="fill")map.setPaintProperty(s.id,"fill-opacity",fillOpacity());
-    else map.setPaintProperty(s.id,"line-opacity",s.meta==="casing"?casingOpacity():inkOpacity());
+    else map.setPaintProperty(s.id,"line-opacity",s.meta==="casing"?casingOpacity():s.meta==="glow"?glowOpacity():inkOpacity());
   }
+  if(map.getLayer("fb-lakes-fill")){map.setPaintProperty("fb-lakes-fill","fill-opacity",lakeFillOpacity());map.setPaintProperty("fb-lakes-line","line-opacity",lakeLineOpacity())}
   if(map.getLayer("fb-hydro"))map.setPaintProperty("fb-hydro","raster-opacity",hydroOpacity());
 }
 function hydroOpacity(){
@@ -269,6 +280,7 @@ function scheduleWest(){
 }
 function drawX(){
   if(!map)return;
+  drawLakes();
   // All bundled zones go to the GPU at once; only redraw on data, date or detail-level change.
   const zoom=Math.floor(lz()),stamp=[zoom<=11?zoom:12,xVersion,mapDate,DATA_META.version,mapTime?.glNight].join("|");
   if(stamp===xStamp)return;
@@ -416,11 +428,12 @@ function drawSel(){
     for(const id of g.zones.get(f.zoneId)){const row=g.feats[id];if(row.poly)part.polygons.push(row.l);else part.lines.push(...row.l)}
     parts=[part];
   }
+  parts=syncGroup(hit,parts);
   if(hit?.t==="zone"&&!hit.districtView){
     const mark=sectionMark(hit.code,hit.kind,hit.buried,hit.rule,hit.rev,hit.region);
     if(mark==="closed"||mark==="condition")parts=parts.map(p=>({...p,symbol:mark}));
   }
-  const key=[identity,mapDate,DATA_META.version,xVersion,!!hit?.districtView,(hit?.group||hit?.wholeDistrict)&&!hit.fullParts?hit.id:"",parts.length].join("|");
+  const key=[identity,hit?.t==="x"?hit.id:"",mapDate,DATA_META.version,xVersion,!!hit?.districtView,(hit?.group||hit?.wholeDistrict)&&!hit.fullParts?hit.id:"",parts.length].join("|");
   if(key!==selKey){
     selKey=key;selParts=parts;selFC=selectionFC(parts);
     if(mapReady)map.getSource("fb-sel")?.setData(selFC);
@@ -1110,7 +1123,9 @@ function addOverlays(){
   }
   for(const src of ZONE_SOURCES)map.addSource(src,{type:"geojson",data:zoneData[src],tolerance:.3,buffer:64});
   for(const img of coarseImages)addCoarse(img);
+  addLakeLayers();
   for(const spec of zoneLayerSpecs()){const {meta,...layer}=spec;map.addLayer(layer)}
+  addGroupLayers();
   map.addSource("fb-sel",{type:"geojson",data:selFC,tolerance:.2});
   map.addLayer({id:"fb-sel-fill",type:"fill",source:"fb-sel",filter:isArea,paint:{"fill-color":colorExpr(),"fill-opacity":["case",["in",["get","k"],["literal",RULE_MARKS]],.62,.25]}});
   map.addLayer({id:"fb-sel-dark",type:"line",source:"fb-sel",filter:["==",["get","fp"],0],layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#203038","line-width":selWidth(7.4),"line-opacity":.92}});

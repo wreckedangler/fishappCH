@@ -243,6 +243,7 @@ function renderLayerPanel(){
   const arts=[...new Set(state.log.filter(f=>Number.isFinite(f.lat)).map(f=>f.art))].sort((a,b)=>a.localeCompare(b,"de"));
   const withPos=state.log.filter(f=>Number.isFinite(f.lat)).length,noPos=state.log.length-withPos;
   p.innerHTML=`<div class="ml-head"><strong>Auf der Karte</strong><button type="button" class="ml-x" data-ml="close" aria-label="Schliessen">${XICON}</button></div>
+    <label class="ml-row"><span><b>Offene Gewässer hervorheben</b><small>Grün: Fangsaison heute offen. Patent oder Pachtkarte trotzdem nötig.</small></span><input type="checkbox" data-ml="openFocus"${mapFilter.openFocus!==false?" checked":""}></label>
     <label class="ml-row"><span><b>Meine Fänge</b><small>${withPos} mit Ort${noPos?` · ${noPos} ohne Ort`:""}</small></span><input type="checkbox" data-ml="catches"${mapFilter.catches?" checked":""}></label>
     <div class="ml-sub"${mapFilter.catches?"":" hidden"}>
       <select data-ml="art" aria-label="Fischart"><option value="">Alle Arten</option>${arts.map(a=>`<option${a===mapFilter.art?" selected":""}>${esc(a)}</option>`).join("")}</select>
@@ -266,6 +267,7 @@ function bindLayerPanel(){
   p.addEventListener("change",e=>{
     const k=e.target.dataset.ml;if(!k)return;
     mapFilter={...mapFilter,[k]:e.target.type==="checkbox"?e.target.checked:e.target.value};store.set("mapFilter",mapFilter);
+    if(k==="openFocus")applyZoneDim(zoneDim,true);
     drawCatches();refreshSpots();renderLayerPanel();
   });
   document.addEventListener("pointerdown",e=>{if(!p.hidden&&!e.target.closest("#mapLayers,#mapLayersBtn"))p.hidden=true},true);

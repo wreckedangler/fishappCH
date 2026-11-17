@@ -38,7 +38,9 @@ if not promote:
     # Testversion unter /beta/: alle relativen Pfade zeigen auf das Hauptverzeichnis.
     out = re.sub(r"<head>", '<head>\n<base href="../">', out, count=1)
     out = replace_once(out, "<title>", '<meta name="robots" content="noindex">\n<title>')
-    out = out.replace('"./beta/map-sections-gl.js"', '"./beta/map-sections-gl.js"')
+    # Mit <base> würden Hash-Links sonst auf die Hauptversion zeigen.
+    out = replace_once(out, 'history.pushState(null,"","#"+(v==="stat"?"fangbuch":v));',
+        'history.pushState(null,"",location.pathname+location.search+"#"+(v==="stat"?"fangbuch":v));')
     target = os.path.join(root, "beta", "index.html")
 else:
     target = os.path.join(root, "index.html")

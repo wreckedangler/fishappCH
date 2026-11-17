@@ -2175,30 +2175,27 @@ const RULE_MARKS=["protected","closed","condition"];
 const colorExpr=()=>["match",["get","k"],...Object.entries(FishSections.symbols).flatMap(([k,s])=>[k,s.color]),"#7b8c92"];
 const isArea=["==",["get","a"],1];
 const kIs=k=>["==",["get","k"],k];
-// Line width as in the Leaflet brush, stops in MapLibre zoom (= Leaflet zoom - 1).
-function inkWidth(){
-  const zoneArea=["in",["get","k"],["literal",["district","private","condition"]]];
+// Widths and opacities as in the Leaflet brush. MapLibre needs ["zoom"] at the top of the
+// expression, so every zoom band carries its own data expression.
+// Bands in MapLibre zoom: <8 overview (Leaflet <9), 8–9, 9–11, 11–14, ≥14.
+const zstep=fn=>["step",["zoom"],fn(0),8,fn(1),9,fn(2),11,fn(3),14,fn(4)];
+const zoneAreaK=()=>["in",["get","k"],["literal",["district","private","condition"]]];
+const ruleK=()=>["in",["get","k"],["literal",RULE_MARKS]];
+const LINE_W=[1.5,1.5,2,2.8,3.5];
+function bandInk(band){
   const prot=["case",kIs("protected"),.6,0];
-  const line=w=>["+",w,prot];
-  const area=(small,big)=>["case",zoneArea,small,big];
-  return ["step",["zoom"],
-    ["case",kIs("open"),2.2,["in",["get","k"],["literal",RULE_MARKS]],1.4,.85],
-    8,["case",isArea,area(1.6,.85),line(1.5)],
-    9,["case",isArea,area(1.6,.85),line(2)],
-    11,["case",isArea,area(2.4,1.35),line(2.8)],
-    14,["case",isArea,area(2.4,1.35),line(3.5)]];
+  if(band===0)return ["case",kIs("open"),2.2,ruleK(),1.4,.85];
+  const area=band<3?["case",zoneAreaK(),1.6,.85]:["case",zoneAreaK(),2.4,1.35];
+  return ["case",isArea,area,["+",LINE_W[band],prot]];
 }
-function casingWidth(){
-  const zoneArea=["in",["get","k"],["literal",["district","private","condition"]]];
-  const extra=["step",["zoom"],1,8,["case",isArea,["case",zoneArea,2,1],1.5],11,["case",isArea,["case",zoneArea,2,1],2.2]];
-  return ["+",inkWidth(),extra];
-}
+const inkWidth=()=>zstep(bandInk);
+const casingWidth=()=>zstep(b=>["+",bandInk(b),b===0?1:["case",isArea,["case",zoneAreaK(),2,1],b<3?1.5:2.2]]);
+const selWidth=extra=>zstep(b=>["+",LINE_W[b],extra,["case",kIs("protected"),.6,0]]);
 let zoneDim=1;
-function casingOpacity(){return ["*",zoneDim,["step",["zoom"],["case",kIs("open"),.73,.22],8,.73]]}
-function inkOpacity(){return ["*",zoneDim,["step",["zoom"],["case",["any",kIs("open"),["in",["get","k"],["literal",RULE_MARKS]]],1,.64],8,1]]}
+const casingOpacity=()=>zstep(b=>b===0?["case",kIs("open"),.73*zoneDim,.22*zoneDim]:.73*zoneDim);
+const inkOpacity=()=>zstep(b=>b===0?["case",["any",kIs("open"),ruleK()],zoneDim,.64*zoneDim]:zoneDim);
 function fillOpacity(){
-  const zoneArea=["in",["get","k"],["literal",["district","private","condition"]]];
-  return ["*",zoneDim,["case",["in",["get","k"],["literal",RULE_MARKS]],.62,["any",zoneArea,kIs("open")],.23,.12]];
+  return ["*",zoneDim,["case",ruleK(),.62,["any",zoneAreaK(),kIs("open")],.23,.12]];
 }
 const ZONE_SOURCES=["fb-sec","fb-west","fb-so"];
 const zoneData={"fb-sec":FC([]),"fb-west":FC([]),"fb-so":FC([])};
@@ -2235,9 +2232,8 @@ function applyZoneDim(f){
   if(map.getLayer("fb-hydro"))map.setPaintProperty("fb-hydro","raster-opacity",hydroOpacity());
 }
 function hydroOpacity(){
-  const luft=store.get("base","luft")!=="topo";
-  const base=luft?["step",["zoom"],.30,10,.38,14,.54]:["step",["zoom"],.26,10,.34];
-  return zoneDim<1?["*",base,.75]:base;
+  const luft=store.get("base","luft")!=="topo",f=zoneDim<1?.75:1;
+  return luft?["step",["zoom"],.30*f,10,.38*f,14,.54*f]:["step",["zoom"],.26*f,10,.34*f];
 }
 let labelFont=["Frutiger Neue Regular"];
 
@@ -3147,11 +3143,10 @@ function addOverlays(){
   for(const img of coarseImages)addCoarse(img);
   for(const spec of zoneLayerSpecs()){const {meta,...layer}=spec;map.addLayer(layer)}
   map.addSource("fb-sel",{type:"geojson",data:selFC,tolerance:.2});
-  const selWidth=["+",inkWidth(),0];
   map.addLayer({id:"fb-sel-fill",type:"fill",source:"fb-sel",filter:isArea,paint:{"fill-color":colorExpr(),"fill-opacity":["case",["in",["get","k"],["literal",RULE_MARKS]],.62,.25]}});
-  map.addLayer({id:"fb-sel-dark",type:"line",source:"fb-sel",filter:["==",["get","fp"],0],layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#203038","line-width":["+",selWidth,7.4],"line-opacity":.92}});
-  map.addLayer({id:"fb-sel-edge",type:"line",source:"fb-sel",filter:["==",["get","fp"],0],layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":FishSections.highlight,"line-width":["+",selWidth,5]}});
-  map.addLayer({id:"fb-sel-ink",type:"line",source:"fb-sel",filter:["==",["get","fp"],0],layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":colorExpr(),"line-width":selWidth}});
+  map.addLayer({id:"fb-sel-dark",type:"line",source:"fb-sel",filter:["==",["get","fp"],0],layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#203038","line-width":selWidth(7.4),"line-opacity":.92}});
+  map.addLayer({id:"fb-sel-edge",type:"line",source:"fb-sel",filter:["==",["get","fp"],0],layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":FishSections.highlight,"line-width":selWidth(5)}});
+  map.addLayer({id:"fb-sel-ink",type:"line",source:"fb-sel",filter:["==",["get","fp"],0],layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":colorExpr(),"line-width":selWidth(0)}});
   map.addLayer({id:"fb-labels",type:"symbol",source:"fb-sec",minzoom:8,filter:["all",["!=",["get","n"],""],["==",["get","a"],0]],
     layout:{"symbol-placement":"line","text-field":["get","n"],"text-font":labelFont,"text-size":["interpolate",["linear"],["zoom"],8,11,14,13.5],
       "text-max-angle":35,"symbol-spacing":420,"text-padding":6,"text-letter-spacing":.02},
@@ -3295,6 +3290,7 @@ async function initMap(){
   });
   map.on("error",e=>{
     const id=e.sourceId||e.source?.id||"";
+    if(!id.startsWith("fb-wms-")&&e.error)console.warn("Karte",e.error.message||e.error);
     if(id.startsWith("fb-wms-")){const now=Date.now();if(now-(map._wmsWarn||0)>60000&&!mapSel){map._wmsWarn=now;flashHint("Fischereikarte "+cname(id.slice(7))+" teilweise nicht geladen.",4000)}}
   });
   syncLocateButton();
@@ -3332,7 +3328,7 @@ function show(v,restore=false){
   if(v!=="karte"){cancelMapQuery();clearShore();if(hintMsg)flashHint("")}
   if(!restore&&route()!==v){
     history.replaceState({scroll:scrollY},"",location.href);
-    history.pushState(null,"","#"+(v==="stat"?"fangbuch":v));
+    history.pushState(null,"",location.pathname+location.search+"#"+(v==="stat"?"fangbuch":v));
   }
   document.querySelectorAll("section.view").forEach(s=>s.classList.toggle("on",s.id==="v-"+v));
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v||(v==="stat"&&b.dataset.v==="fang")));

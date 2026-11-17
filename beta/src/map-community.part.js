@@ -187,13 +187,22 @@ function rememberReportSection(hit,canton,name) {
   void idForReportHit(hit).then(async id=>{
     if(!current())return;
     const ref={id,canton,name};
-    if(id){store.set("publicWaterRef",ref);renderHereWater();}
+    if(hit.t==="w")ref.watercourse={course:hit.water.hydroId,name:hit.water.name,lake:hit.water.lake,lon:hit.lon,lat:hit.lat};
+    if(id||ref.watercourse){store.set("publicWaterRef",ref);renderHereWater();}
     if(hit.t==="w"||hit.code==="JU"&&hit.t==="zone"){
       const index=await loadHereStations();
       if(!current())return;
       const names=hit.t==="w"?(hit.water.names||[name]):[hit.water];
       const station=stationOnGeometry(index.byName,names,hit.parts||[]);
-      if(station){store.set("publicWaterRef",{...ref,station:station.id});renderHereWater();}
+      if(station)ref.station=station.id;
+      else if(hit.code==="JU"&&hit.t==="zone"){
+        const water=await waterAt(hit.lat,hit.lon,100);
+        if(!current())return;
+        if(water?.hydroId&&!water.ambiguous&&water.names.some(n=>temperatureWaterName(n)===temperatureWaterName(hit.water))){
+          ref.watercourse={course:water.hydroId,name:hit.water,lon:hit.lon,lat:hit.lat};
+        }
+      }
+      if(station||(!id&&ref.watercourse)){store.set("publicWaterRef",ref);renderHereWater();}
     }
   }).catch(()=>{});
 }

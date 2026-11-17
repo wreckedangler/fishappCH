@@ -18,7 +18,7 @@ test("discharge and trend use two real measurements at the same station, regardl
   const {hydroReading}=app();
   const rows=[row("Q",5,4,"2434"),row("Q",50,190),row("WT",12.3,12),row("Q",65,10),row("Q",900,1,"2000")];
   const m=hydroReading("2063",false,rows,"m3/s",now);
-  assert.equal(m.value,65);assert.equal(m.trend,"steigend");assert.equal(m.temperature,12.3);
+  assert.equal(m.value,65);assert.equal(m.trend,"steigend");
   assert.equal(hydroReading("2063",false,[row("Q",70,187),row("Q",60,8)],"m³/s",now).trend,"fallend");
   assert.equal(hydroReading("2063",false,[row("Q",70,187),row("Q",71,8)],"m³/s",now).trend,"stabil");
   assert.equal(hydroReading("2063",false,[row("Q",250,1)],"l/s",now).value,.25);
@@ -26,13 +26,13 @@ test("discharge and trend use two real measurements at the same station, regardl
 test("no invented trends, no stale or future readings, no substituted river level or temperature",()=>{
   const {hydroReading}=app();
   const m=hydroReading("2063",false,[row("Q",0,9),row("Q",20,110),row("WT",12,44),row("Q",6,-5)],"m3/s",now);
-  assert.equal(m.value,0);assert.equal(m.trend,"");assert.equal(m.temperature,null);
+  assert.equal(m.value,0);assert.equal(m.trend,"");
   for(const rows of [[row("Q",5,91)],[row("Q",1,-3)],[row("Q",null,1)],[row("Q",-1,2)],[row("W",400,4)]]){
     assert.equal(hydroReading("2063",false,rows,"m3/s",now),null);
   }
   assert.equal(hydroReading("2063",false,[row("Q",42,5)],"unknown",now),null);
   const lake=hydroReading("2063",true,[row("Q",250,3),row("W",412.25,8)],"m ü.M.",now);
-  assert.equal(lake.value,412.25);assert.equal(lake.temperature,null);assert.equal(lake.trend,"");
+  assert.equal(lake.value,412.25);assert.equal(lake.trend,"");
 });
 test("the name and the geometry must agree, including polygon holes",()=>{
   const {stationOnGeometry,hydroNameIndex}=app();
@@ -79,4 +79,75 @@ test("GPS redraws share a pending request, while a response for a previous secti
   ctx.updateHereRow(el,"LU:R6",60000,()=>assert.fail("fresh data refetched"));await tick();
   assert.deepEqual(painted,[null,null,"Bihlbach"]);
   ctx.updateHereRow(el,"",60000,()=>assert.fail("empty lookup"));assert.equal(el.hidden,true);
+});
+
+function temperatureData(){
+  const index=JSON.parse(read("data/here-stations.json")),network=JSON.parse(read("data/temperature-waters.json"));
+  network.byStation=new Map(Object.entries(network.courses).flatMap(([course,ids])=>ids.map(id=>[id,course])));
+  return {index,network};
+}
+test("every named Aare fishing reach shares the river's stations, including side channels and protected reaches",()=>{
+  const {index,network}=temperatureData(),{temperatureTarget}=app();
+  const catalogue=JSON.parse(read("server/catalogue.json")).sections;
+  const named=catalogue.filter(([,name])=>/^(?:Aare\b|Alte Aare\b|neuer Seitenarm Aare\b)/.test(name)).map(([id])=>id);
+  assert.ok(["AG","SO","BE"].every(c=>named.some(id=>id.startsWith(c+":"))));
+  for(const id of [...named,"SO:S4","SO:S5"]){
+    const target=temperatureTarget({temperatureSection:id},index,network);
+    assert.deepEqual(target.ids,network.courses.CH0000370000,id);
+  }
+  assert.deepEqual(temperatureTarget({picker:"BE:aare_bern"},index,network).ids,network.courses.CH0000370000);
+  const tributary=catalogue.find(([,n])=>n.startsWith("Moosbach Büren an der Aare"));
+  assert.equal(temperatureTarget({section:tributary[0]},index,network),null);
+  assert.equal(temperatureTarget({picker:"AG:fluss"},index,network),null);
+  assert.equal(temperatureTarget({picker:"BE:aare_ob"},index,network),null);
+  assert.ok(!index.sections["SO:A4"]);
+});
+test("station preference, distance and freshness apply only within one watercourse",()=>{
+  const {index,network}=temperatureData(),{temperatureTarget,nearestWaterTemperature}=app();
+  const latest=new Map(["2016","2029","2063","2018"].map(id=>[id,{id,value:11,time:now-600000}]));
+  const at=id=>temperatureTarget({section:id},index,network);
+  assert.equal(nearestWaterTemperature(at("SO:A2"),index.stations,latest,now).id,"2063");
+  latest.delete("2063");
+  assert.equal(nearestWaterTemperature(at("SO:A1"),index.stations,latest,now).id,"2029");
+  assert.equal(nearestWaterTemperature(at("SO:A6"),index.stations,latest,now).id,"2016");
+  latest.get("2016").time=now-91*60000;
+  assert.equal(nearestWaterTemperature(at("SO:A6"),index.stations,latest,now).id,"2029");
+  latest.get("2029").time=now+1000;
+  assert.equal(nearestWaterTemperature(at("SO:A6"),index.stations,latest,now),null);
+  const glau=temperatureTarget({watercourse:{course:"CH0003860000",name:"Glatt",lon:9.25,lat:47.4}},index,network);
+  assert.ok(glau.ids.includes("2305"));assert.ok(!glau.ids.includes("2415")); // Another Glatt in Zürich
+  assert.deepEqual(temperatureTarget({temperatureSection:"SO:A4",nearbySections:["SO:S5"]},index,network).ids,network.courses.CH0000370000);
+  assert.equal(temperatureTarget({temperatureSection:"SO:A4",nearbySections:["SO:D"]},index,network),null);
+  assert.deepEqual(temperatureTarget({name:"Aare",canton:"BE"},index,network).ids,network.courses.CH0000370000);
+});
+test("one temperature-only query serves multiple sections, handles zero, and expires independently of discharge",async()=>{
+  let clock=now,calls=0;
+  const ctx=app({Date:class extends Date{static now(){return clock;}}});
+  const ids=["2016","2029"];
+  ctx.hydroObservations=async(query,variables)=>{
+    calls++;
+    assert.match(query,/parameterName:\{_eq:"WT"\}/);assert.deepEqual(variables.stations,ids);
+    return {data_live:[row("WT",0,2,"2016"),row("WT",9,15,"2016"),row("WT",9,-2,"2029"),
+      row("WT",null,10,"2029"),row("WT",8,95,"2029"),row("WT",4,1,"2018")]};
+  };
+  const [first,second]=await Promise.all([ctx.waterTemperatures(ids),ctx.waterTemperatures(ids)]);
+  assert.equal(first,second);assert.equal(calls,1);assert.equal(first.size,1);assert.equal(first.get("2016").value,0);
+  await ctx.waterTemperatures(ids);assert.equal(calls,1);
+  clock+=100*60000;
+  assert.equal((await ctx.waterTemperatures(ids)).size,0);assert.equal(calls,2);
+});
+test("a water change or failed request clears the hero value and link, and late results cannot repaint it",async()=>{
+  const ctx=app(),value={},source={};
+  const link={querySelector:tag=>tag==="strong"?value:source,removeAttribute(){delete this.href;}};
+  let finish;
+  const apply=(key,fetch)=>ctx.updateHereRow(link,key,60000,fetch,ctx.paintHereTemperature);
+  apply("SO:A4",async()=>({id:"2016",value:"11 °C",source:"Aare – Brugg"}));await tick();
+  assert.equal(value.textContent,"11 °C");assert.match(link.href,/2016$/);
+  apply("SO:A6",()=>new Promise(done=>{finish=done;}));await tick();
+  assert.equal(link.hidden,true);assert.equal(value.textContent,"");assert.equal(link.href,undefined);
+  apply("LU:R6",async()=>null);await tick();
+  finish({id:"2016",value:"11 °C",source:"Aare – Brugg"});await tick();
+  assert.equal(source.textContent,"");assert.equal(link.hidden,true);
+  apply("SO:A1",async()=>{throw Error("offline");});await tick();
+  assert.equal(link.hidden,true);
 });

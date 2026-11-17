@@ -1,5 +1,5 @@
 // Fischer-Begleiter Service Worker
-const APP = "fb-app-v64";      // versionierte App-Dateien
+const APP = "fb-app-v65";      // versionierte App-Dateien
 const LIB = "fb-lib-v1";      // Kartenbibliothek: Cache zuerst
 const TILES = "fb-tiles-v1";  // Kartenkacheln: Cache zuerst, begrenzt
 const MAX_TILES = 600;
@@ -9,7 +9,7 @@ const SECTIONS = "fb-sections-v1"; // Abschnittsdateien mit Inhalts-Hash
 const FILES = ["./index.html", "./beta/index.html", "./beta/map-sections-gl.js", "./map-search.js", "./data/sections/index.json", "./data/so-sections.json", "./manifest.webmanifest", "./icon.svg", "./data/updates.json", "./vendor/maplibre-gl/maplibre-gl.js", "./vendor/maplibre-gl/maplibre-gl.css", "./data/basemaps/luft.json", "./data/basemaps/topo.json"];
 FILES.push("./map-sources.js","./map-rights.js","./map-rights-registers.js","./data/map-overview.json","./data/alpenraum.webp","./data/luzern-reviere.json","./data/lakes.json",...["BE","FR","GE","GL","NW","SH","TG","VD","VS"].map(c=>"./data/fisheries/"+c+".json"));
 FILES.push(...["favicon-32","schild-apple-180","schild-192","schild-512","schild-maskable-512"].map(name=>"./assets/"+name+".png"));
-FILES.push("./data/here-stations.json");
+FILES.push("./data/here-stations.json","./data/temperature-waters.json");
 
 self.addEventListener("install", e => e.waitUntil(caches.open(APP).then(c => c.addAll(FILES.map(path=>new Request(path,{cache:"no-cache",priority:"low"})))).then(() => self.skipWaiting())));
 self.addEventListener("activate", e => e.waitUntil(

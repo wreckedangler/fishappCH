@@ -449,6 +449,11 @@ dialog[open]{animation:iosIn .22s var(--ease)}
 #v-hier .hero .t{font-size:28px;font-weight:700;letter-spacing:-.03em;line-height:1.12}
 #v-hier .hero .d{font-size:15px;margin-top:6px}
 #v-hier .hero ul{font-size:15px}
+#hereTemperature{display:block;width:fit-content;max-width:100%;min-height:44px;margin-top:8px;padding:3px 0;color:var(--tx);line-height:1.35;text-decoration:none}
+#hereTemperature[hidden]{display:none}
+#hereTemperature span{display:flex;align-items:baseline;flex-wrap:wrap;gap:2px 8px;font-size:15px}
+#hereTemperature strong{font-size:18px;font-variant-numeric:tabular-nums;white-space:nowrap}
+#hereTemperature small{display:block;margin-top:2px;font-size:13px;color:var(--mut);overflow-wrap:anywhere}
 
 /* ================= Feinschliff: Raster, Ruhe, Tiefe ================= */
 :root{--gap:20px;--pad:16px;--head:28px;
@@ -846,7 +851,14 @@ section.view>.ios-title+.seg{margin-top:14px!important}
 <!-- HIER -->
 <section class="view on" id="v-hier">
   <h1 class="ios-title">Hier</h1>
-  <div id="hereHero"></div>
+  <div id="hereHero"><div class="hero">
+    <div class="t"></div>
+    <a id="hereTemperature" hidden title="Messstation beim BAFU öffnen" target="_blank" rel="noopener noreferrer">
+      <span>Wassertemperatur <strong></strong></span><small></small>
+    </a>
+    <div class="d" id="hereDescription"></div>
+    <div id="hereHeroExtra"></div>
+  </div></div>
   <div id="hereWaterInfo" class="ios-group" hidden>
     <details id="hereCatches" hidden><summary><span><strong>Zuletzt hier gefangen</strong><small></small></span></summary><div class="water-info-detail"></div></details>
     <details id="hereHydro" hidden><summary><span><strong>Wasser am Abschnitt</strong><small></small></span></summary><div class="water-info-detail"></div></details>
@@ -1413,13 +1425,12 @@ function renderHier(){
     const R=RULES[state.canton],lu=state.canton==="LU";
     if(lu&&state.luRev&&!sec.id)altHtml=`<label for="heroCW" style="margin-top:10px">${lu?"Welche Regelgruppe gilt an deiner Stelle?":"An welchem Gewässer fischst du?"}</label><select id="heroCW"><option value="">– Gewässer wählen –</option>${R.w.map(([id,l])=>`<option value="${esc(id)}"${id===sec.id?" selected":""}>${esc(l)}</option>`).join("")}</select>`;
   }
-  $("#hereHero").innerHTML=`<div class="hero ${x.cls}"><div class="t">${esc(x.t)}</div><div class="d">${esc(det?(sec.desc||""):cm?(sec.id?cname(state.canton)+(selectedWaterName()?" · "+sec.name:""):"Wähle dein Gewässer."):cname(state.canton)+" · nur nationale Mindestvorgaben")}</div>
-    ${st.length||extra?`<ul>${st.map(s=>`<li>${esc(s.txt)}</li>`).join("")}${extra}</ul>`:""}
-    ${state.pos?`<div class="d" style="margin-top:8px">Standort ±${Math.round(state.pos.acc)} m${h&&h.d!=null&&h.id?` · ${fmtM(h.d)} zur Gewässerlinie`:""}</div>`:""}${altHtml}</div>`;
-  if(unknownWater()){
-    $("#hereHero .d").textContent=x.s;
-    $("#hereHero ul")?.remove();
-  }
+  const hero=$("#hereHero .hero"),unknown=unknownWater();
+  hero.className="hero "+x.cls;
+  hero.querySelector(".t").textContent=x.t;
+  $("#hereDescription").textContent=unknown?x.s:det?(sec.desc||""):cm?(sec.id?cname(state.canton)+(selectedWaterName()?" · "+sec.name:""):"Wähle dein Gewässer."):cname(state.canton)+" · nur nationale Mindestvorgaben";
+  $("#hereHeroExtra").innerHTML=`${!unknown&&(st.length||extra)?`<ul>${st.map(s=>`<li>${esc(s.txt)}</li>`).join("")}${extra}</ul>`:""}
+    ${state.pos?`<div class="d" style="margin-top:8px">Standort ±${Math.round(state.pos.acc)} m${h&&h.d!=null&&h.id?` · ${fmtM(h.d)} zur Gewässerlinie`:""}</div>`:""}${altHtml}`;
   $("#hereRules").hidden=unknownWater()||(cm&&!sec.id);
   const notes=det?(sec.notes||[]):cm?(RULES[state.canton].notes||[]):[];
   const CR=cm?RULES[state.canton]:null;
@@ -4685,13 +4696,22 @@ function rememberReportSection(hit,canton,name) {
   void idForReportHit(hit).then(async id=>{
     if(!current())return;
     const ref={id,canton,name};
-    if(id){store.set("publicWaterRef",ref);renderHereWater();}
+    if(hit.t==="w")ref.watercourse={course:hit.water.hydroId,name:hit.water.name,lake:hit.water.lake,lon:hit.lon,lat:hit.lat};
+    if(id||ref.watercourse){store.set("publicWaterRef",ref);renderHereWater();}
     if(hit.t==="w"||hit.code==="JU"&&hit.t==="zone"){
       const index=await loadHereStations();
       if(!current())return;
       const names=hit.t==="w"?(hit.water.names||[name]):[hit.water];
       const station=stationOnGeometry(index.byName,names,hit.parts||[]);
-      if(station){store.set("publicWaterRef",{...ref,station:station.id});renderHereWater();}
+      if(station)ref.station=station.id;
+      else if(hit.code==="JU"&&hit.t==="zone"){
+        const water=await waterAt(hit.lat,hit.lon,100);
+        if(!current())return;
+        if(water?.hydroId&&!water.ambiguous&&water.names.some(n=>temperatureWaterName(n)===temperatureWaterName(hit.water))){
+          ref.watercourse={course:water.hydroId,name:hit.water,lon:hit.lon,lat:hit.lat};
+        }
+      }
+      if(station||(!id&&ref.watercourse)){store.set("publicWaterRef",ref);renderHereWater();}
     }
   }).catch(()=>{});
 }
@@ -4794,6 +4814,12 @@ function hydroNameIndex(stations) {
   }
   return byName;
 }
+function temperatureWaterName(label) {
+  const name=hydroName(String(label||"").split(" · ")[0].split(":")[0].replace(/,\s*[IVX]+\.\s*TS\.?$/i,""));
+  if(/^(?:aare(?: a[1-6]| interlaken|-kanal| \((?:hasliaare|hagneckkanal)\))?|hasliaare|aar|alte aare|neuer seitenarm aare)$/.test(name))return "aare";
+  return name;
+}
+const aareCourse="CH0000370000";
 function stationOnGeometry(byName,names,parts) {
   const candidates=new Map();
   for(const name of names)for(const [id,s] of byName.get(hydroName(name))||[])candidates.set(id,s);
@@ -4816,18 +4842,21 @@ function stationOnGeometry(byName,names,parts) {
 const hydroMinute=60000,hydroFresh=90*hydroMinute;
 const hydroQuery=`query HereWater($station:String!, $from:AWSDateTime!, $main:String!) {
   water { observations {
-    data_live(where:{stationNo:{_eq:$station},timestamp:{_gte:$from}}) {stationNo parameterName timestamp value}
+    data_live(where:{stationNo:{_eq:$station},parameterName:{_eq:$main},timestamp:{_gte:$from}}) {stationNo parameterName timestamp value}
     unit:data_10min_mean(where:{station:{no:{_eq:$station}},parameterName:{_eq:$main}},limit:1) {unitSymbol}
   } }
 }`;
-async function fetchHydro(id,station) {
-  const main=station.lake?"W":"Q";
-  const variables={station:id,main,from:new Date(Date.now()-5*60*hydroMinute).toISOString()};
+async function hydroObservations(query,variables) {
   const response=await fetch("https://data.bafu.admin.ch/api",{method:"POST",credentials:"omit",referrerPolicy:"no-referrer",
-    headers:{"Content-Type":"application/json"},body:JSON.stringify({query:hydroQuery,variables}),signal:AbortSignal.timeout(15000)});
+    headers:{"Content-Type":"application/json"},body:JSON.stringify({query,variables}),signal:AbortSignal.timeout(15000)});
   if(!response.ok)throw Error("BAFU "+response.status);
   const {data,errors}=await response.json(),observation=data?.water?.observations;
   if(errors?.length||!Array.isArray(observation?.data_live))throw Error("BAFU-Messwerte fehlen");
+  return observation;
+}
+async function fetchHydro(id,station) {
+  const main=station.lake?"W":"Q";
+  const observation=await hydroObservations(hydroQuery,{station:id,main,from:new Date(Date.now()-5*60*hydroMinute).toISOString()});
   return hydroReading(id,station.lake,observation.data_live,observation.unit?.[0]?.unitSymbol,Date.now());
 }
 function hydroReading(id,lake,rows,unit,now) {
@@ -4843,7 +4872,6 @@ function hydroReading(id,lake,rows,unit,now) {
   const main=values.filter(r=>r.parameterName===(lake?"W":"Q")&&(lake||r.value>=0));
   const current=main[0];
   if(!current||now-current.time>hydroFresh)return null;
-  const temp=values.find(r=>r.parameterName==="WT"&&now-r.time<=hydroFresh&&Math.abs(current.time-r.time)<=20*hydroMinute);
   const target=current.time-3*60*hydroMinute;
   const prior=main.reduce((closest,row)=>!closest||Math.abs(row.time-target)<Math.abs(closest.time-target)?row:closest,null);
   let trend="";
@@ -4852,7 +4880,43 @@ function hydroReading(id,lake,rows,unit,now) {
     const tolerance=Math.max(.01,Math.abs(prior.value*factor)*.03);
     trend=Math.abs(delta)<=tolerance?"stabil":delta>0?"steigend":"fallend";
   }
-  return {value:current.value*factor,time:current.time,temperature:temp?.value??null,tempTime:temp?.time??null,trend};
+  return {value:current.value*factor,time:current.time,trend};
+}
+
+const temperatureQuery=`query WaterTemperature($stations:[String!]!,$from:AWSDateTime!) {
+  water { observations {
+    data_live(where:{stationNo:{_in:$stations},parameterName:{_eq:"WT"},timestamp:{_gte:$from}}) {stationNo timestamp value}
+  } }
+}`;
+const temperatureFeedCache=new Map();
+function waterTemperatures(ids) {
+  const key=ids.join(","),now=Date.now(),cached=temperatureFeedCache.get(key);
+  if(cached&&now<cached.expires)return cached.request;
+  const entry={expires:Infinity};
+  entry.request=hydroObservations(temperatureQuery,{stations:ids,from:new Date(now-hydroFresh).toISOString()}).then(observations=>{
+    const latest=new Map(),at=Date.now();
+    for(const {stationNo,timestamp,value} of observations.data_live){
+      const time=Date.parse(timestamp);
+      if(!ids.includes(stationNo)||!Number.isFinite(value)||!Number.isFinite(time)||time>at||time+hydroFresh<=at)continue;
+      if(!latest.has(stationNo)||latest.get(stationNo).time<time)latest.set(stationNo,{id:stationNo,value,time});
+    }
+    entry.expires=Math.min(at+10*hydroMinute,...[...latest.values()].map(r=>r.time+hydroFresh));
+    return latest;
+  }).catch(error=>{temperatureFeedCache.delete(key);throw error;});
+  temperatureFeedCache.set(key,entry);
+  return entry.request;
+}
+function nearestWaterTemperature(target,stations,readings,now) {
+  let best=null,distance=Infinity;
+  const scale=Math.cos(target.lat*Math.PI/180);
+  for(const id of target.ids){
+    const r=readings.get(id),s=stations[id];
+    if(!s||!r||r.time>now||r.time+hydroFresh<=now)continue;
+    if(id===target.local)return r;
+    const d=((s.lon-target.lon)*scale)**2+(s.lat-target.lat)**2;
+    if(d<distance){distance=d;best=r;}
+  }
+  return best;
 }
 
 let hereStationIndex=null;
@@ -4865,8 +4929,22 @@ function loadHereStations(){
     .catch(error=>{hereStationIndex=null;throw error;});
   return hereStationIndex;
 }
+let temperatureWaters=null;
+function loadTemperatureWaters(){
+  if(!temperatureWaters)temperatureWaters=fetch("./data/temperature-waters.json",{signal:AbortSignal.timeout(10000)})
+    .then(response=>{
+      if(!response.ok)throw Error("Gewässerläufe "+response.status);
+      return response.json();
+    }).then(index=>{
+      const byStation=new Map();
+      for(const [course,ids] of Object.entries(index.courses))for(const id of ids)byStation.set(id,course);
+      return {...index,byStation};
+    }).catch(error=>{temperatureWaters=null;throw error;});
+  return temperatureWaters;
+}
 const hereSwissDay=new Intl.DateTimeFormat("sv-SE",{timeZone:"Europe/Zurich"});
 const hereSwissTime=new Intl.DateTimeFormat("de-CH",{timeZone:"Europe/Zurich",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+const hereSwissClock=new Intl.DateTimeFormat("de-CH",{timeZone:"Europe/Zurich",hour:"2-digit",minute:"2-digit"});
 const hereFlowNumber=new Intl.NumberFormat("de-CH",{maximumSignificantDigits:3});
 const hereLevelNumber=new Intl.NumberFormat("de-CH",{minimumFractionDigits:2,maximumFractionDigits:2});
 const hereTempNumber=new Intl.NumberFormat("de-CH",{maximumFractionDigits:1});
@@ -4874,16 +4952,23 @@ function hereSelection(){
   if(unknownWater())return null;
   if(isSO()){
     const sec=currentSec();
-    if(!sec.id||sec.kind==="schon"||state.secAuto&&state.here?.alts?.length&&!state.here.pinned)return null;
+    if(!sec.id)return null;
+    if(state.secAuto&&state.here?.alts?.length&&!state.here.pinned){
+      const others=state.here.alts.map(a=>a.f?.id);
+      if(others.some(id=>!id))return null;
+      return {temperatureSection:"SO:"+sec.id,nearbySections:others.map(id=>"SO:"+id)};
+    }
+    if(sec.kind==="schon")return {temperatureSection:"SO:"+sec.id};
     return {section:"SO:"+sec.id};
   }
   // Outside SO automatic canton detection alone does not identify a stretch of water.
   if(state.cantonAuto)return null;
   const name=selectedWaterName(),c=state.canton,ref=store.get("publicWaterRef",null);
   if(name){
-    if(ref?.canton===c&&ref.name===name)return {section:ref.id,station:ref.station};
+    if(ref?.canton===c&&ref.name===name)return {section:ref.id,station:ref.station,watercourse:ref.watercourse,name,canton:c};
     if(c==="LU"&&state.luRev)return {section:"LU:R"+state.luRev};
-    return null;
+    // Older saved choices can have the water name without a section identifier.
+    return temperatureWaterName(name)==="aare"?{name,canton:c}:null;
   }
   const rule=cwOf(c);
   return rule?{picker:c+":"+rule}:null;
@@ -4898,16 +4983,74 @@ function hereCatchContent(rows){
 }
 function hereHydroContent(id,station,reading){
   if(!reading||Date.now()-reading.time>hydroFresh)return null;
-  const {value,trend,time,temperature,tempTime}=reading;
+  const {value,trend,time}=reading;
   const title=station.lake?"Seepegel":"Abfluss";
   const parts=[station.lake?hereLevelNumber.format(value)+" m ü. M.":hereFlowNumber.format(value)+" m³/s"];
   if(trend)parts.push(trend);
-  if(temperature!=null)parts.push(hereTempNumber.format(temperature)+" °C");
   let body="<p><strong>"+esc(station.water+" – "+station.place)+"</strong></p><p>Messung am "+esc(hereSwissTime.format(time))+" Uhr</p>";
-  if(tempTime!=null&&tempTime!==time)body+="<p>Wassertemperatur gemessen am "+esc(hereSwissTime.format(tempTime))+" Uhr</p>";
   if(trend)body+="<p>Vergleich mit dem Abfluss vor rund drei Stunden. Bis 3 % Unterschied (mindestens 0.01 m³/s) gilt als stabil.</p>";
   body+='<a href="https://www.hydrodaten.admin.ch/de/seen-und-fluesse/stationen-und-daten/'+encodeURIComponent(id)+'" target="_blank" rel="noopener noreferrer">Messstation beim BAFU öffnen</a>';
   return {title,text:parts.join(" · "),body,expires:time+hydroFresh};
+}
+function temperatureTarget(choice,index,network){
+  const section=choice.temperatureSection||choice.section;
+  const local=choice.nearbySections?undefined:choice.station||index.sections[section]||index.rules[choice.picker];
+  const station=index.stations[local],water=choice.watercourse;
+  let reach=network.reaches[section]||network.pickers[choice.picker];
+  if(!reach&&water&&Number.isFinite(water.lon)&&Number.isFinite(water.lat)){
+    const name=temperatureWaterName(water.name);
+    const course=name==="aare"?aareCourse:water.lake?"lake:"+name:water.course;
+    if(network.courses[course])reach=[course,water.lon,water.lat];
+  }
+  if(!reach&&station)reach=[network.byStation.get(local),station.lon,station.lat];
+  if(!reach&&temperatureWaterName(choice.name)==="aare"){
+    const anchor=index.stations[({AG:"2016",BE:"2135",SO:"2063"})[choice.canton]];
+    if(anchor)reach=[aareCourse,anchor.lon,anchor.lat];
+  }
+  if(!reach)return null;
+  if(choice.nearbySections?.some(id=>network.reaches[id]?.[0]!==reach[0]))return null;
+  const [course,lon,lat]=reach,ids=network.courses[course]||(station?[local]:[]);
+  return ids.length?{ids,lon,lat,local}:null;
+}
+async function restoreFederalWatercourse(id){
+  const response=await fetch("https://api3.geo.admin.ch/rest/services/api/MapServer/ch.swisstopo.swisstlm3d-gewaessernetz/"+
+    id.slice(3)+"?sr=4326&geometryFormat=geojson&lang=de",{signal:AbortSignal.timeout(6500),referrerPolicy:"no-referrer"});
+  if(!response.ok)return null;
+  const {feature}=await response.json();
+  if(String(feature?.featureId??feature?.id)!==id.slice(3))return null;
+  const props=feature.attributes||feature.properties||{},g=feature.geometry;
+  const paths=g?.type==="LineString"?[g.coordinates]:g?.type==="MultiLineString"?g.coordinates:
+    g?.type==="Polygon"?[g.coordinates[0]]:g?.type==="MultiPolygon"?g.coordinates.map(rings=>rings[0]):[];
+  const line=paths.reduce((best,p)=>p.length>best.length?p:best,[]),point=line[Math.floor(line.length/2)];
+  if(!point||!Number.isFinite(point[0])||!Number.isFinite(point[1]))return null;
+  return {course:props.gwl_nr,name:String(props.name||props.seename||props.seename_d||"").split("|")[0].trim(),
+    lake:Number(props.objektart)===101,lon:point[0],lat:point[1]};
+}
+async function hereTemperatureContent(choice){
+  const [index,network]=await Promise.all([loadHereStations(),loadTemperatureWaters()]);
+  if(!choice.watercourse&&!choice.station&&/^CH:\d{1,12}$/.test(choice.section)){
+    const watercourse=await restoreFederalWatercourse(choice.section).catch(()=>null);
+    if(watercourse){
+      const ref=store.get("publicWaterRef",null);
+      if(ref?.id===choice.section&&!ref.watercourse)store.set("publicWaterRef",{...ref,watercourse});
+      choice={...choice,watercourse};
+    }
+  }
+  const target=temperatureTarget(choice,index,network);
+  if(!target)return null;
+  const readings=await waterTemperatures(target.ids);
+  const r=nearestWaterTemperature(target,index.stations,readings,Date.now());
+  if(!r)return null;
+  const s=index.stations[r.id],clock=hereSwissDay.format(r.time)===hereSwissDay.format(Date.now())?hereSwissClock:hereSwissTime;
+  return {value:hereTempNumber.format(r.value)+" °C",id:r.id,expires:r.time+hydroFresh,
+    source:(target.local===r.id?"Messstation":"Referenzstation")+" · "+s.water+" – "+s.place+" · "+clock.format(r.time)+" Uhr"};
+}
+function paintHereTemperature(link,content){
+  link.hidden=!content;
+  link.querySelector("strong").textContent=content?.value||"";
+  link.querySelector("small").textContent=content?.source||"";
+  if(!content){link.removeAttribute("href");return;}
+  link.href="https://www.hydrodaten.admin.ch/de/seen-und-fluesse/stationen-und-daten/"+encodeURIComponent(content.id);
 }
 function paintHereRow(row,content){
   row.hidden=!content;
@@ -4922,22 +5065,22 @@ function paintHereRow(row,content){
   }else row.open=false;
   $("#hereWaterInfo").hidden=$("#hereCatches").hidden&&$("#hereHydro").hidden;
 }
-function updateHereRow(row,key,ttl,read){
+function updateHereRow(row,key,ttl,read,paint=paintHereRow){
   if(row.hereKey!==key){
     row.hereKey=key;row.hereTicket=null;row.hereDue=0;row.hereExpires=0;
-    paintHereRow(row,null);
+    paint(row,null);
   }
-  if(row.hereExpires&&row.hereExpires<=Date.now()&&!row.hidden)paintHereRow(row,null);
+  if(row.hereExpires&&row.hereExpires<=Date.now()&&!row.hidden)paint(row,null);
   if(!key||row.hereTicket||Date.now()<row.hereDue)return;
   const ticket={};row.hereTicket=ticket;
   Promise.resolve().then(read).then(content=>{
     if(row.hereTicket!==ticket)return;
-    paintHereRow(row,content);
+    paint(row,content);
     row.hereExpires=content?.expires||0;
     row.hereDue=Math.min(Date.now()+ttl,content?.expires??Infinity);
   }).catch(()=>{
     if(row.hereTicket!==ticket)return;
-    paintHereRow(row,null);
+    paint(row,null);
     row.hereDue=Date.now()+30000;
   }).finally(()=>{if(row.hereTicket===ticket)row.hereTicket=null;});
 }
@@ -4946,6 +5089,7 @@ function renderHereWater(){
   const visible=!document.hidden&&navigator.onLine&&route()==="hier"&&$("#v-hier").classList.contains("on");
   const choice=visible&&hereSelection();
   const section=choice?.section,picker=choice?.picker,station=choice?.station;
+  updateHereRow($("#hereTemperature"),choice?JSON.stringify(choice):"",10*hydroMinute,()=>hereTemperatureContent(choice),paintHereTemperature);
   const reportKey=(section||picker||"");
   updateHereRow(catches,reportKey&&reportKey+"/"+hereSwissDay.format(new Date()),60000,async()=>{
     const id=section||(await loadHereStations()).pickerSections[picker];

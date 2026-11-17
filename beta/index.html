@@ -3118,6 +3118,9 @@ const styleCache={};
 async function baseStyle(kind){
   if(!styleCache[kind])styleCache[kind]=fetch(STYLE_URL[kind]).then(r=>{if(!r.ok)throw Error("Stil "+r.status);return r.json()}).catch(e=>{delete styleCache[kind];throw e});
   const s=structuredClone(await styleCache[kind]);
+  // Keep the aerial view calm: no hiking paths, points of interest or park outlines.
+  const hide=new Set(["road_paths","road_via_ferrata","tunnel_pedestrian","park","park_label","aerialway","poi_rank1","poi_rank2","spot_elevation"]);
+  if(kind==="luft")s.layers=s.layers.filter(l=>!hide.has(l.id));
   // Satellite overview below the Swiss imagery for low zoom levels.
   s.sources["fb-alpenraum"]={type:"image",url:new URL("./data/alpenraum.webp",document.baseURI).href,
     coordinates:[[-2.8125,54.16243397],[19.6875,54.16243397],[19.6875,36.59788913],[-2.8125,36.59788913]]};

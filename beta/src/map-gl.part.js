@@ -735,7 +735,16 @@ function revealHit(){
   const bottom=$("#map").clientHeight-sheetHeights().peek-38;
   if(y>bottom)map.panBy([0,Math.ceil(y-bottom)],{duration:300});
 }
+// Short "Gewässer" fragments (bridges, culverts) lie on top of the Revier line and carry no right.
+// If a Revier or Patent zone of the same canton runs right there, it is the answer.
+function dropFragments(hits,metresPerPixel){
+  const unclear=h=>(h.t==="zone"||h.t==="x")&&FishSections.symbol(h.kind)==="water";
+  const reach=Math.max(25,metresPerPixel*12);
+  return hits.filter(h=>!unclear(h)||!hits.some(o=>o!==h&&o.code===h.code&&!unclear(o)&&!restrictedHit(o)&&
+    ["district","permit"].includes(FishSections.symbol(o.kind))&&o.d<=h.d+reach));
+}
 function chooseHits(hits,metresPerPixel=1,preferred=null){
+  hits=dropFragments(hits,metresPerPixel);
   const group=h=>Math.floor(h.d/Math.max(1,Math.min(5,metresPerPixel*1.5)));
   const zones=new Map();
   for(const hit of hits){

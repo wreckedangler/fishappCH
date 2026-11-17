@@ -320,16 +320,16 @@ button:disabled{opacity:.55;cursor:wait}
 :root{
  --bg:#f2f2f7;--sf:#fff;--sf2:#f2f2f7;--fill:rgba(118,118,128,.12);--fill2:rgba(118,118,128,.2);
  --line:rgba(60,60,67,.16);--sep:rgba(60,60,67,.29);--tx:#000;--mut:rgba(60,60,67,.62);
- --acc:#0b7a82;--acc-tx:#fff;--acc-soft:rgba(11,122,130,.12);
- --ok:#1f8a4c;--ok-bg:rgba(52,199,89,.15);--warn:#a35d00;--warn-bg:rgba(255,149,0,.16);--bad:#d70015;--bad-bg:rgba(255,59,48,.13);
+ --acc:#14666d;--acc-tx:#fff;--acc-soft:rgba(20,102,109,.1);
+ --ok:#2f7d55;--ok-bg:rgba(52,199,89,.15);--warn:#9a6413;--warn-bg:rgba(255,149,0,.16);--bad:#b8322a;--bad-bg:rgba(255,59,48,.13);
  --h-ok:#248a3d;--h-warn:#c06a00;--h-bad:#d70015;
  --bar:rgba(249,249,249,.82);--r:14px;--rc:12px;--tb:56px;--nav:56px;
  --ease:cubic-bezier(.25,.1,.25,1)}
 @media (prefers-color-scheme:dark){:root{
  --bg:#000;--sf:#1c1c1e;--sf2:#2c2c2e;--fill:rgba(118,118,128,.24);--fill2:rgba(118,118,128,.32);
  --line:rgba(84,84,88,.45);--sep:rgba(84,84,88,.65);--tx:#fff;--mut:rgba(235,235,245,.6);
- --acc:#3fc1c9;--acc-tx:#00262a;--acc-soft:rgba(63,193,201,.16);
- --ok:#30d158;--ok-bg:rgba(48,209,88,.16);--warn:#ffb340;--warn-bg:rgba(255,159,10,.18);--bad:#ff6961;--bad-bg:rgba(255,69,58,.18);
+ --acc:#6cb8bd;--acc-tx:#0b2224;--acc-soft:rgba(108,184,189,.14);
+ --ok:#6cc596;--ok-bg:rgba(48,209,88,.16);--warn:#e2b25e;--warn-bg:rgba(255,159,10,.18);--bad:#ef8a80;--bad-bg:rgba(255,69,58,.18);
  --h-ok:#1f7a38;--h-warn:#a35a00;--h-bad:#b3261e;--bar:rgba(22,22,24,.78)}}
 html,body{font:17px/1.42 -apple-system,BlinkMacSystemFont,"SF Pro Text","Inter",system-ui,"Segoe UI",Roboto,sans-serif;letter-spacing:-.011em}
 ::selection{background:var(--acc-soft)}
@@ -435,6 +435,62 @@ dialog[open]{animation:iosIn .22s var(--ease)}
 #v-hier .hero .t{font-size:28px;font-weight:700;letter-spacing:-.03em;line-height:1.12}
 #v-hier .hero .d{font-size:15px;margin-top:6px}
 #v-hier .hero ul{font-size:15px}
+
+/* ================= Feinschliff: Raster, Ruhe, Tiefe ================= */
+:root{--gap:20px;--pad:16px;--head:28px;
+ --shadow:0 .5px 0 rgba(0,0,0,.04),0 1px 3px rgba(0,0,0,.05),0 8px 24px -12px rgba(0,0,0,.08)}
+@media (prefers-color-scheme:dark){:root{--shadow:0 0 0 .5px rgba(255,255,255,.06)}}
+/* Ein Abstandsraster für alle Ansichten */
+main{padding:0 var(--pad)}
+section.view.on{padding-top:var(--pad)}
+.card,.ios-group,.hero,.seg,#fangCtx>*{margin:var(--gap) 0 0}
+section.view>:first-child,section.view>.seg:first-child,#v-hier>#hereHero>.hero{margin-top:0}
+#v-hier .hero{margin-top:0}
+.card{padding:var(--pad);box-shadow:var(--shadow)}
+.ios-group{box-shadow:var(--shadow)}
+.ios-head{margin:var(--head) var(--pad) 8px}
+.ios-head+.card,.ios-head+.ios-group{margin-top:0}
+.ios-foot{margin:8px var(--pad) 0}
+#hereRules>.card:first-child{margin-top:var(--gap)}
+.card h2{margin:0 0 12px}
+.card>:last-child{margin-bottom:0}
+label{margin:20px 0 8px}
+.card>label:first-child,.card>.chips:first-child+label{margin-top:12px}
+.row{gap:12px}
+/* Ruhiger Status: getönte Fläche statt Vollfarbe */
+.hero,.hero.none{background:var(--sf);color:var(--tx);box-shadow:var(--shadow)}
+.hero.ok{background:color-mix(in srgb,var(--ok) 11%,var(--sf))}
+.hero.warn{background:color-mix(in srgb,var(--warn) 12%,var(--sf))}
+.hero.bad{background:color-mix(in srgb,var(--bad) 11%,var(--sf))}
+.hero.ok .t{color:var(--ok)}.hero.warn .t{color:var(--warn)}.hero.bad .t{color:var(--bad)}
+.hero .d,.hero.none .d{color:var(--mut)}
+.hero ul{color:var(--tx)}
+.hero select,.hero .chips button{background-color:var(--fill);color:var(--tx)}
+.hero label{color:var(--mut)}
+#topbar.bad{background:var(--bar);border-color:var(--sep);color:var(--tx)}
+#topbar.bad #tbStatus .sub{color:var(--mut)}#topbar.bad #tbStatus .dot{background:var(--bad)}
+#topbar.bad #tbCanton{background:var(--fill);border:0;color:var(--tx)}
+#topbar.bad #tbHome{color:var(--acc)}
+/* Prüfboxen: getönt, ohne Seitenbalken */
+.verdict{border-left:0;border-radius:12px;padding:14px 16px}
+.verdict.v-ok{background:color-mix(in srgb,var(--ok) 10%,transparent)}
+.verdict.v-warn{background:color-mix(in srgb,var(--warn) 11%,transparent)}
+.verdict.v-bad{background:color-mix(in srgb,var(--bad) 10%,transparent)}
+.verdict .big{font-size:17px;font-weight:600;letter-spacing:-.02em}
+.verdict .ln{font-size:15px}
+/* Gedämpfte Statusmarken */
+.p-ok{background:color-mix(in srgb,var(--ok) 13%,transparent);color:var(--ok)}
+.p-warn{background:color-mix(in srgb,var(--warn) 14%,transparent);color:var(--warn)}
+.p-bad{background:color-mix(in srgb,var(--bad) 12%,transparent);color:var(--bad)}
+.pill{font-weight:500}
+/* Typografie in drei Stufen: 17 Text, 15 Neben-, 13 Fussnote */
+.card p,.list .it,td{font-size:15px}
+.card h2{font-size:17px;font-weight:600;letter-spacing:-.02em}
+table{font-size:15px}
+/* Primärknopf mit leichter Tiefe */
+button.pri{box-shadow:0 1px 2px rgba(0,0,0,.12),inset 0 .5px 0 rgba(255,255,255,.18)}
+button:active{opacity:1;filter:brightness(.92);transform:scale(.985)}
+.ios-row:active,.seg button:active,nav button:active,.chips button:active{transform:none;filter:none}
 #map{position:absolute;inset:0;background:#d9e1de}
 #map canvas{outline:none}
 .maplibregl-ctrl-bottom-right,.maplibregl-ctrl-bottom-left{display:none}
@@ -3155,7 +3211,16 @@ function revealHit(){
   const bottom=$("#map").clientHeight-sheetHeights().peek-38;
   if(y>bottom)map.panBy([0,Math.ceil(y-bottom)],{duration:300});
 }
+// Short "Gewässer" fragments (bridges, culverts) lie on top of the Revier line and carry no right.
+// If a Revier or Patent zone of the same canton runs right there, it is the answer.
+function dropFragments(hits,metresPerPixel){
+  const unclear=h=>(h.t==="zone"||h.t==="x")&&FishSections.symbol(h.kind)==="water";
+  const reach=Math.max(25,metresPerPixel*12);
+  return hits.filter(h=>!unclear(h)||!hits.some(o=>o!==h&&o.code===h.code&&!unclear(o)&&!restrictedHit(o)&&
+    ["district","permit"].includes(FishSections.symbol(o.kind))&&o.d<=h.d+reach));
+}
 function chooseHits(hits,metresPerPixel=1,preferred=null){
+  hits=dropFragments(hits,metresPerPixel);
   const group=h=>Math.floor(h.d/Math.max(1,Math.min(5,metresPerPixel*1.5)));
   const zones=new Map();
   for(const hit of hits){

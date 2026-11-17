@@ -409,6 +409,10 @@ dialog[open]{animation:iosIn .22s var(--ease)}
 @keyframes iosIn{from{opacity:0;transform:scale(.96)}}
 #toast{border-radius:99px;padding:11px 18px;font-size:15px;font-weight:500;background:rgba(30,30,32,.88);color:#fff;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);box-shadow:0 8px 24px rgba(0,0,0,.2)}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+.photo-field{border:0;padding:0;margin:18px 0 0;min-width:0}
+.photo-field legend{padding:0;margin:0 0 6px;font-size:13px;color:var(--mut)}
+/* Steht die Auswahl schon im Status, braucht es keinen zweiten Auswahlknopf. */
+#hereHero:has(select)+#hereAct [data-act=manual]{display:none}
 #map{position:absolute;inset:0;background:#d9e1de}
 #map canvas{outline:none}
 .maplibregl-ctrl-bottom-right,.maplibregl-ctrl-bottom-left{display:none}
@@ -564,7 +568,7 @@ dialog[open]{animation:iosIn .22s var(--ease)}
   <div id="geoMsg" class="mut small" style="margin:6px 4px 0"></div>
 
   <details class="card" id="manCard">
-    <summary style="margin:0;color:var(--tx);font-size:17px;font-weight:650">Gewässer wählen oder ändern</summary>
+    <summary style="margin:0;color:var(--tx);font-size:17px;font-weight:600">Kanton und Gewässer</summary>
     <label for="selCanton">Kanton</label>
     <select id="selCanton"></select>
     <div id="secPick">

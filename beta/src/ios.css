@@ -1,0 +1,91 @@
+/* ---- iOS-Gestaltung: Systemfarben, gruppierte Flächen, Haarlinien ---- */
+:root{
+ --bg:#f2f2f7;--sf:#fff;--sf2:#f2f2f7;--fill:rgba(118,118,128,.12);--fill2:rgba(118,118,128,.2);
+ --line:rgba(60,60,67,.16);--sep:rgba(60,60,67,.29);--tx:#000;--mut:rgba(60,60,67,.62);
+ --acc:#0b7a82;--acc-tx:#fff;--acc-soft:rgba(11,122,130,.12);
+ --ok:#1f8a4c;--ok-bg:rgba(52,199,89,.15);--warn:#a35d00;--warn-bg:rgba(255,149,0,.16);--bad:#d70015;--bad-bg:rgba(255,59,48,.13);
+ --h-ok:#248a3d;--h-warn:#c06a00;--h-bad:#d70015;
+ --bar:rgba(249,249,249,.82);--r:14px;--rc:12px;--tb:56px;--nav:56px;
+ --ease:cubic-bezier(.25,.1,.25,1)}
+@media (prefers-color-scheme:dark){:root{
+ --bg:#000;--sf:#1c1c1e;--sf2:#2c2c2e;--fill:rgba(118,118,128,.24);--fill2:rgba(118,118,128,.32);
+ --line:rgba(84,84,88,.45);--sep:rgba(84,84,88,.65);--tx:#fff;--mut:rgba(235,235,245,.6);
+ --acc:#3fc1c9;--acc-tx:#00262a;--acc-soft:rgba(63,193,201,.16);
+ --ok:#30d158;--ok-bg:rgba(48,209,88,.16);--warn:#ffb340;--warn-bg:rgba(255,159,10,.18);--bad:#ff6961;--bad-bg:rgba(255,69,58,.18);
+ --h-ok:#1f7a38;--h-warn:#a35a00;--h-bad:#b3261e;--bar:rgba(22,22,24,.78)}}
+html,body{font:17px/1.42 -apple-system,BlinkMacSystemFont,"SF Pro Text","Inter",system-ui,"Segoe UI",Roboto,sans-serif;letter-spacing:-.011em}
+::selection{background:var(--acc-soft)}
+/* Leisten oben und unten: durchscheinend wie iOS */
+#topbar{background:var(--bar);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-bottom:.5px solid var(--sep)}
+#tbCanton{min-height:32px;min-width:42px;padding:4px 10px;border:0;border-radius:9px;background:var(--fill);font-size:14px;font-weight:600;letter-spacing:0}
+#tbStatus .txt{font-size:16px;font-weight:600;letter-spacing:-.02em}
+#tbStatus .sub{font-size:12.5px}
+#tbStatus .dot{flex-basis:8px;height:8px}
+nav{background:var(--bar);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-top:.5px solid var(--sep)}
+nav button{font-size:10.5px;font-weight:500;letter-spacing:.01em;gap:2px;color:#8e8e93;transition:color .15s}
+nav button.on{color:var(--acc)}
+nav button.on::before{display:none}
+nav svg{width:25px;height:25px;stroke-width:1.6}
+nav button:active{opacity:1;background:none}
+/* Flächen: gruppierte Listen ohne Rahmen */
+main{padding:0 16px}
+.card{border:0;border-radius:var(--r);padding:16px;margin:16px 0}
+.card h2{font-size:20px;font-weight:700;letter-spacing:-.02em;margin:0 0 10px}
+.card h1,.book-overview h1{font-size:28px;font-weight:700;letter-spacing:-.025em;line-height:1.15}
+.mut{color:var(--mut)}.small{font-size:13px;line-height:1.38}
+label{font-size:13px;font-weight:400;color:var(--mut);margin:18px 0 6px;letter-spacing:-.005em}
+/* Knöpfe */
+button{border:0;border-radius:var(--rc);min-height:48px;padding:12px 16px;font-weight:600;font-size:17px;letter-spacing:-.02em;background:var(--acc-soft);color:var(--acc);transition:background-color .15s,opacity .15s,transform .15s}
+button.pri{background:var(--acc);color:var(--acc-tx)}
+button.bad{background:var(--h-bad);color:#fff}
+button:active{opacity:.6}
+button:disabled{opacity:.4}
+.row{gap:10px}
+/* Eingabefelder: gefüllt, ohne Rahmen */
+select,input,textarea{border:0;border-radius:10px;background:var(--fill);min-height:44px;padding:11px 12px;font-size:17px;color:var(--tx)}
+input::placeholder,textarea::placeholder{color:var(--mut);opacity:.8}
+select{-webkit-appearance:none;appearance:none;padding-right:38px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%238e8e93' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4.5l3 3 3-3'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;background-size:12px}
+select:focus,input:focus,textarea:focus{outline:0;box-shadow:0 0 0 3px var(--acc-soft);border-color:transparent}
+.hero select{background-color:rgba(255,255,255,.95);color:#000}
+/* Schalter im iOS-Stil für Kontrollkästchen */
+.chk{font-size:16px;gap:12px;justify-content:space-between;flex-direction:row-reverse}
+.chk input,.ios-switch{-webkit-appearance:none;appearance:none;flex:none;width:51px;height:31px;min-height:0;padding:0;margin:0;border:0;border-radius:16px;background:var(--fill2);position:relative;cursor:pointer;transition:background .2s var(--ease)}
+.chk input::after,.ios-switch::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.15),0 1px 1px rgba(0,0,0,.16);transition:transform .2s var(--ease)}
+.chk input:checked,.ios-switch:checked{background:#34c759}
+.chk input:checked::after,.ios-switch:checked::after{transform:translateX(20px)}
+.chk input:focus-visible,.ios-switch:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+/* Segmente */
+.seg{gap:0;padding:2px;margin:16px 0 0;border:0;border-radius:9px;background:var(--fill)}
+.seg button{min-height:32px;padding:4px 8px;border-radius:7px;font-size:14px;font-weight:500;color:var(--tx);background:none;transition:background .2s,box-shadow .2s}
+.seg button.on{background:var(--sf);color:var(--tx);font-weight:600;box-shadow:0 3px 8px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.04)}
+@media (prefers-color-scheme:dark){.seg button.on{background:#636366}}
+/* Auswahlchips */
+.chips{gap:8px}
+.chips button{min-height:34px;padding:6px 14px;font-size:15px;font-weight:500;border:0;border-radius:99px;background:var(--fill);color:var(--tx)}
+.chips button.on{background:var(--acc);color:var(--acc-tx)}
+.hero .chips button{background:rgba(255,255,255,.95);color:#000}
+/* Aufklappbare Bereiche mit Chevron statt Dreieck */
+details>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--tx);font-weight:600}
+details>summary::-webkit-details-marker{display:none}
+details>summary::after{content:"";flex:none;width:8px;height:8px;margin-right:4px;border-right:2px solid #c4c4c7;border-bottom:2px solid #c4c4c7;transform:rotate(-45deg);transition:transform .2s var(--ease)}
+details[open]>summary::after{transform:rotate(45deg)}
+.entry-menu>summary::after{display:none}
+/* Tabellen und Listen mit Haarlinien */
+th,td{border-bottom:.5px solid var(--sep)}
+th{font-size:12px;font-weight:500;color:var(--mut)}
+.list .it{border-bottom:.5px solid var(--sep)}
+.pill{border-radius:99px;padding:2px 9px;font-weight:600;font-size:12px}
+.p-mut{box-shadow:none;background:var(--fill)}
+/* Statusfläche */
+.hero{border-radius:var(--r);padding:18px 16px}
+.hero .t{font-size:22px;letter-spacing:-.025em}
+.hero.none{border:0}
+.verdict{border-radius:12px;border-left:0;background:var(--fill)}
+/* Dialoge wie iOS-Blätter */
+dialog{border:0;border-radius:16px;padding:22px 20px 18px;box-shadow:0 20px 60px rgba(0,0,0,.28)}
+dialog::backdrop{background:rgba(0,0,0,.32);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+dialog h2{font-size:20px;font-weight:700;letter-spacing:-.02em}
+dialog[open]{animation:iosIn .22s var(--ease)}
+@keyframes iosIn{from{opacity:0;transform:scale(.96)}}
+#toast{border-radius:99px;padding:11px 18px;font-size:15px;font-weight:500;background:rgba(30,30,32,.88);color:#fff;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);box-shadow:0 8px 24px rgba(0,0,0,.2)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}

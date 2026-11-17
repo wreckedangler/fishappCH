@@ -15,6 +15,9 @@ part = open(os.path.join(root, "beta", "src", "map-gl.part.js"), encoding="utf-8
 part += "\n" + open(os.path.join(root, "beta", "src", "map-spots.part.js"), encoding="utf-8").read()
 part += "\n" + open(os.path.join(root, "beta", "src", "map-open.part.js"), encoding="utf-8").read()
 css = open(os.path.join(root, "beta", "src", "map-gl.css"), encoding="utf-8").read()
+# iOS-Gestaltung direkt hinter der Markierung, damit die Kartenregeln danach Vorrang haben.
+ios = open(os.path.join(root, "beta", "src", "ios.css"), encoding="utf-8").read()
+css = css.replace("/* ---- MapLibre-Karte ---- */", "/* ---- MapLibre-Karte ---- */\n" + ios.rstrip(), 1)
 promote = "--promote" in sys.argv
 
 

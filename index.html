@@ -316,6 +316,97 @@ button:disabled{opacity:.55;cursor:wait}
 #mapResults small{display:block;color:var(--mut);font-weight:400}
 #map .leaflet-control-scale{pointer-events:none;margin-left:12px}.leaflet-control-scale-line{font-variant-numeric:tabular-nums}
 /* ---- MapLibre-Karte ---- */
+/* ---- iOS-Gestaltung: Systemfarben, gruppierte Flächen, Haarlinien ---- */
+:root{
+ --bg:#f2f2f7;--sf:#fff;--sf2:#f2f2f7;--fill:rgba(118,118,128,.12);--fill2:rgba(118,118,128,.2);
+ --line:rgba(60,60,67,.16);--sep:rgba(60,60,67,.29);--tx:#000;--mut:rgba(60,60,67,.62);
+ --acc:#0b7a82;--acc-tx:#fff;--acc-soft:rgba(11,122,130,.12);
+ --ok:#1f8a4c;--ok-bg:rgba(52,199,89,.15);--warn:#a35d00;--warn-bg:rgba(255,149,0,.16);--bad:#d70015;--bad-bg:rgba(255,59,48,.13);
+ --h-ok:#248a3d;--h-warn:#c06a00;--h-bad:#d70015;
+ --bar:rgba(249,249,249,.82);--r:14px;--rc:12px;--tb:56px;--nav:56px;
+ --ease:cubic-bezier(.25,.1,.25,1)}
+@media (prefers-color-scheme:dark){:root{
+ --bg:#000;--sf:#1c1c1e;--sf2:#2c2c2e;--fill:rgba(118,118,128,.24);--fill2:rgba(118,118,128,.32);
+ --line:rgba(84,84,88,.45);--sep:rgba(84,84,88,.65);--tx:#fff;--mut:rgba(235,235,245,.6);
+ --acc:#3fc1c9;--acc-tx:#00262a;--acc-soft:rgba(63,193,201,.16);
+ --ok:#30d158;--ok-bg:rgba(48,209,88,.16);--warn:#ffb340;--warn-bg:rgba(255,159,10,.18);--bad:#ff6961;--bad-bg:rgba(255,69,58,.18);
+ --h-ok:#1f7a38;--h-warn:#a35a00;--h-bad:#b3261e;--bar:rgba(22,22,24,.78)}}
+html,body{font:17px/1.42 -apple-system,BlinkMacSystemFont,"SF Pro Text","Inter",system-ui,"Segoe UI",Roboto,sans-serif;letter-spacing:-.011em}
+::selection{background:var(--acc-soft)}
+/* Leisten oben und unten: durchscheinend wie iOS */
+#topbar{background:var(--bar);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-bottom:.5px solid var(--sep)}
+#tbCanton{min-height:32px;min-width:42px;padding:4px 10px;border:0;border-radius:9px;background:var(--fill);font-size:14px;font-weight:600;letter-spacing:0}
+#tbStatus .txt{font-size:16px;font-weight:600;letter-spacing:-.02em}
+#tbStatus .sub{font-size:12.5px}
+#tbStatus .dot{flex-basis:8px;height:8px}
+nav{background:var(--bar);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-top:.5px solid var(--sep)}
+nav button{font-size:10.5px;font-weight:500;letter-spacing:.01em;gap:2px;color:#8e8e93;transition:color .15s}
+nav button.on{color:var(--acc)}
+nav button.on::before{display:none}
+nav svg{width:25px;height:25px;stroke-width:1.6}
+nav button:active{opacity:1;background:none}
+/* Flächen: gruppierte Listen ohne Rahmen */
+main{padding:0 16px}
+.card{border:0;border-radius:var(--r);padding:16px;margin:16px 0}
+.card h2{font-size:20px;font-weight:700;letter-spacing:-.02em;margin:0 0 10px}
+.card h1,.book-overview h1{font-size:28px;font-weight:700;letter-spacing:-.025em;line-height:1.15}
+.mut{color:var(--mut)}.small{font-size:13px;line-height:1.38}
+label{font-size:13px;font-weight:400;color:var(--mut);margin:18px 0 6px;letter-spacing:-.005em}
+/* Knöpfe */
+button{border:0;border-radius:var(--rc);min-height:48px;padding:12px 16px;font-weight:600;font-size:17px;letter-spacing:-.02em;background:var(--acc-soft);color:var(--acc);transition:background-color .15s,opacity .15s,transform .15s}
+button.pri{background:var(--acc);color:var(--acc-tx)}
+button.bad{background:var(--h-bad);color:#fff}
+button:active{opacity:.6}
+button:disabled{opacity:.4}
+.row{gap:10px}
+/* Eingabefelder: gefüllt, ohne Rahmen */
+select,input,textarea{border:0;border-radius:10px;background:var(--fill);min-height:44px;padding:11px 12px;font-size:17px;color:var(--tx)}
+input::placeholder,textarea::placeholder{color:var(--mut);opacity:.8}
+select{-webkit-appearance:none;appearance:none;padding-right:38px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%238e8e93' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4.5l3 3 3-3'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;background-size:12px}
+select:focus,input:focus,textarea:focus{outline:0;box-shadow:0 0 0 3px var(--acc-soft);border-color:transparent}
+.hero select{background-color:rgba(255,255,255,.95);color:#000}
+/* Schalter im iOS-Stil für Kontrollkästchen */
+.chk{font-size:16px;gap:12px;justify-content:space-between;flex-direction:row-reverse}
+.chk input,.ios-switch{-webkit-appearance:none;appearance:none;flex:none;width:51px;height:31px;min-height:0;padding:0;margin:0;border:0;border-radius:16px;background:var(--fill2);position:relative;cursor:pointer;transition:background .2s var(--ease)}
+.chk input::after,.ios-switch::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.15),0 1px 1px rgba(0,0,0,.16);transition:transform .2s var(--ease)}
+.chk input:checked,.ios-switch:checked{background:#34c759}
+.chk input:checked::after,.ios-switch:checked::after{transform:translateX(20px)}
+.chk input:focus-visible,.ios-switch:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+/* Segmente */
+.seg{gap:0;padding:2px;margin:16px 0 0;border:0;border-radius:9px;background:var(--fill)}
+.seg button{min-height:32px;padding:4px 8px;border-radius:7px;font-size:14px;font-weight:500;color:var(--tx);background:none;transition:background .2s,box-shadow .2s}
+.seg button.on{background:var(--sf);color:var(--tx);font-weight:600;box-shadow:0 3px 8px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.04)}
+@media (prefers-color-scheme:dark){.seg button.on{background:#636366}}
+/* Auswahlchips */
+.chips{gap:8px}
+.chips button{min-height:34px;padding:6px 14px;font-size:15px;font-weight:500;border:0;border-radius:99px;background:var(--fill);color:var(--tx)}
+.chips button.on{background:var(--acc);color:var(--acc-tx)}
+.hero .chips button{background:rgba(255,255,255,.95);color:#000}
+/* Aufklappbare Bereiche mit Chevron statt Dreieck */
+details>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--tx);font-weight:600}
+details>summary::-webkit-details-marker{display:none}
+details>summary::after{content:"";flex:none;width:8px;height:8px;margin-right:4px;border-right:2px solid #c4c4c7;border-bottom:2px solid #c4c4c7;transform:rotate(-45deg);transition:transform .2s var(--ease)}
+details[open]>summary::after{transform:rotate(45deg)}
+.entry-menu>summary::after{display:none}
+/* Tabellen und Listen mit Haarlinien */
+th,td{border-bottom:.5px solid var(--sep)}
+th{font-size:12px;font-weight:500;color:var(--mut)}
+.list .it{border-bottom:.5px solid var(--sep)}
+.pill{border-radius:99px;padding:2px 9px;font-weight:600;font-size:12px}
+.p-mut{box-shadow:none;background:var(--fill)}
+/* Statusfläche */
+.hero{border-radius:var(--r);padding:18px 16px}
+.hero .t{font-size:22px;letter-spacing:-.025em}
+.hero.none{border:0}
+.verdict{border-radius:12px;border-left:0;background:var(--fill)}
+/* Dialoge wie iOS-Blätter */
+dialog{border:0;border-radius:16px;padding:22px 20px 18px;box-shadow:0 20px 60px rgba(0,0,0,.28)}
+dialog::backdrop{background:rgba(0,0,0,.32);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+dialog h2{font-size:20px;font-weight:700;letter-spacing:-.02em}
+dialog[open]{animation:iosIn .22s var(--ease)}
+@keyframes iosIn{from{opacity:0;transform:scale(.96)}}
+#toast{border-radius:99px;padding:11px 18px;font-size:15px;font-weight:500;background:rgba(30,30,32,.88);color:#fff;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);box-shadow:0 8px 24px rgba(0,0,0,.2)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 #map{position:absolute;inset:0;background:#d9e1de}
 #map canvas{outline:none}
 .maplibregl-ctrl-bottom-right,.maplibregl-ctrl-bottom-left{display:none}
@@ -413,25 +504,32 @@ button:disabled{opacity:.55;cursor:wait}
 #mapSheet a.btn.pri{background:var(--acc);color:var(--acc-tx)}
 #mapSheet .sh-a .del{color:var(--bad)}
 /* ---- Ebenen-Panel ---- */
-.mui-layers{position:absolute;right:66px;top:68px;z-index:6;width:min(320px,calc(100% - 86px));max-height:calc(100% - 160px);overflow:auto;padding:12px 14px 14px;border-radius:18px;background:var(--sf);color:var(--tx);box-shadow:0 8px 28px rgba(10,20,24,.3)}
+.mui-layers{position:absolute;right:66px;top:68px;z-index:6;width:min(330px,calc(100% - 86px));max-height:calc(100% - 160px);overflow:auto;overscroll-behavior:contain;padding:6px 0 12px;border-radius:16px;background:var(--bar,var(--sf));-webkit-backdrop-filter:saturate(180%) blur(24px);backdrop-filter:saturate(180%) blur(24px);color:var(--tx);box-shadow:0 10px 40px rgba(0,0,0,.22),0 0 0 .5px var(--line);animation:mlIn .2s cubic-bezier(.25,.1,.25,1);transform-origin:top right}
+@keyframes mlIn{from{opacity:0;transform:scale(.94)}}
 .mui-layers[hidden]{display:none}
-.ml-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
-.ml-x{width:36px;height:36px;min-height:0;padding:8px;border:0;border-radius:50%;background:var(--sf2);color:var(--mut)}.ml-x svg{width:18px;height:18px;display:block}
-.ml-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0 0;color:var(--tx);font-size:15px}
-.ml-row small{display:block;font-size:12.5px;color:var(--mut);font-weight:400}
-.ml-row input{width:44px;height:26px;min-height:0;appearance:none;border-radius:13px;background:var(--line);position:relative;cursor:pointer;transition:background .15s;flex:none;border:0;padding:0}
-.ml-row input::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .15s}
-.ml-row input:checked{background:var(--acc)}.ml-row input:checked::after{transform:translateX(18px)}
-.ml-sub{margin:8px 0 2px}.ml-sub[hidden]{display:none}.ml-sub select{min-height:42px;margin-bottom:6px}
-.ml-seg{display:flex;gap:3px;padding:3px;border-radius:12px;background:var(--sf2)}
-.ml-seg button{flex:1;min-height:34px;padding:4px;border:0;border-radius:9px;background:none;color:var(--mut);font-size:12.5px;font-weight:600}
-.ml-seg button.on{background:var(--sf);color:var(--tx);box-shadow:0 1px 3px rgba(0,0,0,.15)}
-.ml-spots{display:flex;flex-direction:column;margin-top:6px}
-.ml-spots button{display:flex;align-items:center;gap:10px;min-height:48px;padding:6px 2px;border:0;border-radius:0;border-bottom:1px solid var(--line);background:none;color:var(--tx);text-align:left;font-weight:600;font-size:14px}
-.ml-spots small{display:block;font-weight:400;font-size:12px;color:var(--mut)}
-.ml-ico{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--c);color:#fff}
+.ml-head{display:flex;align-items:center;justify-content:space-between;padding:6px 10px 2px 16px}
+.ml-head strong{font-size:17px;font-weight:600;letter-spacing:-.02em}
+.ml-x{width:30px;height:30px;min-height:0;padding:7px;border:0;border-radius:50%;background:var(--fill);color:var(--mut)}.ml-x svg{width:16px;height:16px;display:block}
+.ml-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;padding:11px 16px;color:var(--tx);font-size:16px;border-top:.5px solid var(--sep)}
+.ml-head+.ml-row{border-top:0}
+.ml-row b{font-weight:400}
+.ml-row small{display:block;font-size:12.5px;color:var(--mut);font-weight:400;margin-top:1px}
+.ml-sub{padding:0 0 10px}.ml-sub[hidden]{display:none}
+.ml-arts{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 16px 8px;scroll-padding:16px;-webkit-overflow-scrolling:touch}
+.ml-arts::-webkit-scrollbar{display:none}
+.ml-arts button{flex:none;min-height:32px;padding:5px 13px;border:0;border-radius:99px;background:var(--fill);color:var(--tx);font-size:14px;font-weight:500;letter-spacing:-.01em}
+.ml-arts button.on{background:var(--acc);color:var(--acc-tx)}
+.ml-seg{display:flex;gap:0;margin:0 16px;padding:2px;border-radius:9px;background:var(--fill)}
+.ml-seg button{flex:1;min-height:30px;padding:3px 4px;border:0;border-radius:7px;background:none;color:var(--tx);font-size:13px;font-weight:500}
+.ml-seg button.on{background:var(--sf);font-weight:600;box-shadow:0 3px 8px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.04)}
+@media (prefers-color-scheme:dark){.ml-seg button.on{background:#636366}}
+.ml-spots{display:flex;flex-direction:column;margin:0 0 0 16px}
+.ml-spots button{display:flex;align-items:center;gap:12px;min-height:50px;padding:6px 16px 6px 0;border:0;border-radius:0;border-top:.5px solid var(--sep);background:none;color:var(--tx);text-align:left;font-weight:400;font-size:16px}
+.ml-spots button:active{background:var(--fill);opacity:1}
+.ml-spots small{display:block;font-size:12.5px;color:var(--mut)}
+.ml-ico{flex:none;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--c);color:#fff}
 .ml-ico svg{width:15px;height:15px}
-.ml-tip{margin:12px 0 0;font-size:12.5px;line-height:1.45;color:var(--mut)}
+.ml-tip{margin:10px 16px 0;font-size:12.5px;line-height:1.4;color:var(--mut)}
 #placeBar{position:absolute;left:12px;right:12px;top:68px;z-index:7;display:flex;align-items:center;gap:10px;padding:10px 10px 10px 14px;border-radius:16px;background:#12222a;color:#fff;font-size:14px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.35)}
 #placeBar[hidden]{display:none}#placeBar span{flex:1}
 #placeBar button{min-height:40px;padding:6px 12px;border:0;border-radius:10px;background:rgba(255,255,255,.16);color:#fff}
@@ -471,7 +569,7 @@ button:disabled{opacity:.55;cursor:wait}
       <label for="selSec">Patentabschnitt</label>
       <select id="selSec"></select>
     </div>
-    <label class="chk"><input type="checkbox" id="cbCantonAuto"> Kanton und Gewässer automatisch per Standort bestimmen</label>
+    <label class="chk"><input type="checkbox" id="cbCantonAuto"> Automatisch per Standort</label>
   </details>
   <div class="card" id="waterFish" hidden></div>
   <aside class="card" id="hereCoverage" hidden></aside>
@@ -493,24 +591,23 @@ button:disabled{opacity:.55;cursor:wait}
   <div id="fangCtx"></div>
 
   <div class="card">
-    <h2>Fang erfassen</h2>
     <div class="chips" id="spChips"></div>
     <label for="fArt">Fischart</label>
     <select id="fArt"></select><div id="speciesInfo"></div>
-    <label for="fLen">Länge in cm (Kopfspitze bis Schwanzende)</label>
+    <label for="fLen">Länge in cm</label>
     <div class="lenrow"><button type="button" data-d="-1" aria-label="Länge um 1 cm verringern">−</button><input id="fLen" type="number" inputmode="decimal" step="0.5" min="0" placeholder="cm"><button type="button" data-d="1" aria-label="Länge um 1 cm erhöhen">+</button></div>
     <div id="liveCheck"></div>
-    <details><summary>Anzahl & Notiz</summary>
-      <label for="fAnz">Anzahl (für Massenfänge wie Rotauge, Egli)</label>
+    <details><summary>Anzahl und Notiz</summary>
+      <label for="fAnz">Anzahl</label>
       <input id="fAnz" type="number" inputmode="numeric" min="1" value="1">
-      <label for="fNote">Notiz (Köder, Wetter …)</label>
-      <input id="fNote" type="text" placeholder="z.B. Spinner, trüb">
+      <label for="fNote">Notiz</label>
+      <input id="fNote" type="text" placeholder="Köder, Wetter …">
     </details>
     <fieldset class="photo-field">
-      <legend>Fangfoto (optional)</legend>
+      <legend>Foto</legend>
       <div class="row">
-        <button id="takePhoto" type="button">Foto aufnehmen</button>
-        <button id="choosePhoto" type="button">Aus Galerie wählen</button>
+        <button id="takePhoto" type="button">Aufnehmen</button>
+        <button id="choosePhoto" type="button">Galerie</button>
       </div>
       <input id="fPhoto" type="file" accept="image/*" capture="environment" hidden>
     <div id="photoDraft" class="hide">
@@ -528,13 +625,13 @@ button:disabled{opacity:.55;cursor:wait}
 <section class="view" id="v-stat">
   <div class="seg"><button type="button" data-v="fang">Erfassen</button><button type="button" data-v="stat">Fangbuch</button></div>
   <div class="card book-overview">
-    <h1>Mein Fangbuch</h1>
+    <h1>Fangbuch</h1>
     <div id="bookPeriod" class="chips" role="group" aria-label="Zeitraum">
       <button type="button" data-period="today">Heute</button>
       <button type="button" data-period="year">Dieses Jahr</button>
       <button type="button" data-period="all" class="on" aria-pressed="true">Gesamt</button>
     </div>
-    <div class="book-total"><strong id="fishTotal">0</strong><span>Fische erfasst</span></div>
+    <div class="book-total"><strong id="fishTotal">0</strong><span>Fische</span></div>
     <p class="mut small" id="fishOutcome"></p>
 
   </div>
@@ -545,7 +642,7 @@ button:disabled{opacity:.55;cursor:wait}
   <details class="card" id="soCounts"><summary>Fangzähler Solothurn</summary><div id="bookLimits" class="small"></div></details>
   <div class="card">
     <h2>Daten sichern</h2>
-    <p class="mut small">Deine Fänge liegen nur auf diesem Handy. Der CSV-Export sichert die Fangdaten ohne Fotos.</p>
+    <p class="mut small">Fänge und Spots liegen nur auf diesem Handy. CSV enthält keine Fotos.</p>
     <div class="row"><button id="backup">Vollsicherung speichern</button><button id="restore">Sicherung einlesen</button></div>
     <input type="file" id="backupFile" accept=".json,application/json" hidden>
     <div class="row" style="margin-top:10px"><button id="btnExport">Exportieren (CSV)</button><button id="btnImport">CSV importieren</button></div>
@@ -3847,20 +3944,22 @@ function renderLayerPanel(){
   const arts=[...new Set(state.log.filter(f=>Number.isFinite(f.lat)).map(f=>f.art))].sort((a,b)=>a.localeCompare(b,"de"));
   const withPos=state.log.filter(f=>Number.isFinite(f.lat)).length,noPos=state.log.length-withPos;
   p.innerHTML=`<div class="ml-head"><strong>Auf der Karte</strong><button type="button" class="ml-x" data-ml="close" aria-label="Schliessen">${XICON}</button></div>
-    <label class="ml-row"><span><b>Offene Gewässer hervorheben</b><small>Grün: Fangsaison heute offen. Patent oder Pachtkarte trotzdem nötig.</small></span><input type="checkbox" data-ml="openFocus"${mapFilter.openFocus!==false?" checked":""}></label>
-    <label class="ml-row"><span><b>Meine Fänge</b><small>${withPos} mit Ort${noPos?` · ${noPos} ohne Ort`:""}</small></span><input type="checkbox" data-ml="catches"${mapFilter.catches?" checked":""}></label>
+    <label class="ml-row"><span><b>Offene Gewässer hervorheben</b><small>Grün: Saison heute offen</small></span><input type="checkbox" class="ios-switch" data-ml="openFocus"${mapFilter.openFocus!==false?" checked":""}></label>
+    <label class="ml-row"><span><b>Meine Fänge</b><small>${withPos} mit Ort${noPos?` · ${noPos} ohne Ort`:""}</small></span><input type="checkbox" class="ios-switch" data-ml="catches"${mapFilter.catches?" checked":""}></label>
     <div class="ml-sub"${mapFilter.catches?"":" hidden"}>
-      <select data-ml="art" aria-label="Fischart"><option value="">Alle Arten</option>${arts.map(a=>`<option${a===mapFilter.art?" selected":""}>${esc(a)}</option>`).join("")}</select>
+      ${arts.length>1?`<div class="ml-arts" role="group" aria-label="Fischart">${["",...arts].map(a=>`<button type="button" data-art="${esc(a)}" class="${a===mapFilter.art?"on":""}" aria-pressed="${a===mapFilter.art}">${a?esc(a):"Alle"}</button>`).join("")}</div>`:""}
       <div class="ml-seg">${[["alle","Alle"],["saison","Diese Saison"],["30","30 Tage"]].map(([k,l])=>`<button type="button" data-period="${k}" class="${mapFilter.period===k?"on":""}">${l}</button>`).join("")}</div>
     </div>
-    <label class="ml-row"><span><b>Meine Spots</b><small>${spots.length} gespeichert</small></span><input type="checkbox" data-ml="spots"${mapFilter.spots?" checked":""}></label>
+    <label class="ml-row"><span><b>Meine Spots</b><small>${spots.length} gespeichert</small></span><input type="checkbox" class="ios-switch" data-ml="spots"${mapFilter.spots?" checked":""}></label>
     ${spots.length?`<div class="ml-spots">${spots.slice().sort((a,b)=>b.ts-a.ts).map(s=>`<button type="button" data-spot="${esc(s.id)}"><span class="ml-ico" style="--c:${(SPOT_TYPES[s.type]||SPOT_TYPES.notiz).color}">${spotIcon(s.type,15)}</span><span>${esc(s.name)}<small>${esc(distanceText(s.lat,s.lon)||(SPOT_TYPES[s.type]||SPOT_TYPES.notiz).label)}</small></span></button>`).join("")}</div>`:""}
-    <p class="ml-tip">Lange auf die Karte drücken, um einen Spot zu speichern oder einen Fang an dieser Stelle zu erfassen. Alles bleibt nur auf diesem Handy.</p>`;
+    <p class="ml-tip">Lange drücken für neuen Spot oder Fang.</p>`;
 }
 function bindLayerPanel(){
   const p=$("#mapLayers");
   $("#mapLayersBtn").onclick=e=>{e.stopPropagation();if(p.hidden){renderLayerPanel();p.hidden=false}else p.hidden=true};
   p.addEventListener("click",e=>{
+    const art=e.target.closest("[data-art]");
+    if(art){mapFilter={...mapFilter,art:art.dataset.art};store.set("mapFilter",mapFilter);drawCatches();const sc=p.querySelector(".ml-arts").scrollLeft;renderLayerPanel();p.querySelector(".ml-arts").scrollLeft=sc;return}
     const per=e.target.closest("[data-period]");
     if(per){mapFilter={...mapFilter,period:per.dataset.period};store.set("mapFilter",mapFilter);drawCatches();renderLayerPanel();return}
     const sp=e.target.closest("[data-spot]");

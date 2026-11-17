@@ -243,20 +243,22 @@ function renderLayerPanel(){
   const arts=[...new Set(state.log.filter(f=>Number.isFinite(f.lat)).map(f=>f.art))].sort((a,b)=>a.localeCompare(b,"de"));
   const withPos=state.log.filter(f=>Number.isFinite(f.lat)).length,noPos=state.log.length-withPos;
   p.innerHTML=`<div class="ml-head"><strong>Auf der Karte</strong><button type="button" class="ml-x" data-ml="close" aria-label="Schliessen">${XICON}</button></div>
-    <label class="ml-row"><span><b>Offene Gewässer hervorheben</b><small>Grün: Fangsaison heute offen. Patent oder Pachtkarte trotzdem nötig.</small></span><input type="checkbox" data-ml="openFocus"${mapFilter.openFocus!==false?" checked":""}></label>
-    <label class="ml-row"><span><b>Meine Fänge</b><small>${withPos} mit Ort${noPos?` · ${noPos} ohne Ort`:""}</small></span><input type="checkbox" data-ml="catches"${mapFilter.catches?" checked":""}></label>
+    <label class="ml-row"><span><b>Offene Gewässer hervorheben</b><small>Grün: Saison heute offen</small></span><input type="checkbox" class="ios-switch" data-ml="openFocus"${mapFilter.openFocus!==false?" checked":""}></label>
+    <label class="ml-row"><span><b>Meine Fänge</b><small>${withPos} mit Ort${noPos?` · ${noPos} ohne Ort`:""}</small></span><input type="checkbox" class="ios-switch" data-ml="catches"${mapFilter.catches?" checked":""}></label>
     <div class="ml-sub"${mapFilter.catches?"":" hidden"}>
-      <select data-ml="art" aria-label="Fischart"><option value="">Alle Arten</option>${arts.map(a=>`<option${a===mapFilter.art?" selected":""}>${esc(a)}</option>`).join("")}</select>
+      ${arts.length>1?`<div class="ml-arts" role="group" aria-label="Fischart">${["",...arts].map(a=>`<button type="button" data-art="${esc(a)}" class="${a===mapFilter.art?"on":""}" aria-pressed="${a===mapFilter.art}">${a?esc(a):"Alle"}</button>`).join("")}</div>`:""}
       <div class="ml-seg">${[["alle","Alle"],["saison","Diese Saison"],["30","30 Tage"]].map(([k,l])=>`<button type="button" data-period="${k}" class="${mapFilter.period===k?"on":""}">${l}</button>`).join("")}</div>
     </div>
-    <label class="ml-row"><span><b>Meine Spots</b><small>${spots.length} gespeichert</small></span><input type="checkbox" data-ml="spots"${mapFilter.spots?" checked":""}></label>
+    <label class="ml-row"><span><b>Meine Spots</b><small>${spots.length} gespeichert</small></span><input type="checkbox" class="ios-switch" data-ml="spots"${mapFilter.spots?" checked":""}></label>
     ${spots.length?`<div class="ml-spots">${spots.slice().sort((a,b)=>b.ts-a.ts).map(s=>`<button type="button" data-spot="${esc(s.id)}"><span class="ml-ico" style="--c:${(SPOT_TYPES[s.type]||SPOT_TYPES.notiz).color}">${spotIcon(s.type,15)}</span><span>${esc(s.name)}<small>${esc(distanceText(s.lat,s.lon)||(SPOT_TYPES[s.type]||SPOT_TYPES.notiz).label)}</small></span></button>`).join("")}</div>`:""}
-    <p class="ml-tip">Lange auf die Karte drücken, um einen Spot zu speichern oder einen Fang an dieser Stelle zu erfassen. Alles bleibt nur auf diesem Handy.</p>`;
+    <p class="ml-tip">Lange drücken für neuen Spot oder Fang.</p>`;
 }
 function bindLayerPanel(){
   const p=$("#mapLayers");
   $("#mapLayersBtn").onclick=e=>{e.stopPropagation();if(p.hidden){renderLayerPanel();p.hidden=false}else p.hidden=true};
   p.addEventListener("click",e=>{
+    const art=e.target.closest("[data-art]");
+    if(art){mapFilter={...mapFilter,art:art.dataset.art};store.set("mapFilter",mapFilter);drawCatches();const sc=p.querySelector(".ml-arts").scrollLeft;renderLayerPanel();p.querySelector(".ml-arts").scrollLeft=sc;return}
     const per=e.target.closest("[data-period]");
     if(per){mapFilter={...mapFilter,period:per.dataset.period};store.set("mapFilter",mapFilter);drawCatches();renderLayerPanel();return}
     const sp=e.target.closest("[data-spot]");

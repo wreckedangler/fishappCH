@@ -173,3 +173,13 @@ table{font-size:15px}
 button.pri{box-shadow:0 1px 2px rgba(0,0,0,.12),inset 0 .5px 0 rgba(255,255,255,.18)}
 button:active{opacity:1;filter:brightness(.92);transform:scale(.985)}
 .ios-row:active,.seg button:active,nav button:active,.chips button:active{transform:none;filter:none}
+/* Fangformular: Foto als normale Gruppe, Speichern mit Abstand */
+.photo-field{display:block;border:0;padding:0;margin:20px 0 0;background:none;border-radius:0}
+.photo-field legend{float:left;width:100%;padding:0;margin:0 0 8px;font-size:13px;font-weight:400;color:var(--mut)}
+.photo-field>.row{clear:both}
+#photoDraft{margin-top:12px}
+.save-bar{margin-top:20px}
+@media(max-width:720px){
+ .save-bar{margin:0;padding:10px var(--pad) 10px;background:var(--bar);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-top:.5px solid var(--sep)}
+ #v-fang{padding-bottom:84px}
+}

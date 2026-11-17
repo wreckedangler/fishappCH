@@ -57,6 +57,8 @@ self.addEventListener("fetch", e => {
   if (url.origin === location.origin) {
     if (url.pathname.endsWith("/data/updates.json")) return e.respondWith(networkFirst(req));
     if (/\/data\/sections\/[\w-]+-[0-9a-f]{10}\.json$/.test(url.pathname)) return e.respondWith(cacheFirst(req, SECTIONS, 160));
+    // Testversion der Karte: immer frisch vom Netz, nicht die gespeicherte App-Hülle.
+    if (url.pathname.includes("/beta/")) return e.respondWith(fetch(req).catch(()=>caches.match(req)));
     const shell = req.mode === "navigate" ? new URL("./index.html",self.registration.scope).href : req;
     return e.respondWith(caches.open(APP).then(async cache=>(await cache.match(shell)) || fetch(req)));
   }

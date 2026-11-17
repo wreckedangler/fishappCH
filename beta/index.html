@@ -503,6 +503,57 @@ button:active{opacity:1;filter:brightness(.92);transform:scale(.985)}
  .save-bar{margin:0;padding:10px var(--pad) 10px;background:var(--bar);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-top:.5px solid var(--sep)}
  #v-fang{padding-bottom:84px}
 }
+
+/* ================= Neueste iOS-Generation: Glas, schwebende Leisten, weiche Tiefe ================= */
+:root{
+ --nav:58px;--navspace:calc(var(--nav) + 18px + env(safe-area-inset-bottom));
+ --r:22px;--rc:14px;
+ --glass:rgba(255,255,255,.7);--glass-edge:inset 0 0 0 .5px rgba(255,255,255,.6),inset 0 1px 0 rgba(255,255,255,.75);
+ --float:0 10px 30px -6px rgba(0,0,0,.16),0 2px 8px rgba(0,0,0,.06);
+ --shadow:0 .5px 1px rgba(0,0,0,.04),0 2px 6px rgba(0,0,0,.04),0 12px 28px -14px rgba(0,0,0,.12);
+ --lift:linear-gradient(180deg,rgba(255,255,255,0),rgba(255,255,255,0))}
+@media (prefers-color-scheme:dark){:root{
+ --glass:rgba(44,44,48,.62);--glass-edge:inset 0 0 0 .5px rgba(255,255,255,.12),inset 0 1px 0 rgba(255,255,255,.1);
+ --float:0 12px 34px -6px rgba(0,0,0,.6),0 2px 8px rgba(0,0,0,.4);
+ --shadow:inset 0 .5px 0 rgba(255,255,255,.07),0 0 0 .5px rgba(255,255,255,.04),0 10px 24px -12px rgba(0,0,0,.7);
+ --lift:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,0) 60%)}}
+body{padding-bottom:calc(var(--navspace) + 16px)}
+/* Flächen mit weicher Tiefe und feiner Lichtkante im Dunkeln */
+.card,.ios-group,.hero{border-radius:var(--r);box-shadow:var(--shadow);background-image:var(--lift)}
+.hero.ok,.hero.warn,.hero.bad{background-image:var(--lift)}
+select,input,textarea{border-radius:var(--rc)}
+/* Kapselknöpfe */
+button{border-radius:999px}
+.ios-row{border-radius:0}
+.seg{border-radius:999px;padding:3px}
+.seg button{border-radius:999px}
+.seg button.on{box-shadow:0 2px 8px rgba(0,0,0,.14),0 0 0 .5px rgba(0,0,0,.04),inset 0 .5px 0 rgba(255,255,255,.6)}
+button.pri{box-shadow:0 6px 16px -6px color-mix(in srgb,var(--acc) 70%,transparent),0 1px 2px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.22)}
+/* Kopfleiste aus Glas */
+#topbar{background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(24px);backdrop-filter:saturate(180%) blur(24px);border-bottom:0;box-shadow:0 .5px 0 var(--sep)}
+#topbar.bad{background:var(--glass)}
+/* Schwebende Tab-Leiste aus Glas */
+nav{left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));bottom:calc(10px + env(safe-area-inset-bottom));max-width:520px;margin:0 auto;height:var(--nav);padding:4px;gap:2px;border:0;border-radius:999px;
+ background:var(--glass);-webkit-backdrop-filter:saturate(190%) blur(28px);backdrop-filter:saturate(190%) blur(28px);box-shadow:var(--float),var(--glass-edge)}
+nav button{min-height:0;height:100%;border-radius:999px;justify-content:center;font-size:10px;font-weight:600;transition:background-color .2s,color .2s}
+nav button.on{background:var(--fill)}
+nav svg{width:24px;height:24px}
+/* Dialoge als Glasblätter */
+dialog{border-radius:30px;background:color-mix(in srgb,var(--sf) 88%,transparent);-webkit-backdrop-filter:saturate(180%) blur(30px);backdrop-filter:saturate(180%) blur(30px);box-shadow:var(--float),var(--glass-edge)}
+#toast{bottom:calc(var(--navspace) + 12px);box-shadow:var(--float)}
+/* Fangformular: Speichern schwebt über der Tab-Leiste */
+@media(max-width:720px){
+ .save-bar{bottom:var(--navspace);left:0;right:0;padding:8px var(--pad);background:none;-webkit-backdrop-filter:none;backdrop-filter:none;border:0}
+ .save-bar button{box-shadow:var(--float)}
+}
+/* Karte läuft unter der schwebenden Leiste weiter */
+#v-karte.on{bottom:var(--navspace)}
+#v-karte.on #map{bottom:calc(-1 * var(--navspace))}
+#v-karte.on:has(#shorePanel:not([hidden])) #map{bottom:0}
+#mapUI .mui-search,#mapUI .mseg,#mapUI .mui-chip,#mapUI .mui-zoom,#mapUI .mui-round{background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(22px);backdrop-filter:saturate(180%) blur(22px);box-shadow:var(--float),var(--glass-edge)}
+#mapUI .mui-search.open{background:var(--sf)}
+#mapUI .mui-zoom{border-radius:24px}
+#v-karte #mapSheet{border-radius:28px 28px 0 0;background:color-mix(in srgb,var(--sf) 94%,transparent);-webkit-backdrop-filter:saturate(180%) blur(30px);backdrop-filter:saturate(180%) blur(30px);box-shadow:0 -10px 34px -8px rgba(0,0,0,.22),var(--glass-edge)}
 #map{position:absolute;inset:0;background:#d9e1de}
 #map canvas{outline:none}
 .maplibregl-ctrl-bottom-right,.maplibregl-ctrl-bottom-left{display:none}

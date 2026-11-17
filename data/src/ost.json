@@ -211,6 +211,9 @@
   },
   "prot": ["Strömer", "Nase", "Lachs", "Bachneunauge", "Bitterling"],
   "lim": [
+    {"n": 1, "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle"], "w": ["linth"], "t": "Forelle pro Tag (Linthkanal, seit 1.1.2025)"},
+    {"n": 1, "sp": ["Äsche"], "w": ["linth"], "t": "Äsche pro Tag (Linthkanal)"},
+    {"n": 6, "sp": ["Felchen"], "w": ["linth"], "t": "Felchen pro Tag (Linthkanal)"},
     {"n": 6, "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle", "Saibling", "Äsche", "Felchen"], "t": "Edelfische (Äsche, Felchen, Forellen, Saiblinge) pro Tag"},
     {"n": 4, "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle"], "w": ["zuerichsee", "walensee"], "t": "Forellen pro Tag"},
     {"n": 10, "sp": ["Felchen"], "w": ["zuerichsee"], "t": "Felchen pro Tag (Zürichsee)"},
@@ -330,6 +333,9 @@
   },
   "prot": [],
   "lim": [
+    {"n": 1, "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle"], "w": ["linth"], "t": "Forelle pro Tag (Linthkanal, seit 1.1.2025)"},
+    {"n": 1, "sp": ["Äsche"], "w": ["linth"], "t": "Äsche pro Tag (Linthkanal)"},
+    {"n": 6, "sp": ["Felchen"], "w": ["linth"], "t": "Felchen pro Tag (Linthkanal)"},
     {"n": 6, "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle", "Saibling", "Äsche"], "w": ["kloen", "talalp", "berg", "uebrige"], "t": "Edelfische pro Tag (davon max. 1 Äsche)"},
     {"n": 1, "sp": ["Äsche"], "w": ["kloen", "talalp", "berg", "uebrige"], "t": "Äsche pro Tag"},
     {"n": 15, "sp": ["Felchen"], "w": ["kloen", "talalp", "berg", "uebrige"], "t": "Felchen pro Tag"},

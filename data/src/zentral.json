@@ -815,7 +815,8 @@
    [
     "Ausführungsbestimmungen Zürichsee und Obersee (ZH 923.721)",
     "https://www.notes.zh.ch/appl/zhlex_r.nsf/WebView/68E4A5E47CF28E5BC1258DA70021F932/$File/923.721_13.7.07_132.pdf"
-   ]
+   ],
+   ["Ausführungsbestimmungen Linthkanal, Änderung vom 13.6.2024, in Kraft 1.1.2025", "https://www.sz.ch/public/upload/assets/82717/27_52.pdf?fp=1"]
   ],
   "w": [
    [
@@ -1507,6 +1508,9 @@
    "Nase"
   ],
   "lim": [
+   {"n": 1, "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle"], "w": ["linth"], "t": "Forelle pro Tag (Linthkanal, seit 1.1.2025)"},
+   {"n": 1, "sp": ["Äsche"], "w": ["linth"], "t": "Äsche pro Tag (Linthkanal)"},
+   {"n": 6, "sp": ["Felchen"], "w": ["linth"], "t": "Felchen pro Tag (Linthkanal)"},
    {
     "n": 4,
     "sp": [

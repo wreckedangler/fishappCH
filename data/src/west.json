@@ -147,6 +147,7 @@
   "src": [
     ["Directives pêche rivières, petits lacs et étangs 2025–2027 (VD)", "https://vd.ch/fileadmin/user_upload/themes/environnement/biodiversite/fichiers_pdf/P%C3%AAche/L%C3%A9gislation/Directives_rivieres_2025-2027.pdf"],
     ["Canton de Vaud – Pêche: Änderungen ab 1.1.2026 (Léman, Flüsse)", "https://www.vd.ch/peche"],
+    ["Règlement d'application Accord CH–F pêche Léman (RO 2025 738), in Kraft 1.1.2026", "https://www.ge.ch/document/1316/annexe/file/541890"],
     ["Règlement d'exécution concordat lac de Neuchâtel 2025–2027", "https://bdlf.fr.ch/frontend/change_document_file_dictionaries/10755/download_pdf_file?locale=fr"],
     ["Règlement d'exécution concordat lac de Morat 2025–2027", "https://bdlf.fr.ch/frontend/versions/8111/download_pdf_file?locale=fr"]
   ],
@@ -167,7 +168,7 @@
     "Forelle": [
       {"w": ["versoix"], "slot": [[30, null]]},
       {"w": ["orbe"], "slot": [[24, 32]]},
-      {"w": ["leman"], "keep": true, "schon": [[10, 5], [1, 17]], "t": "Léman: jede Forelle muss behalten werden; Schonzeit jährlich festgelegt (ca. Oktober bis Mitte Januar)"},
+      {"w": ["leman"], "keep": true, "schon": [[10, 5], [1, 16]], "t": "Léman: jede Forelle muss behalten werden. Salmoniden-Schonzeit Léman: 5.10.2026–16.1.2027, 4.10.2027–15.1.2028"},
       {"w": ["neuch"], "slot": [[40, null]], "schon": [[10, 26], [1, 17]], "t": "2026: Fang 18.1.–25.10.; 2027: Fang 17.1.–24.10."},
       {"w": ["morat"], "slot": [[45, null]], "schon": [[10, 26], [1, 17]], "t": "2026: Fang 18.1.–25.10.; 2027: Fang 17.1.–24.10."},
       {"w": ["joux"], "slot": [[45, null]], "schon": [[10, 15], [1, 15]]},
@@ -175,11 +176,11 @@
     ],
     "Äsche": [{"prot": true, "t": "Äschenfang im Kanton Waadt nicht erlaubt"}],
     "Saibling": [
-      {"w": ["leman"], "keep": true, "schon": [[10, 5], [1, 17]], "t": "Léman: jeder Seesaibling muss behalten werden"},
+      {"w": ["leman"], "keep": true, "schon": [[10, 5], [1, 16]], "t": "Léman: jeder Seesaibling muss behalten werden"},
       {"w": ["neuch", "morat"], "prot": true, "t": "Seesaibling nicht erlaubt"}
     ],
     "Felchen": [
-      {"w": ["leman"], "slot": [[37, null]], "schon": [[10, 5], [1, 17]]},
+      {"w": ["leman"], "slot": [[37, null]], "schon": [[10, 5], [1, 16]]},
       {"w": ["morat"], "slot": [[30, null]], "schon": [[10, 15], [12, 31]]}
     ],
     "Hecht": [
@@ -206,6 +207,12 @@
     {"n": 80, "sp": ["Egli (Flussbarsch)"], "w": ["fluss", "bret"], "t": "Egli pro Tag"},
     {"n": 4, "sp": ["Bachforelle", "Seeforelle"], "w": ["leman"], "t": "Forellen pro Tag (Léman)"},
     {"n": 100, "per": "Jahr", "sp": ["Bachforelle", "Seeforelle"], "w": ["leman"], "t": "Forellen pro Jahr (Léman)"},
+    {"n": 8, "sp": ["Saibling"], "w": ["leman"], "t": "Seesaiblinge pro Tag (Léman)"},
+    {"n": 200, "per": "Jahr", "sp": ["Saibling"], "w": ["leman"], "t": "Seesaiblinge pro Jahr (Léman)"},
+    {"n": 10, "sp": ["Felchen"], "w": ["leman"], "t": "Felchen pro Tag (Léman)"},
+    {"n": 200, "per": "Jahr", "sp": ["Felchen"], "w": ["leman"], "t": "Felchen pro Jahr (Léman)"},
+    {"n": 5, "sp": ["Hecht"], "w": ["leman"], "t": "Hechte pro Tag (Léman)"},
+    {"n": 100, "sp": ["Egli (Flussbarsch)"], "w": ["leman"], "t": "Egli pro Tag (Léman)"},
     {"n": 3, "sp": ["Bachforelle", "Seeforelle"], "w": ["neuch"], "t": "Forellen pro Tag (Neuenburgersee)"},
     {"n": 8, "sp": ["Felchen"], "w": ["neuch"], "t": "Felchen pro Tag (Neuenburgersee)"}
   ],
@@ -217,10 +224,11 @@
   ]
 },
 "GE": {
-  "updated": "2025-11-01",
+  "updated": "2026-01-01",
   "src": [
     ["Genève: Périodes de pêche, taille minimale et limitations de capture (Stand Nov. 2025)", "https://www.ge.ch/document/1365/telecharger"],
-    ["Canton de Vaud – Léman: Änderungen ab 1.1.2026", "https://www.vd.ch/peche"]
+    ["Canton de Vaud – Léman: Änderungen ab 1.1.2026", "https://www.vd.ch/peche"],
+    ["Règlement d'application Accord CH–F pêche Léman (RO 2025 738), in Kraft 1.1.2026", "https://www.ge.ch/document/1316/annexe/file/541890"]
   ],
   "w": [
     ["leman", "Genfersee (Léman)"],
@@ -230,11 +238,11 @@
   ],
   "sp": {
     "Forelle": [
-      {"w": ["leman"], "keep": true, "schon": [[10, 5], [1, 17]], "t": "Léman: jede Forelle muss behalten werden; Schonzeit jährlich festgelegt"},
+      {"w": ["leman"], "keep": true, "schon": [[10, 5], [1, 16]], "t": "Léman: jede Forelle muss behalten werden. Salmoniden-Schonzeit Léman: 5.10.2026–16.1.2027, 4.10.2027–15.1.2028"},
       {"chk": false, "t": "Mindestmass je nach Fluss/Sektor 25–35 cm – amtliche Tabelle des Kantons prüfen"}
     ],
-    "Saibling": [{"w": ["leman"], "keep": true, "schon": [[10, 5], [1, 17]], "t": "Léman: jeder Seesaibling muss behalten werden"}],
-    "Felchen": [{"w": ["leman"], "slot": [[37, null]], "schon": [[10, 5], [1, 17]]}],
+    "Saibling": [{"w": ["leman"], "keep": true, "schon": [[10, 5], [1, 16]], "t": "Léman: jeder Seesaibling muss behalten werden"}],
+    "Felchen": [{"w": ["leman"], "slot": [[37, null]], "schon": [[10, 5], [1, 16]]}],
     "Hecht": [
       {"w": ["leman"], "slot": [[50, null]], "schon": [[3, 20], [4, 20]]},
       {"slot": [[45, null]]}
@@ -245,8 +253,13 @@
   "prot": ["Aal", "Nase", "Bitterling"],
   "lim": [
     {"n": 4, "sp": ["Bachforelle", "Seeforelle"], "w": ["leman"], "t": "Forellen pro Tag (Léman)"},
-    {"n": 8, "sp": ["Saibling"], "w": ["leman"], "t": "Seesaiblinge pro Tag (Léman, 200 pro Jahr)"},
-    {"n": 10, "sp": ["Felchen"], "w": ["leman"], "t": "Felchen pro Tag (Léman, 200 pro Jahr)"},
+    {"n": 100, "per": "Jahr", "sp": ["Bachforelle", "Seeforelle"], "w": ["leman"], "t": "Forellen pro Jahr (Léman)"},
+    {"n": 8, "sp": ["Saibling"], "w": ["leman"], "t": "Seesaiblinge pro Tag (Léman)"},
+    {"n": 200, "per": "Jahr", "sp": ["Saibling"], "w": ["leman"], "t": "Seesaiblinge pro Jahr (Léman)"},
+    {"n": 10, "sp": ["Felchen"], "w": ["leman"], "t": "Felchen pro Tag (Léman)"},
+    {"n": 200, "per": "Jahr", "sp": ["Felchen"], "w": ["leman"], "t": "Felchen pro Jahr (Léman)"},
+    {"n": 5, "sp": ["Hecht"], "w": ["leman"], "t": "Hechte pro Tag (Léman)"},
+    {"n": 100, "sp": ["Egli (Flussbarsch)"], "w": ["leman"], "t": "Egli pro Tag (Léman)"},
     {"n": 1, "sp": ["Äsche"], "w": ["fluss", "rhone"], "t": "Äsche pro Tag"},
     {"n": 3, "sp": ["Hecht"], "w": ["fluss", "rhone"], "t": "Hechte pro Tag (Flüsse)"},
     {"n": 100, "sp": ["Egli (Flussbarsch)"], "w": ["fluss", "rhone"], "t": "Egli pro Tag (Flüsse)"}
@@ -258,10 +271,11 @@
   ]
 },
 "VS": {
-  "updated": "2025-02-01",
+  "updated": "2026-01-01",
   "src": [
     ["Arrêté quinquennal sur l'exercice de la pêche en Valais 2024–2028 (RS 923.170), état 1.2.2025", "https://lex.vs.ch/api/fr/versions/3453/pdf_file"],
-    ["Ordonnance sur l'exercice de la pêche (OcPê, RS 923.100)", "https://www.lexfind.ch/tolv/96856/fr"]
+    ["Ordonnance sur l'exercice de la pêche (OcPê, RS 923.100)", "https://www.lexfind.ch/tolv/96856/fr"],
+    ["Règlement d'application Accord CH–F pêche Léman (RO 2025 738), in Kraft 1.1.2026", "https://www.ge.ch/document/1316/annexe/file/541890"]
   ],
   "w": [
     ["rhone", "Rhône und Flüsse der Ebene"],
@@ -274,7 +288,7 @@
   ],
   "sp": {
     "Bachforelle": [
-      {"w": ["leman"], "keep": true, "schon": [[10, 5], [1, 17]], "t": "Léman: jede Forelle muss behalten werden"},
+      {"w": ["leman"], "keep": true, "schon": [[10, 5], [1, 16]], "t": "Léman: jede Forelle muss behalten werden. Salmoniden-Schonzeit Léman: 5.10.2026–16.1.2027, 4.10.2027–15.1.2028"},
       {"w": ["bergsee"], "slot": [[24, null]], "schon": [[11, 30], [5, 31]]},
       {"w": ["kunst"], "slot": [[30, null]], "schon": [[11, 1], [2, 29]]},
       {"w": ["fliege"], "slot": [[40, null]], "schon": [[11, 1], [2, 29]]},
@@ -282,8 +296,8 @@
       {"slot": [[24, null]], "schon": [[11, 1], [2, 29]]}
     ],
     "Regenbogenforelle": [{"w": ["fully"], "slot": [[28, null]]}, {"slot": [[24, null]]}],
-    "Saibling": [{"w": ["leman"], "keep": true, "t": "Léman: jeder Seesaibling muss behalten werden"}, {"slot": [[26, null]]}],
-    "Felchen": [{"w": ["leman"], "slot": [[37, null]]}, {"slot": [[30, null]]}],
+    "Saibling": [{"w": ["leman"], "keep": true, "schon": [[10, 5], [1, 16]], "t": "Léman: jeder Seesaibling muss behalten werden"}, {"slot": [[26, null]]}],
+    "Felchen": [{"w": ["leman"], "slot": [[37, null]], "schon": [[10, 5], [1, 16]]}, {"slot": [[30, null]]}],
     "Äsche": [{"prot": true, "t": "Äsche im Wallis ganzjährig geschützt"}],
     "Hecht": [{"w": ["leman"], "slot": [[50, null]], "schon": [[3, 20], [4, 20]]}, {"slot": [[60, null]], "schon": [[4, 1], [5, 31]]}],
     "Egli (Flussbarsch)": [{"w": ["leman"], "keep": true, "schon": [[5, 1], [5, 25]]}, {"slot": [[15, null]], "schon": [[5, 1], [5, 31]]}],
@@ -294,9 +308,17 @@
   "lim": [
     {"n": 5, "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle", "Saibling", "Felchen"], "w": ["rhone", "berg", "bergsee", "kunst", "fully"], "t": "Salmoniden pro Tag (Jahrespatent 8; max. 300 pro Jahr)"},
     {"n": 2, "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle", "Saibling"], "w": ["fliege"], "t": "Salmoniden pro Tag (Fliegenstrecken)"},
-    {"n": 300, "per": "Jahr", "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle", "Saibling", "Felchen"], "t": "Salmoniden pro Jahr"},
-    {"n": 4, "sp": ["Hecht"], "t": "Hechte pro Tag"},
-    {"n": 50, "sp": ["Egli (Flussbarsch)"], "t": "Egli pro Tag"},
+    {"n": 300, "per": "Jahr", "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle", "Saibling", "Felchen"], "w": ["rhone", "berg", "bergsee", "kunst", "fliege", "fully"], "t": "Salmoniden pro Jahr"},
+    {"n": 4, "sp": ["Hecht"], "w": ["rhone", "berg", "bergsee", "kunst", "fliege", "fully"], "t": "Hechte pro Tag"},
+    {"n": 50, "sp": ["Egli (Flussbarsch)"], "w": ["rhone", "berg", "bergsee", "kunst", "fliege", "fully"], "t": "Egli pro Tag"},
+    {"n": 4, "sp": ["Bachforelle", "Seeforelle"], "w": ["leman"], "t": "Forellen pro Tag (Léman)"},
+    {"n": 100, "per": "Jahr", "sp": ["Bachforelle", "Seeforelle"], "w": ["leman"], "t": "Forellen pro Jahr (Léman)"},
+    {"n": 8, "sp": ["Saibling"], "w": ["leman"], "t": "Seesaiblinge pro Tag (Léman)"},
+    {"n": 200, "per": "Jahr", "sp": ["Saibling"], "w": ["leman"], "t": "Seesaiblinge pro Jahr (Léman)"},
+    {"n": 10, "sp": ["Felchen"], "w": ["leman"], "t": "Felchen pro Tag (Léman)"},
+    {"n": 200, "per": "Jahr", "sp": ["Felchen"], "w": ["leman"], "t": "Felchen pro Jahr (Léman)"},
+    {"n": 5, "sp": ["Hecht"], "w": ["leman"], "t": "Hechte pro Tag (Léman)"},
+    {"n": 100, "sp": ["Egli (Flussbarsch)"], "w": ["leman"], "t": "Egli pro Tag (Léman)"},
     {"n": 2, "sp": ["Karpfen"], "t": "Karpfen pro Tag"}
   ],
   "notes": [

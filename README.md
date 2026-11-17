@@ -25,12 +25,13 @@ Handy, ohne App Store.
 - **Fische**: Übersicht aller Arten mit Erkennungsmerkmalen, Vorkommen, Ködern, Tipp und Status heute im gewählten Kanton
 - **Statistik**, Angelzeit-Uhr, CSV-Export/Import.
 - **Alle 26 Kantone** zeigen das Gewässernetz beim Öffnen auf Luftbild und Landeskarte.
-  Amtliche Reviere und Zonen aus 14 Kantonen sind vom Schweizüberblick bis zum
-  einzelnen Abschnitt sichtbar. In Appenzell Innerrhoden ergänzt die amtliche
-  Fischereikarte das Netz. In den übrigen 11 Kantonen liefert swisstopo die
-  Gewässerauskunft. Grün kennzeichnet eine für den Abschnitt belegte offene
-  Fangsaison. Das persönliche Patent, Schonzeiten für einzelne Arten und
-  kurzfristige lokale Verfügungen sind vor Ort zu prüfen.
+  Die Karte bietet amtliche Bewilligungsquellen für jeden Kanton. Bei einem
+  Treffer zeigt sie die belegte Vorschrift für den Abschnitt oder das Gewässer.
+  Für noch ungeklärte Abschnitte nennt sie die zuständige Stelle. Die Legende
+  enthält das offline verfügbare Verzeichnis aller 26 Kantone.
+  Gebündelte Fischereigeometrien liegen für 15 Kantone vor, in Nidwalden für
+  die privaten Seefischenzen. Appenzell Innerrhoden und Jura liefern zusätzliche
+  WMS-Auskünfte. Grün kennzeichnet eine belegte offene Fangsaison.
 
 ## Installieren
 
@@ -46,7 +47,10 @@ Seite in Chrome (Android) bzw. Safari (iOS) öffnen → Menü →
 | Fischereireviere, Patentgebiete, private Fischereirechte, Reservat- und Ruhezonen am Sempachersee, oberirdische Gewässer LU | [Fischereikarte](https://map.geo.lu.ch/fauna/fischerei/) und [Geodaten des Kantons Luzern](https://download.geo.lu.ch/produkt/fischrev_ds_v1), © Geoinformation Kanton Luzern; Kantonsgrenze und Seegeometrien © swisstopo | Gebündelt pro Kartenausschnitt. Eine Gewässermarkierung bestätigt keine persönliche Fischereiberechtigung. |
 | Fischereizonen SG, GR | Fischereigeodienste der beiden Kantone (WFS) | Amtliche Geometrien je Kartenausschnitt aus `data/sections` |
 | Fischereizonen BE, FR, GE, GL, SH, TG, VD, VS | Kantonale WFS- und ArcGIS-Dienste, darunter [Fischereisektoren Genf](https://www.ge.ch/permis-peche/pecher-geneve-repeuplement-etangs) | Gebündelte Übersicht, beim Vergrössern Aktualisierung im Hintergrund. Der Genfer Léman-Sektor endet an der Kantonsgrenze von swisstopo. |
-| Fischereikarte AI | Kantonaler WMS mit GetFeatureInfo | Amtliches Kartenbild und Punktauskunft |
+| Private Fischenzen im Vierwaldstättersee NW | [GIS Daten AG / Kanton Nidwalden](https://www.gis-daten.ch/karte/jagd-und-fischerei-nw/) | Sechs Flächen mit Umfang des jeweiligen Rechts, gebündelt und im Hintergrund aktualisiert |
+| Fischereikarte AI und Patentstrecken JU | Öffentliche kantonale WMS mit GetFeatureInfo. [Géoservices du Jura](https://www.jura.ch/fr/Autorites/Administration/DEC/SDT/Cadastre-et-geoinformation/Liste-et-commande-de-geodonnees/Geoservices-de-consultation/Geoservices-de-consultation.html) | Im Jura haben die publizierten Reglementsgrenzen und die Signalisation Vorrang. Bei Dienstausfall zeigt die App den passenden Reglementhinweis, soweit verfügbar. |
+| Rechtsauskunft für 26 Kantone | Amtliche Quellen und Gesetzesartikel in `map-rights.js`. Zuordnung über Reviernummer oder Gewässerkennung, Kanton und Gewässertyp | Stand 17.11.2026. Jahresmerkblätter werden nur im Gültigkeitsjahr angewendet. Tagesverfügungen, Uferzugang und persönliche Berechtigungen bleiben gesondert zu prüfen. |
+| Aargauer und St. Galler Revierkarten, Zürcher Pachtverzeichnis | `tools/build_rights_registers.py` liest die Reviernummern, PDF-Links und Seitenzahlen aus den verlinkten kantonalen Originalen | Mit Python und `pdfplumber` neu erzeugen. Die gebündelte Zuordnung enthält ausschliesslich Nummern und Quellenverweise. |
 | Kantonserkennung, Gewässernamen (alle Kantone) | swisstopo / geo.admin.ch (swissBOUNDARIES3D, swissTLM3D Gewässernetz) | live |
 | Karte | swisstopo WMTS | live, Kacheln werden zwischengespeichert |
 | Satellitenübersicht des Alpenraums | [NASA Blue Marble Next Generation, GIBS](https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=BlueMarble_NextGeneration&STYLES=&CRS=EPSG:3857&BBOX=-313086.07,4383204.95,2191602.47,7200979.56&WIDTH=1024&HEIGHT=1152&FORMAT=image/jpeg) | Gebündeltes Hintergrundbild für die weitesten Luftbild-Zoomstufen |

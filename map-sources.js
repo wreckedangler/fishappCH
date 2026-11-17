@@ -1,7 +1,15 @@
 /* Public cantonal fishery services. Used by the map and the offline snapshot builder. */
 const XBOX={BE:[6.86,46.32,8.46,47.35],FR:[6.62,46.43,7.38,47.03],GE:[5.94,46.12,6.33,46.39],
   GL:[8.87,46.79,9.26,47.18],SH:[8.4,47.55,8.88,47.81],TG:[8.66,47.37,9.5,47.7],
-  VD:[6.06,46.18,7.26,46.99],VS:[6.77,45.85,8.48,46.66]};
+  VD:[6.06,46.18,7.26,46.99],VS:[6.77,45.85,8.48,46.66],NW:[8.30,46.96,8.57,47.03]};
+function juraKind(right,area,management){
+  const fold=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim().toLowerCase();
+  const status=fold(area),use=fold(management);
+  if(status==="secteurs interdits a la peche"||use==="reserve")return "Schongebiet";
+  if(use||/hiver|alevin|repeuplement/.test(status))return "Besondere Vorschrift";
+  const listedOpen=status==="secteurs ouvert a la peche"||status==="secteurs ouverts a la peche";
+  return listedOpen&&fold(right)==="permis cantonal"?"Patent":"Unbekannt";
+}
 const TGW=n=>()=>`https://ows.geo.tg.ch/geofy_access_proxy/fischereiverbote?Service=WFS&Version=2.0.0&Request=GetFeature&outputFormat=geojson&srsName=EPSG:4326&typeNames=ms:${n}`;
 const monthNames=["januar","februar","märz","april","mai","juni","juli","august","september","oktober","november","dezember"];
 function annualDate(text){
@@ -48,7 +56,9 @@ Object.assign(XSRC,{
       x:[{Patent:"Im kantonalen Register als Patentgewässer geführt. Saison und Berechtigung prüfen.",
         "Besondere Vorschrift":"Zeitweiliges Schongebiet. Geltungszeit gemäss kantonaler Verordnung prüfen.",
         Schon:"Ganzjähriges Schongebiet (réserve totale).",Unbekannt:"Berechtigung ungeklärt."}[art]]}}},
-  {url:AQ(FRB,23),map:p=>({id:"L"+p.OBJECTID,art:"Unbekannt",name:p.NOM||"See",t:"",x:[p.PECHE_VALEUR||"Berechtigung gemäss kantonaler Regelung prüfen."]})},
+  {url:AQ(FRB,23),map:p=>({id:"L"+p.OBJECTID,
+    art:p.PECHE_VALEUR==="Ouvert à la pêche"?"Patent":p.PECHE_VALEUR==="Concordat intercantonal"?"Seekonkordat":"Unbekannt",
+    name:p.NOM||"See",t:"",x:[]})},
   {url:AQ(FRB,29),map:p=>({id:"A"+p.OBJECTID,art:"Pacht",name:"Pachtlos "+(p.NOM||""),t:"",x:["Verpachtetes Gewässer – nicht mit dem Patent befischbar."]})}]},
 
 });
@@ -58,10 +68,20 @@ const GLZ={"1mai_30sept":"1. Mai bis 30. September","1apr_30sept":"1. April bis 
 const glSeason={"1mai_30sept":[501,930],"1apr_30sept":[401,930],"15mai_30sept":[515,930],
   "1mai_31dez":[501,1231],"1apr_31dez":[401,1231]};
 Object.assign(XSRC,{
+ NW:{attr:"Private Fischenzen © Kanton Nidwalden / GIS Daten AG",layers:[{
+  url:()=>"https://www.gis-daten.ch/svc/rest/services/gis_fach/nw_natur_ls_jagd_fischerei/MapServer/1/query?where=1%3D1&outFields=Nr,Recht,Name_der_Fischenze,Gebiet,Ausdehnung_in_See,OBJECTID&outSR=4326&f=geojson",
+  map:p=>({id:"NW"+p.Nr,art:p.Recht==="Ausschliessliches Fischereirecht zum Fischfang"?"Privat":"Besondere Vorschrift",
+    name:p.Name_der_Fischenze||"Fischenz "+p.Nr,t:p.Recht||"Privates Sonderrecht",x:[p.Gebiet].filter(Boolean)})}]},
  GE:{attr:"Secteurs de pêche © Etat de Genève (SITG)",layers:[{url:AQ(genevaSectors,0),
-  map:p=>{const name=(p.secteur||"").split(":")[0].trim(),pond=name==="Etang / biotope";
-    return {id:"GE"+p.objectid,art:"Revier",name:pond?(p.limite_amont||name):(name||"Fischereisektor"),
-      t:"Secteur "+p.no_secteur,cantonalFootprint:Number(p.no_secteur)===100||undefined,
+  map:p=>{const name=(p.secteur||"").split(":")[0].trim(),pond=name==="Etang / biotope",n=Number(p.no_secteur);
+    // The numbered sector layer also includes biotopes and unlisted tributaries.
+    // Match the separate cantonal list of fishing waters and its active reserve.
+    const river=n>=1&&n<=28||[31,32,33].includes(n)||name==="Le Rhône"&&[300,301,400,401].includes(n);
+    const activeReserve=n===9&&/Allondon/i.test(name);
+    const pondName=p.limite_amont||"";
+    const listedPond=pond&&["Etang de Richelien","Etang de la Touvière","Etang des Bouvières"].includes(pondName);
+    return {id:"GE"+p.objectid,art:activeReserve?"Besondere Vorschrift":"Revier",name:pond?(pondName||name):(name||"Fischereisektor"),
+      t:"Secteur "+p.no_secteur,permitSector:activeReserve?"reserve":river?"river":listedPond?"pond":undefined,cantonalFootprint:n===100||undefined,
       x:[p.limite_amont,p.limite_aval].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i),
       url:"https://www.ge.ch/permis-peche/pecher-geneve-repeuplement-etangs"};}}]},
  GL:{attr:"Fischereigewässer © Kanton Glarus",layers:[{url:()=>"https://wfs.geo.gl.ch/?service=WFS&version=1.1.0&request=GetFeature&typeName=ch.gl.inlandwaters.fischereigewaesser&outputFormat=geojson&srsName=EPSG:4326",
@@ -115,4 +135,4 @@ function fisheryPeriod(c,f,time){
   if(c==="GL"&&time.glNight)return "night";
   return "open";
 }
-if(typeof module!=="undefined"&&module.exports)module.exports={XSRC,XBOX,westFeatures,swissFishingTime,fisheryPeriod};
+if(typeof module!=="undefined"&&module.exports)module.exports={XSRC,XBOX,westFeatures,swissFishingTime,fisheryPeriod,juraKind};

@@ -53,7 +53,9 @@ async function main(){
   await fs.mkdir(output,{recursive:true});
   const cache=process.argv[2];
   if(cache)await fs.mkdir(cache,{recursive:true});
-  const codes=Object.keys(XSRC);
+  const requested=process.argv.slice(3);
+  const codes=requested.length?requested:Object.keys(XSRC);
+  for(const code of codes)if(!XSRC[code])throw Error("Unbekannter Kanton: "+code);
   const worker=async()=>{while(codes.length)await build(codes.shift(),cache)};
   await Promise.all([worker(),worker(),worker()]);
 }

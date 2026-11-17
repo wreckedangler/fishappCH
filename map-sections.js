@@ -334,6 +334,12 @@ const FishSections = (() => {
       }
       this.drawLabels(zoom);
     }
+    setLabelSelection(hit) {
+      const next=hit?.wholeDistrict?hit:null;
+      if(this.labelSelection===next)return;
+      this.labelSelection=next;
+      if(this.visible.size&&this.map._loaded)this.drawLabels(this.map.getZoom());
+    }
     drawLabels(zoom) {
       const previous=new Map(this.labels.map(label=>[label.name,label.layer]));
       this.labels=[];
@@ -341,12 +347,14 @@ const FishSections = (() => {
       const map=this.map,size=map.getSize(),view=bbox(map.getBounds()),center=map.getCenter();
       const used=new Set(), mapRect=map.getContainer().getBoundingClientRect();
       const controls=[...map.getContainer().querySelectorAll(".leaflet-control")].map(el=>el.getBoundingClientRect());
+      const selected=this.labelSelection;
       const candidates=[...this.visible.values()].filter(r=>!r.meta[5]&&intersects(r.bounds,view))
-        .sort((a,b)=>a.zoom-b.zoom||b.size-a.size);
+        .sort((a,b)=>Number(b.key===selected?.id)-Number(a.key===selected?.id)||a.zoom-b.zoom||b.size-a.size);
       for(const row of candidates) {
+        const active=row.key===selected?.id;
         const name=row.meta[0]||(row.code==="SG"&&!/zufl[uü]sse|nebeng[eä]wässer/i.test(row.meta[3])?row.meta[3]:"");
-        if(!name||used.has(name)||name.length>34)continue;
-        const point=nearest(center.lat,center.lng,geometry(row),row.poly);
+        if(!name||used.has(name)||!active&&name.length>34)continue;
+        const point=active?selected:nearest(center.lat,center.lng,geometry(row),row.poly);
         if(!Number.isFinite(point.d))continue;
         const ll=L.latLng(point.lat,point.lon),p=map.latLngToContainerPoint(ll).add([0,-18]);
         const halfWidth=Math.min(112,Math.max(24,name.length*3.8+8));
@@ -361,6 +369,7 @@ const FishSections = (() => {
           layer=L.tooltip({className:"water-map-label",direction:"center",offset:[0,-18],permanent:true,interactive:false,opacity:1})
             .setLatLng(ll).setContent(title).addTo(map);
         }
+        layer.getElement()?.classList.toggle("selected-water-label",active);
         this.labels.push({name,layer,row,ll,p,halfWidth});used.add(name);
         if(this.labels.length>=Math.min(8,Math.max(3,Math.floor(size.y/100))))break;
       }
@@ -400,11 +409,16 @@ const FishSections = (() => {
       }));
     }
     async wholeZone(hit) {
-      if(!hit.group)return hit.parts;
       if(this.selectedParts.has(hit.zoneId))return this.selectedParts.get(hit.zoneId);
-      const {file,id}=hit.group,data=await this.selectionFile(file);
-      const parts=data[id].map(([buried,lines,areas])=>({symbol:symbol(hit.kind,!!buried),footprints:hit.code==="AG",
-        lines:lines.map(decode),polygons:areas.map(rings=>rings.map(decode))}));
+      let parts;
+      if(hit.wholeDistrict){
+        parts=await this.district(hit);
+      }else{
+        if(!hit.group)return hit.parts;
+        const {file,id}=hit.group,data=await this.selectionFile(file);
+        parts=data[id].map(([buried,lines,areas])=>({symbol:symbol(hit.kind,!!buried),footprints:hit.code==="AG",
+          lines:lines.map(decode),polygons:areas.map(rings=>rings.map(decode))}));
+      }
       this.selectedParts.set(hit.zoneId,parts);
       if(this.selectedParts.size>20)this.selectedParts.delete(this.selectedParts.keys().next().value);
       return parts;
@@ -441,10 +455,11 @@ const FishSections = (() => {
       for(const hit of found.values()){
         const catalogue=await indexes.get(hit.code);
         hit.group=catalogue?.get(hit.id);
-        hit.zoneId=hit.group?hit.code+"/zone/"+hit.group.id:hit.id;
-        hit.fullParts=this.selectedParts.get(hit.zoneId);
         hit.hasDistrict=/^\d+$/.test(hit.rev)&&!!index[hit.code].districts?.[districtShard(hit.code,hit.rev)];
-        hit.partial=!catalogue;
+          hit.wholeDistrict=hit.code==="LU"&&hit.kind==="Fischereirevier"&&hit.hasDistrict;
+          hit.zoneId=hit.wholeDistrict?"LU/revier/"+hit.rev:hit.group?hit.code+"/zone/"+hit.group.id:hit.id;
+          hit.fullParts=this.selectedParts.get(hit.zoneId);
+          hit.partial=!catalogue&&!hit.wholeDistrict;
       }
       return [...found.values()];
     }

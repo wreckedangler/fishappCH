@@ -4,9 +4,6 @@ import json
 from urllib.parse import urlencode
 from urllib.request import urlopen
 
-import shapely
-from shapely.geometry import shape
-
 OGD = "https://public.geo.lu.ch/ogd/rest/services/managed/"
 REVIERE = OGD + "FISCHREV_DS_V1_MP/MapServer/"
 PATENTE = "https://svc.geo.lu.ch/geoshare2/rest/services/managed/WKFAUNAX_COL_V1_MP/MapServer/0"
@@ -77,12 +74,19 @@ def lake_feature(cache, water_id):
     return lake
 
 
+def district_features(cache):
+    return (features(cache, "fischrev-1", REVIERE + "1", "FLUSS_ID,FR_ID,FR_NAME,SHAPE_Length"),
+            features(cache, "fischrev-2", REVIERE + "2", "FR_ID,SHAPE_Area"))
+
+
 def features_in_metres(cache, projection):
+    import shapely
+    from shapely.geometry import shape
+
     def geometry(f):
         return shapely.transform(shape(f["geometry"]), projection, interleaved=False)
 
-    lines = features(cache, "fischrev-1", REVIERE + "1", "FLUSS_ID,FR_ID,FR_NAME")
-    areas = features(cache, "fischrev-2", REVIERE + "2", "FR_ID")
+    lines, areas = district_features(cache)
     names = dict(PONDS)
     areas_to_mask, routes_to_mask = [], defaultdict(list)
     for f in lines:

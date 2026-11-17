@@ -9,6 +9,23 @@ const zone=(code,kind,rev,extra={})=>({t:"zone",code,kind,rev,...extra});
 const water=(code,hydroId,lake,extra={})=>({t:"w",code,water:{name:"Test",hydroId,lake},...extra});
 const resolve=(h,options={},f)=>rights.resolve(h,f,{...day,...options});
 
+test("Luzern only connects a mapped district to a current published lease entry",()=>{
+  const directory=require("../data/luzern-reviere.json");
+  assert.equal(Object.values(directory).filter(d=>d.listed).length,108);
+  for(const [rev,d] of Object.entries(directory)){
+    const hit=zone("LU","Fischereirevier",rev);
+    const result=resolve(hit,{luListed:d.listed===true});
+    assert.equal(result.level,d.listed?"section":"guide",rev);
+    if(d.listed)assert.match(result.source[1],/lawa\.lu\.ch\/.*obmaenner\.pdf$/);
+  }
+  const hit=zone("LU","Fischereirevier","6");
+  for(const options of [{date:"2029-01-01"},{incomplete:true},{overlap:true},{closed:"Gesamtfangverbot"}]){
+    assert.notEqual(resolve(hit,{luListed:true,...options}).level,"section");
+  }
+  assert.equal(resolve(hit).level,"guide");
+  assert.equal(resolve(zone("LU","Keine Patentausgabe","6"),{luListed:true}).level,"restriction");
+});
+
 test("every canton provides an official destination for an unclassified or unnamed water",()=>{
   const cantons="AG AI AR BE BL BS FR GE GL GR JU LU NE NW OW SG SH SO SZ TG TI UR VD VS ZG ZH".split(" ");
   assert.deepEqual(Object.keys(rights.offices).sort(),cantons);

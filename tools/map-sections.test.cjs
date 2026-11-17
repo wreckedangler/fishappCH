@@ -225,6 +225,42 @@ test("Luzern preserves the full Uffikoner Weiher district and clips neutral lake
   assert.ok(!(await layer.hits(47.15,8.51,5)).some(h=>h.code==="LU"));
 });
 
+test("every published Luzern district resolves by exact number, name and map position",async()=>{
+  const directory=require("../data/luzern-reviere.json");
+  const index=require("../data/sections/index.json").LU;
+  const search=require("../data/sections/"+index.search).filter(row=>row[2]==="Fischereirevier");
+  const rank=vm.runInNewContext(fs.readFileSync(path.join(root,"map-search.js"),"utf8")+"\nFishMapSearch.rank");
+  const {layer}=mapAt(15);
+  assert.equal(Object.keys(directory).length,126);
+  assert.equal(search.length,Object.keys(directory).length);
+  assert.equal(Object.values(directory).reduce((sum,d)=>sum+(d.lines||0),0),127);
+  assert.equal(Object.values(directory).reduce((sum,d)=>sum+(d.areas||0),0),10);
+  const rows=search.map(r=>[...r,"LU",directory[r[1]].registerName]);
+  assert.equal(rank(rows,"LU Kleine Sempacher-Aa",{lat:47,lng:8})[0].rev,"48");
+  const browse=rank([...rows,["Andere Zone","6","Fischereirevier",47,8,"AG"],["Patentgebiet","","Patentgebiet",47,8,"LU"]],"Luzerner Reviere",{lat:47,lng:8});
+  assert.deepEqual(Array.from(browse,r=>r.rev),Object.keys(directory));
+  for(const [rev,d] of Object.entries(directory)){
+    const result=rank(rows,"Luzern Revier-ID "+rev,{lat:47,lng:8});
+    assert.equal(result.length,1,rev);
+    assert.equal(result[0].name,d.name,rev);
+    assert.equal(result[0].lat,d.lat);assert.equal(result[0].lon,d.lon);
+    const hit=(await layer.hits(d.lat,d.lon,55)).find(h=>h.code==="LU"&&h.kind==="Fischereirevier"&&h.rev===rev);
+    assert.equal(hit?.water,d.name,rev);
+    assert.equal(hit.wholeDistrict,true);
+    assert.equal(hit.zoneId,"LU/revier/"+rev);
+    const [whole]=await layer.wholeZone(hit);
+    assert.equal(Boolean(whole.lines.length),!!d.lines,rev);
+    assert.equal(Boolean(whole.polygons.length),!!d.areas,rev);
+  }
+  assert.equal(directory[6].name,"Bihlbach, I. TS");assert.equal(directory[6].metres,4713.4);
+  assert.equal(directory[7].name,"Bihlbach, II. TS");assert.equal(directory[7].metres,5597.7);
+  assert.equal(directory[109].areas,3);assert.equal(directory[109].m2,27199.2);
+  // LV95 2 651 490 / 1 214 563 is the parcel point in the cantonal viewer near Ruswil.
+  const here=await mapAt(12).layer.hits(47.08008085,8.11664650,300);
+  const nearest=here.filter(h=>h.code==="LU"&&h.kind==="Fischereirevier").sort((a,b)=>a.d-b.d)[0];
+  assert.equal(nearest.rev,"6");assert.ok(nearest.d<60);
+});
+
 test("every above-ground fishery enters the overview and its category is drawn at every national scale",()=>{
   const dir=path.join(root,"data","sections"),read=f=>JSON.parse(fs.readFileSync(path.join(dir,f),"utf8"));
   const atlas=JSON.parse(fs.readFileSync(path.join(root,"data/map-overview.json"),"utf8"));

@@ -180,6 +180,14 @@ const FishRights=(()=>{
     if(kind==="Uferfischerei mit Bewilligung")return section("Bewilligung für die Uferfischerei","An dieser Strecke weist der Kanton eine gesonderte Bewilligung für das Angeln vom Ufer aus.");
     if(kind==="Patent"||kind==="Patentgebiet")return section("Patentgewässer","Für die patentpflichtige Fischerei ist das passende Patent für diesen Abschnitt erforderlich. Saison und Schutzvorschriften gelten zusätzlich.");
     if(kind==="Seekonkordat")return section("Interkantonales Seekonkordat","Der Kanton führt diesen See unter einem Konkordat. Massgebend sind das Patent und die Ausnahmen des jeweiligen Seereglements.");
+    if(c==="LU"&&hit.t==="zone"&&kind==="Fischereirevier"&&hit.rev){
+      if(options.luListed&&date>="2026-08-01"&&date<"2029-01-01"){
+        const info=section("Fischereiberechtigung der Pachtgruppe","Mitglieder und zugelassene Gäste benötigen die jährliche Fischereiberechtigung für dieses Revier. Die zuständige Pachtgruppe findest du unter Revier "+hit.rev+" im kantonalen Verzeichnis.");
+        info.source=["Pachtverzeichnis Luzern 2021–2028","https://lawa.lu.ch/-/media/LAWA/Dokumente/njf/Fischerei/angelfischerei/vz/vz_fischerei_obmaenner.pdf"];
+        return info;
+      }
+      return answer("guide","Berechtigung für dieses Revier prüfen","Die Reviernummer bezeichnet das kartierte Gebiet. Für diesen Abschnitt ist hier keine aktuelle Bewilligung belegt. Patentgebiete und örtliche Rechte in der kantonalen Fischereikarte prüfen.");
+    }
     if(c==="AG"&&kind==="Fischereirevier"&&hit.rev){
       if(["1","2","3","4"].includes(String(hit.rev)))return section("Rheinkarte für Reviere 1–4","Im kantonalen Shop gibt es Tages- und Wochenkarten für diese vier Rheinreviere. Kartierte Schutzstrecken sind ausgenommen.","agRhine");
       if(Object.hasOwn(registers().AG,hit.rev)&&date>="2026-01-01"&&date<"2034-01-01"){

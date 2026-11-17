@@ -1295,20 +1295,24 @@ function syncPickers(container){
     let trigger=document.getElementById(select.id+"Trigger");
     if(!trigger){
       const label=select.labels[0];
+      const title=label?.textContent||select.getAttribute("aria-label")||"Auswählen";
       trigger=document.createElement("button");
       trigger.type="button";
       trigger.id=select.id+"Trigger";
       trigger.className="picker-trigger";
       trigger.setAttribute("aria-haspopup","dialog");
       trigger.setAttribute("aria-controls","picker");
-      trigger.onclick=()=>openPicker(select,label.textContent);
+      trigger.onclick=()=>openPicker(select,title);
       select.after(trigger);
-      label.htmlFor=trigger.id;
-      label.id=select.id+"Label";
-      trigger.setAttribute("aria-labelledby",label.id+" "+trigger.id);
+      if(label){
+        label.htmlFor=trigger.id;
+        label.id=select.id+"Label";
+        trigger.setAttribute("aria-labelledby",label.id+" "+trigger.id);
+      }
       select.hidden=true;
     }
     trigger.textContent=select.selectedOptions[0]?.textContent||"Auswählen";
+    if(select.hasAttribute("aria-label"))trigger.setAttribute("aria-label",select.getAttribute("aria-label")+" · "+trigger.textContent);
   });
 }
 function openPicker(select,title){

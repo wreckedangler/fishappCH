@@ -145,11 +145,12 @@ function updateCantonNet(force){
     groups.forEach(({k,f},i)=>{
       const st=cantonGroupStatus(c,k);if(!st)return;
       const id=`fb-net-${c}-${i}`,closed=st==="closed";
-      map.addLayer({id,type:"line",source:"base_v1.0.0","source-layer":"waterway",minzoom:8,
+      map.addLayer({id,type:"line",source:"base_v1.0.0","source-layer":"waterway",minzoom:7,
         filter:["all",cls,["within",area],f],layout:{"line-cap":"round","line-join":"round"},
         paint:{"line-color":closed?FishSections.symbols.closed.color:FishSections.symbols.open.color,
           "line-width":["interpolate",["linear"],["zoom"],8,["match",["get","class"],"river",1.6,.7],12,["match",["get","class"],"river",3.2,1.6],15,["match",["get","class"],"river",4.5,2.6]],
-          "line-opacity":closed?.8*zoneDim:(mapFilter.openFocus!==false?.9:.6)*zoneDim,
+          // Rivers fade in first, streams one level later: same rhythm as the mapped reaches.
+          "line-opacity":(o=>["interpolate",["linear"],["zoom"],7,0,8,["match",["get","class"],"river",o,0],9,["match",["get","class"],"stream",0,o],10,o])(closed?.8*zoneDim:(mapFilter.openFocus!==false?.9:.6)*zoneDim),
           ...(closed?{"line-dasharray":[1.6,1.4]}:{})}},before);
       cantonNetIds.push(id);
     });

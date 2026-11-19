@@ -3,6 +3,7 @@ from base64 import b64encode
 from collections import defaultdict
 from io import BytesIO
 import json
+import re
 from math import asinh, floor, pi, radians, tan
 from pathlib import Path
 
@@ -36,17 +37,24 @@ def build():
     for code, files in manifest.items():
         metadata, rows = json.loads((directory / files["overview"]).read_bytes())
         groups = defaultdict(list)
-        for _, index, _, _, _, raw in rows:
+        for _, index, zoom, _, _, raw in rows:
             _, kind, _, _, _, buried, rule = metadata[index]
             if buried:
                 continue
             area = isinstance(raw, list)
             rings = [list(decode(p)) for p in (raw if area else [raw])]
-            groups[kind, rule].append((area, rings))
-        for (kind, rule), shapes in groups.items():
+            # Same level of detail as the vector map: a reach is in the image of zoom z once it
+            # starts fading in there (its zoom at most z+1); restrictions from zoom 10 at the latest.
+            lod = min(zoom, 10) if re.search(r"schon|verbot|nationalpark", kind, re.I) else zoom
+            groups[kind, rule].append((area, rings, lod))
+        for (kind, rule), every in groups.items():
+          for z in range(6, 10):
+            shapes = [(a, r) for a, r, lod in every if lod <= z + 1]
+            if not shapes:
+                continue
             vertices = [p for _, rings in shapes for ring in rings for p in ring]
             xs, ys = zip(*vertices)
-            for z in range(6, 10):
+            if True:
                 world = 256 << z
                 x, y = floor(min(xs)*world)-2, floor(min(ys)*world)-2
                 size = (floor(max(xs)*world)-x+3, floor(max(ys)*world)-y+3)
@@ -70,6 +78,8 @@ def build():
                 output = BytesIO()
                 image.save(output, format="PNG", bits=2, transparency=bytes([0, 95, 255]), optimize=True)
                 atlas[z].append([code, kind, rule, x, y, *size, b64encode(output.getvalue()).decode("ascii")])
+    for z in range(6, 10):
+        atlas.setdefault(z, [])
     packed = json.dumps(atlas, ensure_ascii=False, separators=(",", ":")).encode("utf8")
     (DATA / "map-overview.json").write_bytes(packed)
     print("National overview", len(packed), "bytes")

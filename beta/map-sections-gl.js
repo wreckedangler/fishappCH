@@ -62,7 +62,10 @@ const FishSections = (() => {
   }
   function localCondition(kind) {return ["Besondere Vorschrift","Reservatzone","Ruhezone A","Ruhezone B","Keine Patentausgabe"].includes(kind)}
   function restriction(kind) {return localCondition(kind)||/schon|verbot|nationalpark/i.test(kind)}
-  function visibleAt(row,zoom) {return row.zoom<=zoom||(!row.meta[5]&&row.meta[1]!=="Gewässer")}
+  // Level of detail: a reach is tappable from its zoom on; it is painted one level earlier to fade in.
+  // Restrictions (Schongebiete, Verbote) are shown from zoom 10 at the latest.
+  const lodZoom=row=>restriction(row.meta[1])?Math.min(row.zoom,10):row.zoom;
+  function visibleAt(row,zoom) {return lodZoom(row)<=zoom+.5}
   function symbol(kind,buried=false,closed=false) {
     if(localCondition(kind)||/naturköder/i.test(kind))return "condition";
     if(restriction(kind))return "protected";
@@ -111,7 +114,7 @@ const FishSections = (() => {
     if(tiny)g={type:"LineString",coordinates:shortMark(paths[0][0],zoom)};
     else if(row.poly)g={type:"Polygon",coordinates:orient(paths)};
     else g={type:"LineString",coordinates:paths[0]};
-    return {type:"Feature",geometry:g,properties:{k:mark,a:row.poly&&!tiny?1:0,key:row.key,n:labelName(row),z:row.zoom}};
+    return {type:"Feature",geometry:g,properties:{k:mark,a:row.poly&&!tiny?1:0,key:row.key,n:labelName(row),z:lodZoom(row)}};
   }
   function unpack(code,data) {
     const [metadata, rows]=data;
@@ -248,7 +251,7 @@ const FishSections = (() => {
             const file=files[next++];
             try {
               for(const row of await this.load(file)) {
-                if(visibleAt(row,zoom) && intersects(row.bounds,view))rows.set(row.key,row);
+                if(lodZoom(row)<=zoom+1 && intersects(row.bounds,view))rows.set(row.key,row);
               }
             } catch(error){if(epoch===this.epoch){failed=true;console.warn("Gewässerdaten",file[1],error)}}
           }

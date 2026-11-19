@@ -21,7 +21,7 @@ What it does (pure Python, no GIS libraries, idempotent):
 
 Run:  python3 tools/normalize_sections.py [--dry-run]
 """
-import argparse, json, math, sys
+import argparse, json, math, re, sys
 from collections import defaultdict
 from hashlib import sha256
 from pathlib import Path
@@ -176,6 +176,69 @@ def bind_rule(code, meta, poly):
     return (name, kind, rev, region, detail, buried, rule)
 
 
+RESTRICTED_RE = re.compile(r"schon|verbot|nationalpark|reservat|ruhezone|vorschrift", re.I)
+MINOR_M = (300.0, 800.0)  # unnamed end branch shorter than this: shown from zoom 14 / 13 only
+MINOR_ROUNDS = 2
+MINOR_NAMED_M = 400.0  # a named twig (Graben, Dorfbach) shorter than this
+SNAP_M = 4.0
+
+
+def minor_streams(rows, lines, removed):
+    """Unnamed headwaters, drainages and ditches: end branches of the water network that are
+    short. They stay tappable close up but no longer clutter the map from afar. Pruned in
+    rounds, so a short fork whose twigs were pruned counts as an end branch next."""
+    # Ends within SNAP_M of each other are one node (sources differ by a few metres).
+    cells, nodes = defaultdict(list), []
+    def key(p):
+        cx, cy = int(p[0] // 0.0001), int(p[1] // 0.0001)
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                for n in cells[cx + dx, cy + dy]:
+                    if dist(nodes[n], p) <= SNAP_M:
+                        return n
+        nodes.append(p)
+        cells[cx, cy].append(len(nodes) - 1)
+        return len(nodes) - 1
+    ends, at = {}, defaultdict(set)
+    for fid, pts in lines.items():
+        if fid in removed or rows[fid][0][5]:
+            continue
+        a, b = key(pts[0]), key(pts[-1])
+        ends[fid] = (a, b)
+        at[a].add(fid)
+        at[b].add(fid)
+    alive = set(ends)
+    deg = lambda n: sum(1 for f in at[n] if f in alive)
+    minor = {}
+    def small(f):
+        return not RESTRICTED_RE.search(rows[f][0][1])
+    for _ in range(MINOR_ROUNDS):
+        prune = {}
+        for node in [n for n in at if deg(n) == 1]:
+            chain, cur, here = [], next(f for f in at[node] if f in alive), node
+            while cur is not None and cur not in chain:
+                chain.append(cur)
+                a, b = ends[cur]
+                there = b if a == here else a
+                if deg(there) != 2:
+                    break
+                cur = next((f for f in at[there] if f in alive and f != cur), None)
+                here = there
+            if not all(small(f) for f in chain):
+                continue
+            total = sum(rows[f][2] for f in chain)
+            named = any(rows[f][0][0] for f in chain)
+            if total < (MINOR_NAMED_M if named else MINOR_M[1]):
+                z = 14 if total < MINOR_M[0] else 13
+                for f in chain:
+                    prune[f] = min(prune.get(f, 99), z)
+        if not prune:
+            break
+        minor.update(prune)
+        alive -= set(prune)
+    return minor
+
+
 def zone_key(meta):
     name, kind, rev, region, detail, _buried, rule = meta
     return (name, kind, rev, region, detail, rule)
@@ -286,21 +349,50 @@ def normalise(code, entry, keep, stats):
         shards[shard][gid] = parts
         index.append([members, shard])
 
+    # 2b. One level of detail per zone: every open piece of a zone appears at the zoom its whole
+    # length earns, so a river split by bridges or culverts does not show up piece by piece.
+    zone_zoom = {}
+    for members in groups:
+        open_ = [f for f in members if not rows[f][0][5]]
+        if not open_:
+            continue
+        total = sum(rows[f][2] for f in open_)
+        lu_net = code == "LU" and rows[open_[0]][0][1] == "Gewässer"
+        z = min(rows[f][1] for f in open_)
+        if not lu_net:
+            z = min(z, 8 if total >= 6000 else 9 if total >= 2300 else 10 if total >= 850 else 11 if total >= 330 else 12)
+        for f in open_:
+            if z < rows[f][1]:
+                zone_zoom[f] = z
+    s["Zoomstufe angeglichen"] = len(zone_zoom)
+    minor = minor_streams(rows, lines, removed)
+    for f, z in minor.items():
+        if f not in in_group:
+            zone_zoom[f] = max(z, rows[f][1])
+    s["Kleinstgewässer erst nah"] = sum(1 for f in minor if f not in in_group)
+
     # 3. Rewrite.
     new = dict(entry)
-    def repack(meta, rr):
+    def repack(meta, rr, extra=()):
         table, out = {}, []
-        for r in rr:
+        for r in [*rr, *extra]:
             if r[0] in removed:
                 continue
             m = rows[r[0]][0] if r[0] in rows else bind_rule(code, tuple(meta[r[1]]), isinstance(r[5], list))
-            out.append([r[0], table.setdefault(m, len(table)), *r[2:]])
+            out.append([r[0], table.setdefault(m, len(table)), zone_zoom.get(r[0], r[2]), *r[3:]])
         return [[list(m) for m in table], out]
     for key, (meta, rr) in cell_rows.items():
         new[key] = write_asset(f"{code}-{key}", repack(meta, rr), keep)
     if entry.get("overview"):
         meta, rr = json.loads((SECTIONS / entry["overview"]).read_text(encoding="utf8"))
-        new["overview"] = write_asset(f"{code}-overview", repack(meta, rr), keep)
+        have = {r[0] for r in rr}
+        # Pieces that now appear at zoom 11 or lower belong in the overview too.
+        extra = {}
+        for cmeta, crr in cell_rows.values():
+            for r in crr:
+                if r[0] in zone_zoom and zone_zoom[r[0]] <= 11 and r[0] not in have and r[0] not in extra:
+                    extra[r[0]] = [r[0], -1, *r[2:]]
+        new["overview"] = write_asset(f"{code}-overview", repack(meta, rr, extra.values()), keep)
     new["selections"] = {sh: write_asset(f"{code}-selection-{sh}", data, keep) for sh, data in shards.items()}
     new["groups"] = write_asset(f"{code}-groups", index, keep)
     for k in ("districts",):

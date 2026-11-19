@@ -289,7 +289,7 @@ test("every published Luzern district resolves by exact number, name and map pos
   assert.equal(nearest.rev,"6");assert.ok(nearest.d<60);
 });
 
-test("every above-ground fishery enters the overview and its category is drawn at every national scale",()=>{
+test("every above-ground fishery enters the overview and its category is drawn from the scale its reaches fade in",()=>{
   const dir=path.join(root,"data","sections"),read=f=>JSON.parse(fs.readFileSync(path.join(dir,f),"utf8"));
   const atlas=JSON.parse(fs.readFileSync(path.join(root,"data/map-overview.json"),"utf8"));
   for(const [code,entry] of Object.entries(read("index.json"))){
@@ -299,8 +299,9 @@ test("every above-ground fishery enters the overview and its category is drawn a
       const [attrs,rows]=read(file);
       for(const [id,m] of rows)if(!attrs[m][5]&&attrs[m][1]!=="Gewässer")assert.ok(ids.has(id),code+"-"+id);
     }
-    const classes=new Set(meta.filter(m=>!m[5]).map(m=>[m[1],m[6]].join("|")));
+    const lod=(m,zoom)=>/schon|verbot|nationalpark/i.test(m[1])?Math.min(zoom,10):zoom;
     for(const z of [6,7,8,9]){
+      const classes=new Set(overview.filter(([,mi,zoom])=>!meta[mi][5]&&lod(meta[mi],zoom)<=z+1).map(([,mi])=>[meta[mi][1],meta[mi][6]].join("|")));
       const masks=atlas[z].filter(row=>row[0]===code);
       assert.deepEqual(new Set(masks.map(row=>[row[1],row[2]].join("|"))),classes);
       assert.ok(masks.every(r=>r[5]>0&&r[6]>0&&Buffer.from(r[7],"base64").readUInt32BE(0)===0x89504e47));

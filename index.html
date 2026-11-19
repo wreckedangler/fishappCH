@@ -2878,12 +2878,29 @@ let zoneDim=1;
 const openFocus=()=>mapFilter.openFocus!==false;
 const notOpenF=()=>openFocus()?.5:1;
 const focusMul=v=>["*",v,["case",kIs("open"),1,notOpenF()]];
-const casingOpacity=()=>zstep(b=>focusMul(b===0?["case",kIs("open"),.73*zoneDim,.22*zoneDim]:.73*zoneDim));
-const inkOpacity=()=>zstep(b=>focusMul(b===0?["case",["any",kIs("open"),ruleK()],zoneDim,.64*zoneDim]:zoneDim));
-const glowOpacity=()=>zstep(b=>(b===0?.42:b<3?.5:.4)*zoneDim*(openFocus()?1:.6));
+// One level of detail for every source: a reach gets the Leaflet zoom at which it is fully
+// shown (property z) and fades in over the zoom level before. Same thresholds as the section build.
+const MAJOR_WATERS=new Set(["aare","rhein","reuss","limmat","glatt","thur","sitter","linth","wigger","suhre","vorderrhein","hinterrhein","rhone","rhône","saane","sarine","emme","broye","orbe","doubs","ticino","maggia","inn","birs","töss"]);
+function lodZoom(size,name,buried){
+  if(buried)return 14;
+  if(size>=6000||MAJOR_WATERS.has(String(name||"").trim().toLowerCase()))return 8;
+  return size>=2300?9:size>=850?10:size>=330?11:12;
+}
+function pathMetres(l,poly){
+  let len=0,b=[Infinity,Infinity,-Infinity,-Infinity];
+  for(const r of l){for(let i=0;i<r.length;i++){const [x,y]=r[i];b[0]=Math.min(b[0],x);b[1]=Math.min(b[1],y);b[2]=Math.max(b[2],x);b[3]=Math.max(b[3],y);
+    if(i&&!poly){const [px,py]=r[i-1];len+=Math.hypot((x-px)*111320*Math.cos(y*Math.PI/180),(y-py)*111132)}}}
+  return poly?Math.max((b[2]-b[0])*111320*Math.cos(b[1]*Math.PI/180),(b[3]-b[1])*111132):len;
+}
+const ZBANDS=g=>g<8?0:g<9?1:g<11?2:g<14?3:4;
+const zvis=g=>["case",["<=",["coalesce",["get","z"],0],g+1],1,0];
+const zfade=fn=>["interpolate",["linear"],["zoom"],...Array.from({length:13},(_,i)=>i+4).flatMap(g=>[g,["*",fn(ZBANDS(g)),zvis(g)]])];
+const casingOpacity=()=>zfade(b=>focusMul(b===0?["case",kIs("open"),.73*zoneDim,.22*zoneDim]:.73*zoneDim));
+const inkOpacity=()=>zfade(b=>focusMul(b===0?["case",["any",kIs("open"),ruleK()],zoneDim,.64*zoneDim]:zoneDim));
+const glowOpacity=()=>zfade(b=>(b===0?.42:b<3?.5:.4)*zoneDim*(openFocus()?1:.6));
 const glowWidth=()=>zstep(b=>["+",bandInk(b),b===0?5:b<3?7:9]);
 function fillOpacity(){
-  return focusMul(["*",zoneDim,["case",ruleK(),.62,kIs("open"),.3,zoneAreaK(),.23,.12]]);
+  return zfade(()=>focusMul(["*",zoneDim,["case",ruleK(),.62,kIs("open"),.3,zoneAreaK(),.23,.12]]));
 }
 const ZONE_SOURCES=["fb-sec","fb-west","fb-so"];
 const zoneData={"fb-sec":FC([]),"fb-west":FC([]),"fb-so":FC([])};
@@ -2926,7 +2943,7 @@ function applyZoneDim(f,force){
 }
 function hydroOpacity(){
   const luft=store.get("base","luft")!=="topo",f=zoneDim<1?.75:1;
-  return luft?["step",["zoom"],.30*f,10,.38*f,14,.54*f]:["step",["zoom"],.26*f,10,.34*f];
+  return luft?["interpolate",["linear"],["zoom"],8.5,0,9.5,.30*f,10,.38*f,14,.54*f]:["interpolate",["linear"],["zoom"],8.5,0,9.5,.26*f,10,.34*f];
 }
 let labelFont=["Frutiger Neue Regular"];
 
@@ -2944,9 +2961,12 @@ function drawGeo(){
     const box=f.box||(f.box=(()=>{const b=[Infinity,Infinity,-Infinity,-Infinity];for(const l of f.l)for(const [x,y] of l){b[0]=Math.min(b[0],x);b[1]=Math.min(b[1],y);b[2]=Math.max(b[2],x);b[3]=Math.max(b[3],y)}return b})());
     if(detailBounds&&!FishSections.intersects(box,detailBounds))continue;
     const k=kindOf(f.art),mark=soSymbol(f);
+    if(f._z===undefined)f._z=lodZoom(pathMetres(f.l,false),secById(f.id)?.name?.split(/[\s,(]/)[0],false);
+    const z=["protected","closed"].includes(mark)?Math.min(f._z,10):f._z;
+    if(z>zoom+1)continue;
     const tiny=FishSections.subPixel(box,lz());
     const geometry=tiny?{type:"LineString",coordinates:FishSections.shortMark(f.l[0][0],lz())}:{type:"MultiLineString",coordinates:f.l};
-    features.push({type:"Feature",geometry,properties:{k:mark,a:0,key:"SO/"+f.id,lb:k==="patent"||k==="schon"?f.id:"",ls:k==="schon"?1:0}});
+    features.push({type:"Feature",geometry,properties:{k:mark,a:0,z,key:"SO/"+f.id,lb:k==="patent"||k==="schon"?f.id:"",ls:k==="schon"?1:0}});
   }
   setZones("fb-so",FC(features));
 }
@@ -3112,12 +3132,20 @@ function drawX(){
     for(const f of Object.values(G.feats)){
       if(detailBounds&&!FishSections.intersects(f.bounds,detailBounds))continue;
       active.add(code);
+      if(f._z===undefined){
+        // Size of the whole zone, not of the single piece: a split river appears everywhere at once.
+        const members=[...(G.zones.get(f.zoneId)||[f.id])].map(id=>G.feats[id]).filter(Boolean);
+        const z=lodZoom(members.reduce((t,m)=>t+pathMetres(m.l,m.poly),0),f.name,false);
+        for(const m of members)m._z=z;f._z=z;
+      }
+      const restricted=["protected","closed"].includes(westMark(code,f));
+      if(!restricted&&f._z>zoom+1)continue;
       const mark=westMark(code,f),tiny=FishSections.subPixel(f.bounds,lz());
       let geometry;
       if(tiny)geometry={type:"LineString",coordinates:FishSections.shortMark(f.l[0][0],lz())};
       else if(f.poly)geometry={type:"Polygon",coordinates:FishSections.orient(f.l)};
       else geometry={type:"LineString",coordinates:f.l[0]};
-      features.push({type:"Feature",geometry,properties:{k:mark,a:f.poly&&!tiny?1:0,key:"X/"+code+"/"+f.id}});
+      features.push({type:"Feature",geometry,properties:{k:mark,a:f.poly&&!tiny?1:0,key:"X/"+code+"/"+f.id,z:restricted?Math.min(f._z,10):f._z}});
     }
   }
   setCredits("west",new Set([...active].map(c=>XSRC[c]?.attr).filter(Boolean)));
@@ -3681,6 +3709,7 @@ async function resolveMapTap(e,seq){
       const matches=[];
       for(const f of Object.values(g.feats)){
         if(!FishSections.intersects(box,f.bounds))continue;
+        if(f._z>lz()+.5&&!["protected","closed"].includes(westMark(code,f)))continue;
         const point=FishSections.nearest(lat,lon,f.l,f.poly);
         if(point.d<=tol)matches.push({...point,t:"x",code,id:f.id,zoneId:f.zoneId,area:f.poly,name:f.name,kind:f.art});
       }
@@ -4015,12 +4044,12 @@ function addOverlays(){
   map.addSource("fb-hydro",{type:"raster",tiles:["https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swisstlm3d-gewaessernetz/default/current/3857/{z}/{x}/{y}.png"],tileSize:256,minzoom:5,maxzoom:17,
     attribution:'Gewässer © <a href="https://www.swisstopo.admin.ch/de/landschaftsmodell-swisstlm3d">swisstopo</a>'});
   // The national water network is dense at country scale; show it once rivers become legible.
-  map.addLayer({id:"fb-hydro",type:"raster",source:"fb-hydro",minzoom:9,paint:{"raster-opacity":hydroOpacity(),"raster-fade-duration":150,"raster-saturation":-.35}});
+  map.addLayer({id:"fb-hydro",type:"raster",source:"fb-hydro",minzoom:8.5,paint:{"raster-opacity":hydroOpacity(),"raster-fade-duration":150,"raster-saturation":-.35}});
   for(const [c,url,layers,b] of eastWms){
     const id="fb-wms-"+c;
     map.addSource(id,{type:"raster",tileSize:256,minzoom:10,bounds:[b[0][1],b[0][0],b[1][1],b[1][0]],
       tiles:[`${url}?service=WMS&version=1.1.1&request=GetMap&layers=${encodeURIComponent(layers)}&styles=&srs=EPSG:3857&bbox={bbox-epsg-3857}&width=256&height=256&format=image/png&transparent=true`]});
-    map.addLayer({id,type:"raster",source:id,minzoom:10,paint:{"raster-fade-duration":150}});
+    map.addLayer({id,type:"raster",source:id,minzoom:10,paint:{"raster-fade-duration":150,"raster-opacity":["interpolate",["linear"],["zoom"],10,0,11,1]}});
   }
   for(const src of ZONE_SOURCES)map.addSource(src,{type:"geojson",data:zoneData[src],tolerance:.3,buffer:64});
   for(const img of coarseImages)addCoarse(img);
@@ -4036,7 +4065,7 @@ function addOverlays(){
   map.addLayer({id:"fb-labels",type:"symbol",source:"fb-sec",minzoom:8,filter:["all",["!=",["get","n"],""],["==",["get","a"],0]],
     layout:{"symbol-placement":"line","text-field":["get","n"],"text-font":labelFont,"text-size":["interpolate",["linear"],["zoom"],8,11,14,13.5],
       "text-max-angle":35,"symbol-spacing":420,"text-padding":6,"text-letter-spacing":.02},
-    paint:{"text-color":"#fff","text-halo-color":"rgba(20,40,46,.92)","text-halo-width":1.6}});
+    paint:{"text-color":"#fff","text-halo-color":"rgba(20,40,46,.92)","text-halo-width":1.6,"text-opacity":zfade(()=>1)}});
   map.addLayer({id:"fb-so-labels",type:"symbol",source:"fb-so",minzoom:12,filter:["!=",["get","lb"],""],
     layout:{"symbol-placement":"line-center","text-field":["get","lb"],"text-font":labelFont,"text-size":12,"text-padding":8,"text-allow-overlap":false},
     paint:{"text-color":["case",["==",["get","ls"],1],"#c93745","#12222a"],"text-halo-color":"#fff","text-halo-width":2.2}});
@@ -4684,11 +4713,12 @@ function updateCantonNet(force){
     groups.forEach(({k,f},i)=>{
       const st=cantonGroupStatus(c,k);if(!st)return;
       const id=`fb-net-${c}-${i}`,closed=st==="closed";
-      map.addLayer({id,type:"line",source:"base_v1.0.0","source-layer":"waterway",minzoom:8,
+      map.addLayer({id,type:"line",source:"base_v1.0.0","source-layer":"waterway",minzoom:7,
         filter:["all",cls,["within",area],f],layout:{"line-cap":"round","line-join":"round"},
         paint:{"line-color":closed?FishSections.symbols.closed.color:FishSections.symbols.open.color,
           "line-width":["interpolate",["linear"],["zoom"],8,["match",["get","class"],"river",1.6,.7],12,["match",["get","class"],"river",3.2,1.6],15,["match",["get","class"],"river",4.5,2.6]],
-          "line-opacity":closed?.8*zoneDim:(mapFilter.openFocus!==false?.9:.6)*zoneDim,
+          // Rivers fade in first, streams one level later: same rhythm as the mapped reaches.
+          "line-opacity":(o=>["interpolate",["linear"],["zoom"],7,0,8,["match",["get","class"],"river",o,0],9,["match",["get","class"],"stream",0,o],10,o])(closed?.8*zoneDim:(mapFilter.openFocus!==false?.9:.6)*zoneDim),
           ...(closed?{"line-dasharray":[1.6,1.4]}:{})}},before);
       cantonNetIds.push(id);
     });

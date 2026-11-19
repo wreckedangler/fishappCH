@@ -342,8 +342,8 @@ const FishSections = (() => {
       }));
       return this.searchFiles.get(code);
     }
-    async hits(lat,lon,tol) {
-      const zoom=this.map.getZoom(),box=tapBox(lat,lon,tol*1.04),index=await this.manifest();
+    async hits(lat,lon,tol,zoom=this.map.getZoom()) {
+      const box=tapBox(lat,lon,tol*1.04),index=await this.manifest();
       const found=new Map();
       const files=this.files(index,box,false);
       const indexes=new Map();

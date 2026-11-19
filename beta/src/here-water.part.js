@@ -29,7 +29,7 @@ const hereLevelNumber=new Intl.NumberFormat("de-CH",{minimumFractionDigits:2,max
 const hereTempNumber=new Intl.NumberFormat("de-CH",{maximumFractionDigits:1});
 function hereSelection(){
   if(unknownWater())return null;
-  if(isSO()){
+  if(isSO()&&currentSec().id){
     const sec=currentSec();
     if(!sec.id)return null;
     if(state.secAuto&&state.here?.alts?.length&&!state.here.pinned){
@@ -40,8 +40,8 @@ function hereSelection(){
     if(sec.kind==="schon")return {temperatureSection:"SO:"+sec.id};
     return {section:"SO:"+sec.id};
   }
-  // Outside SO automatic canton detection alone does not identify a stretch of water.
-  if(state.cantonAuto)return null;
+  // Automatic choices provide a specific water identity.
+  if(state.cantonAuto&&!selectedWaterName())return null;
   const name=selectedWaterName(),c=state.canton,ref=store.get("publicWaterRef",null);
   if(name){
     if(ref?.canton===c&&ref.name===name)return {section:ref.id,station:ref.station,watercourse:ref.watercourse,name,canton:c};

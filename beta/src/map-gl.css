@@ -10,6 +10,13 @@
 .report-species{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:12px 0;border-bottom:1px solid var(--line)}
 .report-species small{grid-column:1/-1;color:var(--mut)}
 .report-link{margin-block:16px 12px}
+.sh-status{display:grid;gap:3px;margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--sf2);border-left:4px solid var(--warn);font-size:14px;line-height:1.35}
+.sh-status strong{color:var(--warn)}
+.sh-status.ok{border-color:var(--ok)}
+.sh-status.ok strong{color:var(--ok)}
+.sh-status.bad{border-color:var(--bad)}
+.sh-status.bad strong{color:var(--bad)}
+.sh-status span{color:var(--tx);font-size:13px;overflow-wrap:anywhere}
 #mapCatchOptions{display:grid;gap:6px;max-height:52dvh;overflow:auto}
 #mapCatchOptions button{display:grid;gap:3px;text-align:left;min-height:46px}
 #mapCatchOptions small{color:var(--mut)}

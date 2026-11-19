@@ -330,10 +330,10 @@ async function zoneJson(url){
   if(!Array.isArray(data.features))throw Error("Ungültige Zonendaten");
   return data;
 }
-async function cantonalWmsHits(entry,lat,lon,tol){
+async function cantonalWmsHits(entry,lat,lon,tol,zoom=lz()){
   const [code,url,layers]=entry;
   const [x,y]=merc(lat,lon);
-  const half=50.5*40075016.686/(256*2**Math.max(lz(),11));
+  const half=50.5*40075016.686/(256*2**Math.max(zoom,11));
   const params=new URLSearchParams({service:"WMS",version:"1.3.0",request:"GetFeatureInfo",layers,query_layers:layers,
     crs:"EPSG:3857",bbox:[x-half,y-half,x+half,y+half].join(","),width:101,height:101,i:50,j:50,
     feature_count:20,styles:"",format:"image/png",info_format:"application/json"});
@@ -382,7 +382,7 @@ async function waterAt(lat,lon,tolm){
   const d=tolm/111320,dx=d/Math.cos(lat*Math.PI/180),ext=[lon-dx*10,lat-d*10,lon+dx*10,lat+d*10].join(",");
   const layers="ch.swisstopo.swisstlm3d-gewaessernetz";
   const params=new URLSearchParams({geometry:lon+","+lat,geometryType:"esriGeometryPoint",layers:"all:"+layers,sr:"4326",
-    tolerance:"10",mapExtent:ext,imageDisplay:"200,200,96",returnGeometry:"true",geometryFormat:"geojson",lang:"de",limit:"20"});
+    tolerance:"10",mapExtent:ext,imageDisplay:"200,200,96",returnGeometry:"true",geometryFormat:"geojson",lang:"de",limit:"100"});
   const data=await identifyJSON("https://api3.geo.admin.ch/rest/services/api/MapServer/identify?"+params);
   const candidates=[];
   for(const record of data.results){
@@ -434,7 +434,14 @@ function setPins(){
   pinFC=FC(features);if(mapReady)map.getSource("fb-pins")?.setData(pinFC);
 }
 function currentConfirmed(){
+  if(isAuto())return autoWater.hit;
   return chosenMapHit?.code===state.canton&&state.xsel?.[state.canton]===chosenMapHit?.choiceName?chosenMapHit:null;
+}
+function isActiveWaterHit(hit){
+  if(!hit||unknownWater())return false;
+  if(hit.t==="sec")return state.canton==="SO"&&state.sec===hit.id;
+  const selected=currentConfirmed();
+  return !!hit.zoneId&&selected?.code===hit.code&&selected.zoneId===hit.zoneId;
 }
 function drawSel(){
   if(!map)return;
@@ -538,14 +545,49 @@ function zoneGroup(z){
   }
   return "";
 }
-function hitRules(hit){
-  if(!hit||restrictedHit(hit))return "";
+function westRuleGroup(c,f){
+  // The official Bern section descriptions distinguish the Aare's rule groups.
+  if(c==="BE"&&f.art==="Patent"&&temperatureWaterName(f.name)==="aare"){
+    const id=JSON.parse(f.zoneId)[2];
+    const group={P200:"aare_ob",P201:"aare_ob",P202:"interlaken",P203:"aare_thun",P205:"aare_thun",
+      P208:"aare_bern",P211:"aare_wohlen",P215:"aare_wohlen",P218:"altaare",
+      P221:"aare_biel",P222:"aare_biel",P225:"aare_biel",P228:"aare_biel"}[id];
+    if(cwLabel(c,group))return group;
+  }
+  return pickCW(c,[f.name,f.name.split(/[\s\d(]/)[0]],f.poly,f.cw);
+}
+function hitRuleContext(hit){
+  if(!hit)return null;
   let c,sec;
   if(hit.t==="sec"){c="SO";sec=secById(hit.id)}
-  else if(hit.t==="x"){c=hit.code;const f=xg(c).feats[hit.id];if(!f)return "";sec={id:pickCW(c,[f.name,f.name.split(/[\s\d(]/)[0]],f.poly,f.cw),kind:"cw"}}
+  else if(hit.t==="x"){c=hit.code;const f=xg(c).feats[hit.id];if(!f)return null;sec={id:westRuleGroup(c,f),kind:"cw"}}
   else if(hit.t==="zone"){c=hit.code;sec={id:zoneGroup(hit),kind:"cw"}}
   else if(hit.t==="w"){c=hit.code;sec={id:pickCW(c,hit.water.names,hit.water.lake),kind:"cw"}}
-  if(!c)return "";
+  return c?{c,sec}:null;
+}
+function waterStatus(hit,hits=[hit],incomplete=false){
+  const context=hitRuleContext(hit);
+  if(!context||hit.districtView)return null;
+  const {c,sec}=context,feature=hit.t==="x"?xg(c).feats[hit.id]:hit.source;
+  const kind=feature?.art||hit.kind||"";
+  const status=withCanton(c,()=>secStatus(sec,mapRuleDate())),closed=status.find(s=>s.lvl==="bad");
+  const period=feature&&hit.t==="x"?fisheryPeriod(c,feature,mapTime):null;
+  const right=mapRight(hit,hits,incomplete);
+  if(closed||period==="closed"||period==="night")return {cls:"bad",label:period==="night"?"Nächtliche Fangpause":"Heute gesperrt",note:closed?.txt||"Fangzeit geschlossen"};
+  if(FishSections.restriction(kind)&&!FishSections.localCondition(kind)&&!/naturköder/i.test(kind))return {cls:"bad",label:"Fischen verboten",note:right?.title||"Schongebiet"};
+  if(right?.level==="restriction")return {cls:"warn",label:"Einschränkung beachten",note:right.title};
+  if(incomplete||hit.partial||right?.level==="unknown")return {cls:"warn",label:"Status ungeklärt",note:right?.title||"Gewässerdaten unvollständig"};
+  if(/privat/i.test(kind))return {cls:"warn",label:"Berechtigung erforderlich",note:right?.title||"Privates Fischereirecht"};
+  const known=["section","water"].includes(right?.level);
+  const season=hit.t==="sec"?sec.kind==="patent"&&GEO.official:!!sec.id||period==="open";
+  if(known&&season)return {cls:"ok",label:"Fangsaison offen",note:hit.t==="sec"?"Patent erforderlich":right.title};
+  return {cls:"warn",label:"Berechtigung prüfen",note:right?.title||"Status am Abschnitt ungeklärt"};
+}
+function hitRules(hit){
+  if(!hit||restrictedHit(hit))return "";
+  const context=hitRuleContext(hit);
+  if(!context)return "";
+  const {c,sec}=context;
   const group=c!=="SO"&&hasCM(c)?cwLabel(c,sec.id):"";
   const table=withCanton(c,()=>rulesTableFor(sec));
   const note=c==="SO"?"":hasCM(c)?(group?`Regelgruppe: ${esc(group)}`:"Keine eindeutige Regelgruppe – die Werte gelten für übrige Gewässer des Kantons."):"Nur nationale Mindestvorgaben geladen.";
@@ -557,7 +599,7 @@ let sheetState="closed";
 function sheetHeights(){
   const host=$("#v-karte").clientHeight||600,el=$("#mapSheet");
   const peekEl=el.querySelector(".sh-peek");
-  const peek=Math.min(host*.5,(peekEl?peekEl.offsetHeight:120)+30);
+  const peek=Math.min(host*.72,(peekEl?peekEl.offsetHeight:120)+30);
   return {peek,half:Math.max(peek,Math.round(host*.52)),full:Math.round(host*.9),host};
 }
 function sheetVisible(){
@@ -636,21 +678,19 @@ function renderSheet(){
     if(!o)mapSel=null;else{top=`<div class="sh-h"><div class="sh-t">${esc(o.title)}</div><div class="sh-controls"><button type="button" class="sh-x" data-sh="close" aria-label="Schliessen">${XICON}</button></div></div><div class="sh-p">${o.pills}</div>`;actions=o.actions;body=o.body;photo=o.photo}
   } else if(mapSel&&mapSel.t==="sec"){
     const f=GEO.features.find(x=>x.id===mapSel.id)||{t:""},sec=secById(mapSel.id),st=secStatus(sec),k=sec.kind;
-    const pill=k==="schon"?`<span class="pill p-bad">Schonstrecke</span>`:st.some(x=>x.lvl==="bad")?`<span class="pill p-bad">Heute gesperrt</span>`:rightBadge;
+    const pill=rightBadge;
     const r=k==="patent"?soRule(sec,"Bachforelle"):null;
     const bad=st.find(x=>x.lvl==="bad"&&!/^Schonstrecke/.test(x.txt));
-    const chosen=state.canton==="SO"&&state.sec===sec.id;
+    const chosen=isActiveWaterHit(mapSel);
     top=head(sec.name,pill+chip("SO"))+(bad?`<div class="sh-d sh-warn">${esc(bad.txt)}</div>`:"")+
       (r&&r.slot?`<div class="sh-d">Bachforelle ${fmtSlot(r.slot)} · Schonzeit ${fmtR(r.schon)}</div>`:"");
     if(k!=="schon")actions=chosen?`<button type="button" class="pri" data-sh="rules">Regeln ansehen</button>`:`<button type="button" class="pri" data-sh="ok">Gewässer wählen</button>`;
     body=access+(f.t?`<div class="sh-d">${esc(f.t)}</div>`:"");
   } else if(mapSel&&mapSel.t==="x"){
     const c=mapSel.code,f=XGEO[c].feats[mapSel.id],k=kindOf(f.art);
-    const chosen=state.canton===c&&(state.xsel||{})[c]===f.name;
+    const chosen=isActiveWaterHit(mapSel);
     const mark=westMark(c,f);
-    const seasonBadge=mark==="closed"?`<span class="pill p-bad">${fisheryPeriod(c,f,mapTime)==="night"?"Nächtliche Fangpause":"Fangzeit geschlossen"}</span>`:
-      mark==="open"&&["section","water"].includes(right?.level)?'<span class="pill p-ok">Fangsaison offen · Berechtigung prüfen</span>':"";
-    top=head(f.name,chip(c)+(seasonBadge||rightBadge));
+    top=head(f.name,chip(c)+rightBadge);
     if(!(k==="schon"||mark==="closed"||FishSections.localCondition(f.art)))actions=chosen?`<button type="button" class="pri" data-sh="rules">Regeln ansehen</button>`:`<button type="button" class="pri" data-sh="okx">Gewässer wählen</button>`;
     body=access+(f.t?`<div class="sh-d">${esc(f.t)}</div>`:"")+(f.x||[]).filter(t=>t!==f.t).slice(0,2).map(t=>`<div class="sh-d">${esc(t)}</div>`).join("")+
       (f.url?`<div class="sh-d"><a href="${esc(f.url)}" target="_blank" rel="noopener">Amtliche Angaben zum Gewässer</a></div>`:"");
@@ -661,13 +701,13 @@ function renderSheet(){
     const district=z.rev?(lu?"Revier-ID ":"Revier ")+z.rev:z.kind;
     const section=[district,z.region&&z.region!==z.name?z.region:""].filter(Boolean).join(" · ");
     top=z.districtView?head("Revier "+z.rev,chip(z.code)):head(z.name,chip(z.code)+rightBadge)+`<div class="sh-section">${esc(section)}</div>`+(lu?luMeasurements(z.rev):"");
-    if(!restrictedHit(z)&&!z.buried&&!z.districtView)actions='<button type="button" class="pri" data-sh="zone">Gewässer wählen</button>';
+    if(!restrictedHit(z)&&!z.buried&&!z.districtView)actions=isActiveWaterHit(z)?'<button type="button" class="pri" data-sh="rules">Regeln ansehen</button>':'<button type="button" class="pri" data-sh="zone">Gewässer wählen</button>';
     if(z.hasDistrict&&!z.wholeDistrict)actions+='<button type="button" class="sh-district" data-sh="district">'+(z.districtView?"Zum Abschnitt":"Ganzes Revier "+esc(z.rev))+'</button>';
     body=access;
     if(!z.districtView&&z.code==="LU"&&FishSections.localCondition(z.kind))
       body+='<div class="sh-d">Hier gelten örtliche und zeitliche Einschränkungen. <a href="https://lawa.lu.ch/fischerei/angelfischerei/sempachersee" target="_blank" rel="noopener">Vorschriften am Sempachersee</a></div>';
   } else if(mapSel&&mapSel.t==="w"){
-    const c=mapSel.code,w=mapSel.water,chosen=state.canton===c&&(state.xsel||{})[c]===w.name;
+    const c=mapSel.code,w=mapSel.water,chosen=isActiveWaterHit(mapSel);
     top=head(w.name||(w.lake?"See ohne Namen":"Bach ohne Namen"),chip(c)+rightBadge);
     body=access;
     if(mapSel.border?.length>1)body+='<div class="sh-d">Zuständige Stellen: '+mapSel.border.map(code=>'<a target="_blank" rel="noopener" href="'+esc(FishRights.offices[code][1])+'">'+esc(cname(code))+'</a>').join(' · ')+'</div>';
@@ -678,6 +718,8 @@ function renderSheet(){
   if(top){
     if(pendingSelection){top=head(mapSel.name,chip(mapSel.code||"SO"));actions="";body='<p class="sh-d">Weitere Zonen werden geprüft …</p>'}
     else{
+      const status=waterStatus(mapSel,mapHits,!!hitWarning);
+      if(status)top+='<div class="sh-status '+status.cls+'" role="status"><strong>'+esc(status.label)+'</strong><span>'+esc(status.note)+'</span></div>';
       if(mapSel?.partial)body+='<p class="sh-warn">Nur der geladene Teil der Zone ist markiert.</p>';
       if(mapSel?.pointOnly)body+='<p class="sh-d">Der Kartendienst liefert hier nur eine Punktauskunft.</p>';
       if(!mapSel.districtView&&mapHits.includes(mapSel)&&mapHits.length>1){
@@ -739,9 +781,16 @@ function sheetAction(a){
   }
   if(a==="close"){mapSel=null}
   else if(a==="rules"){mapSel=null;renderSheet();drawSel();show("hier");return}
-  if(a==="ok"&&mapSel){const id=mapSel.id;clearReportSection();delete state.xsel.SO;state.canton="SO";state.cantonAuto=false;state.sec=id;state.secAuto=false;state.pin=null;chosenMapHit=null;mapSel=null;save();renderSheet();toast(secById(id).name+" gewählt");onCantonChanged();
-    show("hier");return}
-  if(a==="okx"&&mapSel){const c=mapSel.code,f=XGEO[c].feats[mapSel.id];if(!f||restrictedHit(mapSel))return;chooseWater(c,f.name,pickCW(c,[f.name,f.name.split(/[\s\d(]/)[0]],f.poly,f.cw));return}
+  if(a==="ok"&&mapSel){
+    const id=mapSel.id;
+    clearReportSection();
+    state.xsel.SO=secById(id).name;
+    Object.assign(state,{canton:"SO",cantonAuto:false,sec:id,secAuto:false,pin:null});
+    chosenMapHit=Object.assign(mapSel,{choiceName:state.xsel.SO,choiceHits:mapHits.filter(h=>h!==mapSel),choiceIncomplete:!!hitWarning});
+    mapSel=null;save();renderSheet();toast(secById(id).name+" gewählt");onCantonChanged();
+    show("hier");return;
+  }
+  if(a==="okx"&&mapSel){const c=mapSel.code,f=XGEO[c].feats[mapSel.id];if(!f||restrictedHit(mapSel))return;chooseWater(c,f.name,westRuleGroup(c,f));return}
   if(a==="okw"&&mapSel?.t==="w"&&!(mapSel.border?.length>1)&&!mapSel.water.ambiguous&&mapRight(mapSel)?.level!=="restriction"){
     const c=mapSel.code,w=mapSel.water;chooseWater(c,w.name||"Gewässer",pickCW(c,w.names,w.lake));return;
   }
@@ -1239,8 +1288,15 @@ function bindMapCredits(){
   cantons.onchange=showOffice;
   updateCredits();
 }
-function loadScript(src){return new Promise((resolve,reject)=>{const s=document.createElement("script");s.src=src;s.onload=resolve;s.onerror=()=>{s.remove();reject(Error(src))};
-  if(src===MAPLIBRE.js){s.integrity=MAPLIBRE_SRI.js;s.fetchPriority="high"}document.head.append(s)})}
+const scriptRequests=new Map();
+function loadScript(src){
+  if(!scriptRequests.has(src))scriptRequests.set(src,new Promise((resolve,reject)=>{
+    const s=document.createElement("script");s.src=src;s.onload=resolve;
+    s.onerror=()=>{s.remove();scriptRequests.delete(src);reject(Error(src))};
+    if(src===MAPLIBRE.js){s.integrity=MAPLIBRE_SRI.js;s.fetchPriority="high"}document.head.append(s);
+  }));
+  return scriptRequests.get(src);
+}
 const MAPLIBRE={js:"./vendor/maplibre-gl/maplibre-gl.js",css:"./vendor/maplibre-gl/maplibre-gl.css"};
 const MAPLIBRE_SRI={js:"sha384-Nvz6wITR4vEzcMz/FWUFgkrmKDhnaQbjYxIIbwwbAFha9kWiRhmR4QjJ3zhrlnR8",css:"sha384-mnM9NG1099tBMNxdDQNDKIxYcn/fmqQXFJvbT5l1MsrWvzfxBEffceBsw75/cW2R"};
 function focusMapPlace(place,fitDistrict=false){
@@ -1266,13 +1322,12 @@ function initialMapView(){
   return Array.isArray(saved)&&saved.length===3&&saved.every(Number.isFinite)&&saved[0]>=45.6&&saved[0]<=48&&saved[1]>=5.7&&saved[1]<=10.7?
     {center:[saved[1],saved[0]],zoom:Math.max(5,Math.min(19,saved[2]))}:state.pos?{center:[state.pos.lon,state.pos.lat],zoom:13}:{bounds:[[5.95,45.81],[10.5,47.82]]};
 }
-function prepareSections(){
+function prepareSections(preload=true){
   if(sectionMap)return;
   sectionMap=new FishSections.Layer({getZoom:()=>lz(),getBounds:()=>map.getBounds()},updateHint,
     row=>sectionMark(row.code,row.meta[1],row.meta[5],row.meta[6],row.meta[2],row.meta[3]),{
       features:fc=>setZones("fb-sec",fc),coarse:list=>setCoarse(list),credits:set=>setCredits("sections",set)});
-  const view=initialMapView();
-  sectionMap.preload(view.center,(view.zoom??5)+1);
+  if(preload){const view=initialMapView();sectionMap.preload(view.center,(view.zoom??5)+1)}
 }
 async function initMap(){
   if(map){refreshMapDate();requestAnimationFrame(()=>{map.resize();sectionMap.sync();scheduleWest();loadX();refreshReports()});renderSheet();drawSel();showShoreMarkers();if(mapReady)focusRequestedLU();return}

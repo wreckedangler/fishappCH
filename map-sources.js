@@ -1,5 +1,5 @@
 /* Public cantonal fishery services. Used by the map and the offline snapshot builder. */
-const XBOX={BE:[6.86,46.32,8.46,47.35],FR:[6.62,46.43,7.38,47.03],GE:[5.94,46.12,6.33,46.39],
+const XBOX={TI:[8.38,45.81,9.16,46.64],BE:[6.86,46.32,8.46,47.35],FR:[6.62,46.43,7.38,47.03],GE:[5.94,46.12,6.33,46.39],
   GL:[8.87,46.79,9.26,47.18],SH:[8.4,47.55,8.88,47.81],TG:[8.66,47.37,9.5,47.7],
   VD:[6.06,46.18,7.26,46.99],VS:[6.77,45.85,8.48,46.66],NW:[8.30,46.96,8.57,47.03]};
 function juraKind(right,area,management){
@@ -93,6 +93,32 @@ Object.assign(XSRC,{
   {url:AQ(VDB,196),map:p=>({id:"E"+p.OBJECTID,art:"Unbekannt",name:p.NOM||"See oder Weiher",t:"",x:["Kleiner See oder Weiher gemäss kantonaler Fischereikarte"]})},
   {url:AQ(VDB,197),map:p=>({id:"F"+p.OBJECTID,art:"Frei",name:"Freie Strecke "+(p.NOMPARCOURSLIBRE||""),t:p.DEFINITION||"",x:["Parcours libre: Fischen ohne Patent nach kantonaler Regelung."]})},
   {url:AQ(VDB,194),map:p=>({id:"S"+p.OBJECTID,art:"Schon",name:"Schongebiet "+(p.NOMRIVIERE||"")+(p.NORESERVE?" (Nr. "+p.NORESERVE+")":""),t:p.DEFINITION||"",x:["Réserve de pêche – Fischen verboten"]})}]}
+});
+
+// Ticino: Geobasisdaten TI-035.1 (settori di pesca) and AC-064.1 (zone di protezione ittica).
+// River sectors (8000+ lines) are not loaded: running waters follow the cantonal season on the
+// water network. Lakes Verbano and Ceresio are drawn by the national lake layer.
+const TIW=(layer,filter)=>()=>"https://wfs.geo.ti.ch/service?SERVICE=WFS&VERSION=1.1.0&REQUEST=GetFeature&TYPENAME="+layer+
+  "&SRSNAME=EPSG:4326&OUTPUTFORMAT=application/json"+(filter?"&FILTER="+encodeURIComponent(filter):"");
+const tiZone=(want)=>p=>{
+  const type=String(p.tipologia_corta||"");
+  const river=/corsi d'acqua/i.test(type),lake=/laghi/i.test(type),temp=/temporanee/i.test(type);
+  if(!(want==="line"?river:(lake||temp)))return null;
+  const since=String(p.in_vigore_dal||"").slice(0,10);
+  return {id:"Z"+p.ogc_fid,art:temp?"Besondere Vorschrift":"Schon",name:p.nome_zona_protezione||"Zona di protezione",
+    t:p.descrizione||"",closedPeriod:temp?[401,531]:undefined,
+    x:[temp?"Zander-Schutzzone: Fischen vom 1.4. bis 31.5. verboten":"Fischen verboten (Schutzzone)",
+       since?"In Kraft seit "+since.split("-").reverse().join("."):"",p.osservazioni||""].filter(Boolean),
+    url:xUrl(p.url_decreto,"www3.ti.ch")};
+};
+Object.assign(XSRC,{
+ TI:{attr:"Settori e zone di protezione pesca © Cantone Ticino",live:true,layers:[
+  {url:TIW("ac_064_1_v1_0_zone_protezione_ittica_linee"),map:tiZone("line")},
+  {url:TIW("ac_064_1_v1_0_zone_protezione_ittica_poligoni"),map:tiZone("area")},
+  {url:TIW("ti_035_1_v1_0_settori_pesca_settori",'<Filter xmlns="http://www.opengis.net/ogc"><Or><PropertyIsEqualTo><PropertyName>tipo_alias</PropertyName><Literal>Lago alpino</Literal></PropertyIsEqualTo><PropertyIsEqualTo><PropertyName>tipo_alias</PropertyName><Literal>Diritto privato</Literal></PropertyIsEqualTo></Or></Filter>'),
+   map:p=>{const priv=p.tipo_alias==="Diritto privato";const name=(p.alias&&p.alias!=="null"?p.alias:p.nome)||"Lago";
+    return {id:"S"+p.ogc_fid,art:priv?"Privat":"Patent",name,t:"Settore "+(p.codice||""),cw:priv?undefined:"alpin",
+      x:[priv?(p.osservazioni||"Privates Fischereirecht: kantonales Patent gilt hier nicht."):"Alpensee: Fangzeit gemäss kantonaler Saison für Seen über 1200 m"].filter(Boolean)}}}]}
 });
 
 async function westFeatures(url){

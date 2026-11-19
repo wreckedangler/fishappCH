@@ -338,7 +338,10 @@ test("Thurgau distinguishes a species rule from a seasonal closure across New Ye
 test("the viewport covers every bundled reach and the Geneva sector stops at the cantonal boundary",()=>{
   const {api}=mapAt(6),{XBOX,XSRC}=require("../map-sources.js");
   for(const c of Object.keys(XSRC)){
-    const all=JSON.parse(fs.readFileSync(path.join(root,"data/fisheries",c+".json"),"utf8"));
+    const file=path.join(root,"data/fisheries",c+".json");
+    // Cantons marked live load from the cantonal service until a bundle has been built.
+    if(XSRC[c].live&&!fs.existsSync(file))continue;
+    const all=JSON.parse(fs.readFileSync(file,"utf8"));
     const [w,s,e,n]=XBOX[c];
     const box=[Infinity,Infinity,-Infinity,-Infinity];
     let sectors=0;

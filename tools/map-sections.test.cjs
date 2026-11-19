@@ -45,7 +45,7 @@ test("Zürich uses the water name and selects a single branch in a Revier",async
 
 test("Obersee tributaries do not highlight all the lines of Revier 1495",async()=>{
   const {layer}=mapAt(15);
-  const hit=(await layer.hits(47.2255225,8.87819524,20)).find(f=>f.rev==="1495");
+  const hit=(await layer.hits(47.2241767,8.877015,20)).find(f=>f.rev==="1495");
   assert.equal(hit.code,"SG");
   assert.equal(hit.l.length,1);
   assert.ok(hit.d<2);
@@ -105,7 +105,7 @@ test("a missing group catalogue or geometry can be retried without granting righ
 
 test("an unnamed St. Gallen tributary never inherits the entire catchment",async()=>{
   const {layer}=mapAt(15);
-  const hit=(await layer.hits(47.2255225,8.87819524,20)).find(f=>f.rev==="1495");
+  const hit=(await layer.hits(47.2241767,8.877015,20)).find(f=>f.rev==="1495");
   assert.ok(!hit.group);
   const [part]=await layer.wholeZone(hit);
   assert.equal(part.lines.length,1);

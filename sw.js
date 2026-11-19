@@ -7,7 +7,7 @@ const IMG = "fb-img-v1";     // Fischfotos (Wikimedia): Cache zuerst
 const SECTIONS = "fb-sections-v1"; // Abschnittsdateien mit Inhalts-Hash
 
 const FILES = ["./index.html", "./beta/index.html", "./beta/map-sections-gl.js", "./map-search.js", "./data/sections/index.json", "./data/so-sections.json", "./manifest.webmanifest", "./icon.svg", "./data/updates.json", "./vendor/maplibre-gl/maplibre-gl.js", "./vendor/maplibre-gl/maplibre-gl.css", "./data/basemaps/luft.json", "./data/basemaps/topo.json"];
-FILES.push("./map-sources.js","./map-rights.js","./map-rights-registers.js","./data/map-overview.json","./data/alpenraum.webp","./data/luzern-reviere.json","./data/lakes.json",...["BE","FR","GE","GL","NW","SH","TG","VD","VS"].map(c=>"./data/fisheries/"+c+".json"));
+FILES.push("./map-sources.js","./map-rights.js","./map-rights-registers.js","./data/map-overview.json","./data/alpenraum.webp","./data/luzern-reviere.json","./data/lakes.json","./data/canton-areas.json",...["BE","FR","GE","GL","NW","SH","TG","VD","VS"].map(c=>"./data/fisheries/"+c+".json"));
 FILES.push(...["favicon-32","schild-apple-180","schild-192","schild-512","schild-maskable-512"].map(name=>"./assets/"+name+".png"));
 FILES.push("./data/here-stations.json","./data/temperature-waters.json");
 

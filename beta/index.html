@@ -2894,6 +2894,7 @@ function applyZoneDim(f,force){
     if(s.meta==="fill")map.setPaintProperty(s.id,"fill-opacity",fillOpacity());
     else map.setPaintProperty(s.id,"line-opacity",s.meta==="casing"?casingOpacity():s.meta==="glow"?glowOpacity():inkOpacity());
   }
+  updateCantonNet(true);
   if(map.getLayer("fb-lakes-fill")){map.setPaintProperty("fb-lakes-fill","fill-opacity",lakeFillOpacity());map.setPaintProperty("fb-lakes-line","line-opacity",lakeLineOpacity())}
   if(map.getLayer("fb-hydro"))map.setPaintProperty("fb-hydro","raster-opacity",hydroOpacity());
   for(const img of coarseImages){const id="fb-coarse-"+img.id;if(map.getLayer(id))map.setPaintProperty(id,"raster-opacity",zoneDim)}
@@ -3999,6 +4000,7 @@ function addOverlays(){
   for(const src of ZONE_SOURCES)map.addSource(src,{type:"geojson",data:zoneData[src],tolerance:.3,buffer:64});
   for(const img of coarseImages)addCoarse(img);
   addLakeLayers();
+  setTimeout(()=>updateCantonNet(true),0);
   for(const spec of zoneLayerSpecs()){const {meta,...layer}=spec;map.addLayer(layer)}
   addGroupLayers();
   map.addSource("fb-sel",{type:"geojson",data:selFC,tolerance:.2});
@@ -4548,6 +4550,7 @@ function loadLakes(){
 }
 function drawLakes(){
   if(!mapReady)return;
+  updateCantonNet();
   if(!lakeData){loadLakes();return}
   const stamp=mapDate+"|"+DATA_META.version;if(stamp===lakeStamp)return;lakeStamp=stamp;
   lakeFC=FC(lakeData.map(f=>({...f,properties:{n:f.properties.n,k:lakeOpen(f.properties.w)}})));
@@ -4609,6 +4612,62 @@ function addGroupLayers(){
     paint:{"line-color":"#203038","line-width":selWidth(3.2),"line-opacity":.38}});
   map.addLayer({id:"fb-group-edge",type:"line",source:"fb-group",layout:{"line-cap":"round","line-join":"round"},
     paint:{"line-color":"#ffd43b","line-width":selWidth(1.6),"line-opacity":.62}});
+}
+
+/* ---- Kantone ohne Streckendaten: Gewässernetz nach heutigem Status ---- */
+// Group of the cantonal rules (RULES[c].w) for running waters; named exceptions first.
+// "" means no reliable season in the rules: such waters stay uncoloured.
+const CANTON_NET={
+  AI:{d:"bach"},AR:{d:"pacht"},OW:{d:"fluss"},UR:{d:"fluss"},ZG:{d:"fluss"},
+  BL:{d:"uebrige",x:{rhein:["Rhein"]}},
+  BS:{d:"",x:{rhein:["Rhein"],wiese:["Wiese","Birs","Riehenteich"]}},
+  JU:{d:"",x:{doubs:["Doubs","Le Doubs"],allaine:["Allaine","L'Allaine"],birse:["Birse","La Birse","Sorne","La Sorne"],scheulte:["Scheulte","La Scheulte"]}},
+  NE:{d:"areuse",x:{thielle:["Thielle","La Thielle","Zihlkanal"],"":["Doubs","Le Doubs"]}},
+  SZ:{d:"fluss",x:{sihl:["Sihl","Alp","Muota"],linth:["Linth","Linthkanal"]}},
+  TI:{d:"fluss",x:{tresa:["Tresa"]}}
+};
+let cantonAreas=null,cantonNetStamp="",cantonNetIds=[];
+function cantonGroupStatus(c,key){
+  const R=RULES[c];if(!key||!R)return "";
+  const entries=(R.closed||[]).filter(cl=>cl.w.includes(key));
+  if(!entries.length)return "";       // season not in the rules: do not guess
+  return entries.some(cl=>inRange(mapRuleDate(),cl.from,cl.to))?"closed":"open";
+}
+function decodeAreas(list){
+  return {type:"MultiPolygon",coordinates:list.map(poly=>poly.map(r=>{let x=0,y=0;const out=[];for(let i=0;i<r.length;i+=2){x+=r[i];y+=r[i+1];out.push([x/1000,y/1000])}if(out.length&&(out[0][0]!==out.at(-1)[0]||out[0][1]!==out.at(-1)[1]))out.push(out[0]);return out}))};
+}
+function loadCantonAreas(){
+  if(cantonAreas)return;
+  cantonAreas={};
+  fetch("./data/canton-areas.json").then(r=>r.json()).then(d=>{for(const [c,l] of Object.entries(d))cantonAreas[c]=decodeAreas(l);cantonNetStamp="";updateCantonNet()}).catch(()=>{cantonAreas=null});
+}
+function updateCantonNet(force){
+  if(!mapReady||!map.getSource("base_v1.0.0"))return;
+  if(!cantonAreas||!Object.keys(cantonAreas).length){loadCantonAreas();return}
+  const stamp=mapDate+"|"+DATA_META.version+"|"+(mapFilter.openFocus!==false);
+  if(stamp===cantonNetStamp&&!force&&cantonNetIds.every(id=>map.getLayer(id)))return;
+  cantonNetStamp=stamp;
+  for(const id of cantonNetIds)if(map.getLayer(id))map.removeLayer(id);
+  cantonNetIds=[];
+  const before=map.getLayer("fb-sec-fill")?"fb-sec-fill":undefined;
+  const cls=["in",["get","class"],["literal",["river","stream","canal"]]];
+  for(const [c,cfg] of Object.entries(CANTON_NET)){
+    const area=cantonAreas[c];if(!area)continue;
+    const named=Object.values(cfg.x||{}).flat();
+    const groups=Object.entries(cfg.x||{}).map(([k,names])=>({k,f:["in",["get","name"],["literal",names]]}));
+    groups.push({k:cfg.d,f:named.length?["!",["in",["get","name"],["literal",named]]]:true});
+    groups.forEach(({k,f},i)=>{
+      const st=cantonGroupStatus(c,k);if(!st)return;
+      const id=`fb-net-${c}-${i}`,closed=st==="closed";
+      map.addLayer({id,type:"line",source:"base_v1.0.0","source-layer":"waterway",minzoom:8,
+        filter:["all",cls,["within",area],f],layout:{"line-cap":"round","line-join":"round"},
+        paint:{"line-color":closed?FishSections.symbols.closed.color:FishSections.symbols.open.color,
+          "line-width":["interpolate",["linear"],["zoom"],8,["match",["get","class"],"river",1.6,.7],12,["match",["get","class"],"river",3.2,1.6],15,["match",["get","class"],"river",4.5,2.6]],
+          "line-opacity":closed?.8*zoneDim:(mapFilter.openFocus!==false?.9:.6)*zoneDim,
+          ...(closed?{"line-dasharray":[1.6,1.4]}:{})}},before);
+      cantonNetIds.push(id);
+    });
+  }
 }
 
 /* Freiwillige Fangmeldungen. Nur der Server bestimmt die Position des Abschnitts. */

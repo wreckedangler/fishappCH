@@ -120,6 +120,7 @@ function applyZoneDim(f,force){
     if(s.meta==="fill")map.setPaintProperty(s.id,"fill-opacity",fillOpacity());
     else map.setPaintProperty(s.id,"line-opacity",s.meta==="casing"?casingOpacity():s.meta==="glow"?glowOpacity():inkOpacity());
   }
+  updateCantonNet(true);
   if(map.getLayer("fb-lakes-fill")){map.setPaintProperty("fb-lakes-fill","fill-opacity",lakeFillOpacity());map.setPaintProperty("fb-lakes-line","line-opacity",lakeLineOpacity())}
   if(map.getLayer("fb-hydro"))map.setPaintProperty("fb-hydro","raster-opacity",hydroOpacity());
   for(const img of coarseImages){const id="fb-coarse-"+img.id;if(map.getLayer(id))map.setPaintProperty(id,"raster-opacity",zoneDim)}
@@ -1225,6 +1226,7 @@ function addOverlays(){
   for(const src of ZONE_SOURCES)map.addSource(src,{type:"geojson",data:zoneData[src],tolerance:.3,buffer:64});
   for(const img of coarseImages)addCoarse(img);
   addLakeLayers();
+  setTimeout(()=>updateCantonNet(true),0);
   for(const spec of zoneLayerSpecs()){const {meta,...layer}=spec;map.addLayer(layer)}
   addGroupLayers();
   map.addSource("fb-sel",{type:"geojson",data:selFC,tolerance:.2});

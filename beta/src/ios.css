@@ -369,3 +369,21 @@ section.view>.ios-title+.seg{margin-top:14px!important}
 /* Kartenüberschriften überall gleich */
 .card>h2:first-child,.card>h1:first-child{margin-top:0}
 .card h2{font-size:17px;font-weight:600;letter-spacing:-.02em;margin-bottom:12px}
+
+/* ================= Flüssiges Scrollen auf Touch-Geräten ================= */
+/* Unschärfe über scrollendem Inhalt wird bei jedem Bild neu berechnet. Auf dem Handy
+   sind die festen Leisten deshalb fast deckend statt unscharf. */
+@media (pointer:coarse){
+ #topbar,nav,#topbar.bad{-webkit-backdrop-filter:none;backdrop-filter:none;background:color-mix(in srgb,var(--sf) 97%,transparent)}
+ @media (prefers-color-scheme:dark){#topbar,nav,#topbar.bad{background:color-mix(in srgb,#1c1c1e 97%,transparent)}}
+ #topbar{background:color-mix(in srgb,var(--bg) 96%,transparent)}
+ #mapUI .mui-search,#mapUI .mseg,#mapUI .mui-chip,#mapUI .mui-zoom,#mapUI .mui-round,#mapUI .mui-credit,#v-karte .press-card{-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+ #v-karte #mapSheet,#shorePanel,.mui-layers{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--sf)}
+ :root{--shadow:0 .5px 1px rgba(0,0,0,.05),0 4px 12px -6px rgba(0,0,0,.1)}
+ @media (prefers-color-scheme:dark){:root{--shadow:inset 0 .5px 0 rgba(255,255,255,.07),0 0 0 .5px rgba(255,255,255,.04)}}
+}
+/* Feste Leisten auf eigener Ebene, damit der Inhalt darunter nur verschoben wird. */
+#topbar,nav,.save-bar{transform:translateZ(0);will-change:transform}
+/* Lange Bereiche erst zeichnen, wenn sie in die Nähe des Bildschirms kommen. */
+#artList>*,#logList>.it,#hereRules>.card,#rulesBody>.card,#waterFish .card{content-visibility:auto;contain-intrinsic-size:auto 120px}
+main{overscroll-behavior-y:none}

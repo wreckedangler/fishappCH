@@ -132,6 +132,13 @@ App-Einstiege eingebettet. Sie benötigen offline keine weiteren Dateien.
 Die Gewässerauswahl aktualisiert nur die betroffenen Hinweise, Materialangaben und
 Aufbauschritte; geöffnete Knoten und Fischfotos bleiben erhalten.
 
+`beta/src/fish-sketches.part.js` ergänzt eigene, beschriftete SVG-Skizzen für alle
+Montagearten sowie durchblätterbare Knotenschritte. Beim Dropshot und der
+Einzel-Nymphe zeigt Palomar zusätzlich das lange Ende und dessen erneute
+Durchführung durchs Öhr. Die Zeichnungen sind mit Textalternativen eingebettet,
+passen sich an helles/dunkles Design an und benötigen keine externen Bilddateien.
+Der aktuelle Knotenschritt bleibt bei Statusupdates und beim Aufklappen erhalten.
+
 Die Vorschläge verwenden eine Rute und einen widerhakenlosen Einzelhaken. Sie sind
 keine automatische Geräte- oder Berechtigungsfreigabe. Bestehende Schonzeiten,
 Sperren und lokale Bedingungen haben Vorrang. Schwyzer Bachfischerei berücksichtigt

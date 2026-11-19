@@ -291,9 +291,36 @@ a:active{opacity:.6}
 .rig-material{margin:0 0 12px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 12px;font-size:14px}
 .rig-material dt{color:var(--mut)}
 .rig-material dd{margin:0;overflow-wrap:anywhere}
-.rig-body .rig-chain{display:flex;flex-wrap:wrap;gap:6px 8px;list-style:none;padding:10px 0;border-block:1px solid var(--sep);font-size:12px;color:var(--mut)}
-.rig-chain li{margin:0;padding:0}
-.rig-chain li:not(:last-child)::after{content:" →";white-space:pre;color:var(--acc)}
+.rig-body{--rig-paper:var(--sf);--rig-end:#a84b17;--rig-bait:#f9dfbc;--rig-muted:#5d6268}
+@media(prefers-color-scheme:dark){.rig-body{--rig-paper:#252528;--rig-end:#f0b16c;--rig-bait:#53402c;--rig-muted:#b8bbc2}}
+.rig-drawing{margin:0;background:var(--rig-paper);border-radius:12px;overflow:hidden}
+.rig-drawing figcaption{padding:0 10px 10px;font-size:12px;color:var(--rig-muted);line-height:1.35}
+.rig-svg{display:block;width:100%;height:auto;max-width:340px;margin:0 auto;background:var(--rig-paper);border-radius:12px;font:16px system-ui,-apple-system,"Segoe UI",sans-serif}
+.rig-svg path,.rig-svg circle,.rig-svg ellipse,.rig-svg rect{stroke-linecap:round;stroke-linejoin:round}
+.sk-line,.sk-end,.sk-metal,.sk-guide,.sk-arrow,.sk-gap{fill:none}
+.sk-line{stroke:var(--acc);stroke-width:3}
+.sk-end{stroke:var(--rig-end);stroke-width:3}
+.sk-metal{stroke:var(--tx);stroke-width:2.5}
+.sk-weight{stroke:var(--tx);stroke-width:2;fill:var(--fill2)}
+.sk-bait{stroke:var(--rig-end);stroke-width:2;fill:var(--rig-bait)}
+.sk-eye{fill:var(--tx);stroke:none}
+.sk-guide{stroke:var(--rig-muted);stroke-width:1}
+.sk-arrow{stroke:var(--tx);stroke-width:1.8}
+.sk-gap{stroke:var(--rig-paper);stroke-width:7}
+.sk-label{fill:var(--tx);font-size:16px}
+.sk-sub{fill:var(--rig-muted);font-size:13px}
+.knot-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:10px 0;font-size:13px;color:var(--rig-muted)}
+.knot-legend span{display:flex;align-items:center;gap:6px}
+.knot-legend i{width:18px;height:0;border-top:3px solid var(--acc)}
+.knot-legend .sk-end-key{border-color:var(--rig-end)}
+.knot-stage{scroll-margin-top:calc(var(--tb) + 12px)}
+.knot-step-copy{min-height:154px;padding:12px 0 0}
+.knot-step-copy strong{display:block;font-size:15px;margin:0 0 6px}
+.knot-step-copy p{font-size:14px;line-height:1.5}
+.knot-nav{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:8px;margin:4px 0 8px}
+.knot-nav button{min-height:44px;min-width:0;padding:9px 6px;border-radius:10px;background:var(--rig-paper);color:var(--acc);font-size:14px;box-shadow:none}
+.knot-nav button:disabled{color:var(--mut);opacity:.55;cursor:default}
+.knot-count{font-size:13px;color:var(--rig-muted);font-variant-numeric:tabular-nums}
 .rig-tip{font-size:14px;line-height:1.45;padding:12px;background:var(--fill);border-radius:10px;margin:12px 0}
 #artList .rig-knot,#artList .rig-regulations{border-top:1px solid var(--sep);margin-top:12px}
 #artList :is(.rig-knot,.rig-regulations)>summary{min-height:48px;padding:12px 0;font-size:15px;font-weight:600;cursor:pointer}

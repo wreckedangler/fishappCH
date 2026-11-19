@@ -15,7 +15,7 @@ part = open(os.path.join(root, "beta", "src", "map-gl.part.js"), encoding="utf-8
 part += "\n" + open(os.path.join(root, "beta", "src", "map-spots.part.js"), encoding="utf-8").read()
 part += "\n" + open(os.path.join(root, "beta", "src", "map-open.part.js"), encoding="utf-8").read()
 part += "\n" + open(os.path.join(root, "beta", "src", "map-community.part.js"), encoding="utf-8").read()
-for filename in ("here-hydro.part.js", "here-water.part.js", "location-water.part.js", "fish-rigs.part.js"):
+for filename in ("here-hydro.part.js", "here-water.part.js", "location-water.part.js", "fish-rigs.part.js", "fish-sketches.part.js"):
     with open(os.path.join(root, "beta", "src", filename), encoding="utf-8") as source:
         part += "\n" + source.read()
 css = open(os.path.join(root, "beta", "src", "map-gl.css"), encoding="utf-8").read()
@@ -83,7 +83,8 @@ if promote or already_live:
 
 # Der bisherige /beta/-Einstieg verwendet dieselben Dateien und behält seine Route.
 out = re.sub(r"<head>", '<head>\n<base href="../">', out, count=1)
-out = replace_once(out, "<title>", '<meta name="robots" content="noindex">\n<title>')
+head, body = out.split("</head>", 1)
+out = replace_once(head, "<title>", '<meta name="robots" content="noindex">\n<title>') + "</head>" + body
 out = replace_once(out, 'history.pushState(null,"","#"+(v==="stat"?"fangbuch":v));',
     'history.pushState(null,"",location.pathname+location.search+"#"+(v==="stat"?"fangbuch":v));')
 write("beta/index.html", out)

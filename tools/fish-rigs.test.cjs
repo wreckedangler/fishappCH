@@ -2,8 +2,9 @@ const test=require("node:test"),assert=require("node:assert/strict");
 const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm");
 const read=p=>fs.readFileSync(path.join(__dirname,"..",p),"utf8");
 function app(stubs={}){
-  const ctx=vm.createContext(stubs);
+  const ctx=vm.createContext({esc:s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]),...stubs});
   vm.runInContext(read("beta/src/fish-rigs.part.js"),ctx);
+  vm.runInContext(read("beta/src/fish-sketches.part.js"),ctx);
   ctx.rigs=vm.runInContext("FISH_RIGS",ctx);
   return ctx;
 }
@@ -16,6 +17,38 @@ test("guides cover fish with fishing tips, without adding target fishing for obs
   vm.runInContext(html.slice(start,end),ctx);
   const eligible=vm.runInContext("Object.entries(FISH).filter(([,f])=>f.koeder).map(([sp])=>sp).sort()",ctx);
   assert.deepEqual(Object.keys(ctx.rigs).sort(),Array.from(eligible));
+});
+
+test("the inline drawing follows adapted bait and never invents a montage for an unknown type",()=>{
+  const ctx=app(),rig=ctx.rigs.Karpfen;
+  const normal=ctx.rigAssessment(rig,base),restricted=ctx.rigAssessment(rig,{canton:"SZ",water:"fluss"});
+  const draw=a=>ctx.rigSketch(rig,a,ctx.rigBuild(rig,a));
+  assert.match(draw(normal),/Köder: Ein bis zwei weiche Maiskörner/);
+  assert.match(draw(restricted),/Köder: Wurm/);
+  assert.doesNotMatch(draw(restricted),/Mais/);
+  assert.notEqual(draw(normal),draw(restricted));
+  assert.equal(ctx.rigSketch({...rig,type:"unknown"},normal,ctx.rigBuild(rig,normal)),"");
+});
+
+test("Palomar drawings retain the end only for end-weight rigs and include the second pass through the eye",()=>{
+  const ctx=app(),normal=ctx.knotSketchSteps("palomar",false),drop=ctx.knotSketchSteps("palomar",true);
+  assert.equal(normal.length,4);assert.match(normal.at(-1).text,/3 mm/);
+  assert.equal(drop.length,5);assert.match(drop[3].text,/lange Ende.*behalten/);
+  assert.match(drop[4].text,/nochmals von oben.*30–50 cm/);
+  assert.doesNotMatch(drop.map(s=>s.text).join(" "),/3 mm/);
+  for(const [sp,expected] of [["Hecht",4],["Wels",4],["Egli (Flussbarsch)",5],["Felchen",5]]){
+    assert.match(ctx.knotGuideMarkup("palomar",ctx.rigs[sp]),new RegExp('1 / '+expected));
+  }
+  assert.deepEqual(Array.from(ctx.knotSketchSteps("unknown")),[]);
+});
+
+test("inline SVG titles do not interfere with the beta document title or indexing directive",()=>{
+  const main=read("index.html"),beta=read("beta/index.html"),head=beta.split("</head>")[0];
+  assert.equal(head.match(/<title>/g).length,1);
+  assert.match(head,/<meta name="robots" content="noindex">/);
+  assert.doesNotMatch(main.split("</head>")[0],/name="robots"/);
+  const part=read("beta/src/fish-sketches.part.js").replace(/\r\n/g,"\n").trim();
+  for(const html of [main,beta])assert.ok(html.replace(/\r\n/g,"\n").includes(part));
 });
 
 test("missing permissions or rule data never produce an affirmative permission",()=>{

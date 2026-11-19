@@ -20,14 +20,16 @@ const FISH_RIGS={
 };
 const RIG_KNOTS={
   clinch:{name:"Verbesserter Clinch",for:"Für dünne monofile Schnur an Haken, Wirbel oder Öse.",steps:[
-    "Etwa 15 cm Schnur durch die Öse stecken. Das kurze Ende fünfmal um die lange Schnur wickeln.",
+    "Etwa 15 cm Schnur durch das Hakenöhr oder die Öse des Wirbels stecken. Dieses freie Ende wird jetzt um die lange Schnur geführt.",
+    "Das freie Ende fünfmal um die lange Schnur wickeln. Alle Windungen liegen in derselben Richtung nebeneinander.",
     "Das Ende durch die kleine Schlaufe direkt an der Öse zurückführen, danach durch die gerade entstandene grosse Schlaufe.",
     "Anfeuchten, die Windungen ordnen und langsam anziehen. Mit einem Zug prüfen; etwa 3 mm Ende stehen lassen."
   ],url:"https://www.animatedknots.com/improved-clinch-knot"},
   palomar:{name:"Palomar",for:"Für Hauptschnur an Wirbel oder Haken; auch für geflochtene Schnur.",steps:[
     "Schnur doppelt legen und die Schlaufe durch die Öse führen. Für Montagen mit Endgewicht ein langes Ende für den Abstand zum Gewicht lassen.",
-    "Mit der doppelten Schnur einen lockeren Überhandknoten bilden. Die grosse Schlaufe über den ganzen Haken oder Wirbel legen.",
-    "Anfeuchten, verdrehte oder gekreuzte Schnur ordnen und gleichmässig festziehen. Belastung prüfen. Normal etwa 3 mm Ende lassen; für ein Endgewicht das lange Ende behalten."
+    "Mit der doppelten Schnur einen lockeren Überhandknoten bilden: eine Schlaufe legen und die doppelte Schnur hindurchführen. Noch nicht zuziehen.",
+    "Die grosse Schlaufe über den ganzen Haken oder Wirbel legen und bis über das Öhr führen.",
+    "Anfeuchten, beide Stränge ordnen und gleichmässig festziehen. Mit einem Zug prüfen; etwa 3 mm Ende stehen lassen."
   ],url:"https://www.animatedknots.com/palomar-knot"},
   loop:{name:"Schlaufe in Schlaufe",for:"Für ein fertiges Fliegenvorfach und eine Fliegenschnur mit intakten Schlaufen.",steps:[
     "Die Schlaufe der Fliegenschnur durch die Schlaufe des Vorfachs schieben.",
@@ -143,7 +145,7 @@ function refreshRigGuide(guide){
   const sp=guide.dataset.rig,rig=FISH_RIGS[sp];if(!rig)return;
   const c=currentRigContext(sp),a=rigAssessment(rig,c),build=rigBuild(rig,a),body=guide.querySelector(".rig-body");
   if(!body.children.length){
-    body.innerHTML='<div class="rig-rule"></div><div class="rig-howto"><p class="rig-hook">1 Einzelhaken · ohne Widerhaken</p><h4>Material</h4><dl class="rig-material"></dl><p class="rig-small">Startwerte: Gewicht an Strömung, Tiefe und Wurfgewicht der Rute anpassen. Mono = monofile Angelschnur.</p><ol class="rig-chain" aria-label="Reihenfolge der Montage"></ol><h4>In 3 Schritten</h4><div class="rig-steps"></div><h4>So führst du den Köder</h4><p>'+esc(rig.use)+'</p><div class="rig-tip">'+esc(rig.tip)+'</div><div class="rig-knots">'+build.knots.map(id=>{const k=RIG_KNOTS[id];return '<details class="rig-knot"><summary>'+esc(k.name)+' binden</summary><p class="rig-small">'+esc(k.for)+'</p>'+rigList(k.steps)+'<a class="rig-link" href="'+esc(k.url)+'" target="_blank" rel="noopener noreferrer">Knoten animiert ansehen ↗</a></details>';}).join("")+'</div></div><details class="rig-regulations"><summary>Geräte-Regeln &amp; Quellen</summary><div class="rig-canton"></div></details>';
+    body.innerHTML='<div class="rig-rule"></div><div class="rig-howto"><p class="rig-hook">1 Einzelhaken · ohne Widerhaken</p><div class="rig-sketch"></div><h4>Material</h4><dl class="rig-material"></dl><p class="rig-small">Startwerte: Gewicht an Strömung, Tiefe und Wurfgewicht der Rute anpassen. Mono = monofile Angelschnur.</p><h4>In 3 Schritten</h4><div class="rig-steps"></div><h4>So führst du den Köder</h4><p>'+esc(rig.use)+'</p><div class="rig-tip">'+esc(rig.tip)+'</div><div class="rig-knots">'+build.knots.map(id=>knotGuideMarkup(id,rig)).join("")+'</div></div><details class="rig-regulations"><summary>Geräte-Regeln &amp; Quellen</summary><div class="rig-canton"></div></details>';
   }
   const note=a.level==="note";
   patchRigHTML(body.querySelector(".rig-rule"),'<div class="rig-context">'+esc(c.label)+'</div>'+(note?"":'<strong>'+esc(a.title)+'</strong>'+rigList(a.lines,"ul"))+'<button type="button" data-rig-rules>'+(note?"Gewässerregeln":"Gewässerregeln ansehen")+'</button>');
@@ -151,7 +153,7 @@ function refreshRigGuide(guide){
   if(notice.dataset.level!==a.level)notice.dataset.level=a.level;
   if(howto.hidden!==a.blocked)howto.hidden=a.blocked;
   patchRigHTML(body.querySelector(".rig-material"),'<dt>Schnur</dt><dd>'+esc(rig.line)+'</dd><dt>Haken</dt><dd>'+esc(a.hook)+' · ohne Widerhaken</dd><dt>Dazu</dt><dd>'+esc(rig.gear)+'</dd><dt>Köder</dt><dd>'+esc(a.bait)+'</dd>');
-  patchRigHTML(body.querySelector(".rig-chain"),build.chain.map(s=>'<li>'+esc(s)+'</li>').join(""));
+  patchRigHTML(body.querySelector(".rig-sketch"),rigSketch(rig,a,build));
   patchRigHTML(body.querySelector(".rig-steps"),rigList(build.steps));
   const r=RULES[c.canton]||{},notes=(r.notes||[]).filter(n=>/widerhaken|einzelhaken|mehrfachhaken|fangger[aä]te|naturk[oö]der|kunstköder|fliegenstrecke|fliegenfisch|spinnfisch|grundfisch|anf[uü]tter|freiangel/i.test(n));
   const sources=r.src?.length?r.src:(RIG_SOURCES[c.canton]?[RIG_SOURCES[c.canton]]:[]);

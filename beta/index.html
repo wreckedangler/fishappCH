@@ -590,6 +590,7 @@ a:active{opacity:.6}
 #artList .rig-guide>summary span{min-width:0}
 #artList .rig-guide>summary small{display:block;margin-bottom:3px;color:var(--acc);font-size:12px;font-weight:600;letter-spacing:.02em}
 #artList .rig-guide>summary strong{display:block;font-size:16px;font-weight:600;overflow-wrap:anywhere}
+#artList :is(.rig-guide,.rig-knot,.rig-regulations)>summary::after{display:none}
 .rig-body{padding:0 14px 14px}
 .rig-body h4{font-size:15px;margin:18px 0 8px}
 .rig-body ol,.rig-body ul{padding-left:22px;margin:8px 0 12px}
@@ -5659,7 +5660,7 @@ function refreshRigGuide(guide){
   patchRigHTML(body.querySelector(".rig-steps"),rigList(build.steps));
   const r=RULES[c.canton]||{},notes=(r.notes||[]).filter(n=>/widerhaken|einzelhaken|mehrfachhaken|fangger[aä]te|naturk[oö]der|kunstköder|fliegenstrecke|fliegenfisch|spinnfisch|grundfisch|anf[uü]tter|freiangel/i.test(n));
   const sources=r.src?.length?r.src:(RIG_SOURCES[c.canton]?[RIG_SOURCES[c.canton]]:[]);
-  patchRigHTML(body.querySelector(".rig-canton"),'<p class="rig-small">'+esc(cname(c.canton))+(r.updated?' · Regelstand '+esc(fmtD(r.updated)):" · Regelstand unbekannt")+'</p><p>Alle Anleitungen verwenden eine Rute mit einem Einzelhaken ohne Widerhaken. Auch Köder und Methode müssen zum Abschnitt und zu deiner Bewilligung passen.</p>'+rigList(notes.length?notes:["Zusätzliche Geräte- und Ködervorschriften in der Gewässerbewilligung prüfen."],"ul")+sources.filter(s=>/^https:\/\//.test(s[1])).map(s=>'<a class="rig-link" href="'+esc(s[1])+'" target="_blank" rel="noopener noreferrer">'+esc(s[0])+' ↗</a>').join(""));
+  patchRigHTML(body.querySelector(".rig-canton"),'<p class="rig-small">'+esc(cname(c.canton))+(r.updated?' · Regelstand '+esc(fmtD(r.updated)):" · Regelstand unbekannt")+'</p><p>Alle Anleitungen verwenden eine Rute mit einem Einzelhaken ohne Widerhaken. Auch Köder und Methode müssen zum Abschnitt und zu deiner Bewilligung passen.</p>'+rigList(notes.length?notes:["Zusätzliche Geräte- und Ködervorschriften in der Gewässerbewilligung prüfen."],"ul")+sources.filter(s=>/^https:\/\//.test(s[1])).map(s=>'<a class="rig-link" href="'+esc(s[1])+'" target="_blank" rel="noopener noreferrer">'+esc(s[0])+'</a>').join(""));
 }
 
 /* Eigene, schematische SVG-Zeichnungen. Keine Bilder oder Schriften nachladen.
@@ -5867,8 +5868,8 @@ function knotGuideMarkup(id,rig){
   const steps=knotSketchSteps(id,longEnd);
   return '<details class="rig-knot" data-knot="'+id+'" data-long-end="'+longEnd+'" data-step="0"><summary>'+esc(k.name)+' binden</summary><p class="rig-small">'+esc(k.for)+'</p>'+knotLegend(id)+
     '<div class="knot-stage" aria-live="polite" aria-atomic="true">'+knotStage(id,0,longEnd)+'</div>'+
-    '<div class="knot-nav"><button type="button" data-knot-move="-1" aria-label="Vorheriger Schritt: '+esc(k.name)+'" disabled>← Zurück</button><span class="knot-count">1 / '+steps.length+'</span><button type="button" data-knot-move="1" aria-label="Nächster Schritt: '+esc(k.name)+'">Weiter →</button></div>'+
-    '<a class="rig-link" href="'+esc(k.url)+'" target="_blank" rel="noopener noreferrer">Animation der Fachquelle ↗</a></details>';
+    '<div class="knot-nav"><button type="button" data-knot-move="-1" aria-label="Vorheriger Schritt: '+esc(k.name)+'" disabled>Zurück</button><span class="knot-count">1 / '+steps.length+'</span><button type="button" data-knot-move="1" aria-label="Nächster Schritt: '+esc(k.name)+'">Weiter</button></div>'+
+    '<a class="rig-link" href="'+esc(k.url)+'" target="_blank" rel="noopener noreferrer">Animation der Fachquelle</a></details>';
 }
 function moveKnotStep(button){
   const knot=button.closest(".rig-knot"),id=knot?.dataset.knot;if(!id)return;

@@ -271,6 +271,7 @@ a:active{opacity:.6}
 #artList .rig-guide>summary span{min-width:0}
 #artList .rig-guide>summary small{display:block;margin-bottom:3px;color:var(--acc);font-size:12px;font-weight:600;letter-spacing:.02em}
 #artList .rig-guide>summary strong{display:block;font-size:16px;font-weight:600;overflow-wrap:anywhere}
+#artList :is(.rig-guide,.rig-knot,.rig-regulations)>summary::after{display:none}
 .rig-body{padding:0 14px 14px}
 .rig-body h4{font-size:15px;margin:18px 0 8px}
 .rig-body ol,.rig-body ul{padding-left:22px;margin:8px 0 12px}

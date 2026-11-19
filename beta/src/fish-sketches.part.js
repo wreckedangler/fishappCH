@@ -203,8 +203,8 @@ function knotGuideMarkup(id,rig){
   const steps=knotSketchSteps(id,longEnd);
   return '<details class="rig-knot" data-knot="'+id+'" data-long-end="'+longEnd+'" data-step="0"><summary>'+esc(k.name)+' binden</summary><p class="rig-small">'+esc(k.for)+'</p>'+knotLegend(id)+
     '<div class="knot-stage" aria-live="polite" aria-atomic="true">'+knotStage(id,0,longEnd)+'</div>'+
-    '<div class="knot-nav"><button type="button" data-knot-move="-1" aria-label="Vorheriger Schritt: '+esc(k.name)+'" disabled>← Zurück</button><span class="knot-count">1 / '+steps.length+'</span><button type="button" data-knot-move="1" aria-label="Nächster Schritt: '+esc(k.name)+'">Weiter →</button></div>'+
-    '<a class="rig-link" href="'+esc(k.url)+'" target="_blank" rel="noopener noreferrer">Animation der Fachquelle ↗</a></details>';
+    '<div class="knot-nav"><button type="button" data-knot-move="-1" aria-label="Vorheriger Schritt: '+esc(k.name)+'" disabled>Zurück</button><span class="knot-count">1 / '+steps.length+'</span><button type="button" data-knot-move="1" aria-label="Nächster Schritt: '+esc(k.name)+'">Weiter</button></div>'+
+    '<a class="rig-link" href="'+esc(k.url)+'" target="_blank" rel="noopener noreferrer">Animation der Fachquelle</a></details>';
 }
 function moveKnotStep(button){
   const knot=button.closest(".rig-knot"),id=knot?.dataset.knot;if(!id)return;

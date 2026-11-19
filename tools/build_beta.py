@@ -15,7 +15,7 @@ part = open(os.path.join(root, "beta", "src", "map-gl.part.js"), encoding="utf-8
 part += "\n" + open(os.path.join(root, "beta", "src", "map-spots.part.js"), encoding="utf-8").read()
 part += "\n" + open(os.path.join(root, "beta", "src", "map-open.part.js"), encoding="utf-8").read()
 part += "\n" + open(os.path.join(root, "beta", "src", "map-community.part.js"), encoding="utf-8").read()
-for filename in ("here-hydro.part.js", "here-water.part.js", "location-water.part.js"):
+for filename in ("here-hydro.part.js", "here-water.part.js", "location-water.part.js", "fish-rigs.part.js"):
     with open(os.path.join(root, "beta", "src", filename), encoding="utf-8") as source:
         part += "\n" + source.read()
 css = open(os.path.join(root, "beta", "src", "map-gl.css"), encoding="utf-8").read()

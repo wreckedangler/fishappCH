@@ -125,6 +125,29 @@ Alle Handys übernehmen es beim nächsten Öffnen.
 
 ## Dateien
 
+Bei den Fischarten öffnet «Montage & Knoten» eine kompakte Anleitung mit Material,
+Montagereihenfolge, drei Aufbauschritten, Köderführung und Knoten. Die Inhalte stehen
+in `beta/src/fish-rigs.part.js` und werden durch `python tools/build_beta.py` für beide
+App-Einstiege eingebettet. Sie benötigen offline keine weiteren Dateien.
+Die Gewässerauswahl aktualisiert nur die betroffenen Hinweise, Materialangaben und
+Aufbauschritte; geöffnete Knoten und Fischfotos bleiben erhalten.
+
+Die Vorschläge verwenden eine Rute und einen widerhakenlosen Einzelhaken. Sie sind
+keine automatische Geräte- oder Berechtigungsfreigabe. Bestehende Schonzeiten,
+Sperren und lokale Bedingungen haben Vorrang. Schwyzer Bachfischerei berücksichtigt
+Hakengrössen und natürliche Köder; grosse Raubfischmontagen werden dort ausgeblendet.
+Die Methodenverbote in SG und SH unterscheiden bekannte Gewässer- und
+Berechtigungsarten; bei fehlender Zuordnung bleibt ein ausdrücklicher Prüfhinweis.
+
+Grundlagen: [Clinch](https://www.animatedknots.com/improved-clinch-knot),
+[Palomar](https://www.animatedknots.com/palomar-knot),
+[Schlaufenverbindung](https://www.netknots.com/fishing_knots/loop-to-loop-knot),
+[Dropshot](https://www.netknots.com/fishing_knots/drop-shot-rig),
+[Laufmontage](https://www.drennantackle.com/products/tackle/bits-and-pieces/run-rig-kits/),
+[Zapfenmontagen](https://www.fishandgame.org.nz/freshwater-fishing-in-new-zealand/fishing-knowledge-hub/coarse-fishing).
+Die amtlichen Quellen stehen direkt bei der Anleitung. Regellogik und die Aktualisierung
+der Auswahl: `node --test tools/fish-rigs.test.cjs`.
+
 | Datei | Zweck |
 |---|---|
 | `index.html` | die ganze App |

@@ -265,6 +265,40 @@ a:active{opacity:.6}
 .search-block .chips{margin-top:12px!important}
 .search-block p{margin:10px 4px 0!important}
 #artList{margin-top:var(--gap)}
+/* Kleine, bei Bedarf geöffnete Montagekarten direkt bei der Fischart. */
+#artList .rig-guide{margin:6px 0 16px;border:1px solid var(--sep);border-radius:16px;background:var(--fill)}
+#artList .rig-guide>summary{min-height:64px;padding:12px 14px;cursor:pointer}
+#artList .rig-guide>summary span{min-width:0}
+#artList .rig-guide>summary small{display:block;margin-bottom:3px;color:var(--acc);font-size:12px;font-weight:600;letter-spacing:.02em}
+#artList .rig-guide>summary strong{display:block;font-size:16px;font-weight:600;overflow-wrap:anywhere}
+.rig-body{padding:0 14px 14px}
+.rig-body h4{font-size:15px;margin:18px 0 8px}
+.rig-body ol,.rig-body ul{padding-left:22px;margin:8px 0 12px}
+.rig-body li{padding-left:2px;margin:0 0 10px}
+.rig-body ol li::marker{color:var(--acc);font-weight:600}
+.rig-body .rig-rule{border-left:3px solid var(--mut);padding:10px 12px;margin:2px 0 16px;background:var(--fill);border-radius:0 10px 10px 0}
+.rig-rule[data-level=warn]{border-color:var(--warn)}
+.rig-rule[data-level=bad]{border-color:var(--bad)}
+.rig-body .rig-rule[data-level=note]{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0 10px;margin:0 0 10px;padding:0;background:none;border:0;border-bottom:1px solid var(--sep);border-radius:0}
+.rig-rule>strong{display:block;font-size:15px;margin:6px 0}
+.rig-rule[data-level=bad]>strong{color:var(--bad)}
+.rig-rule ul{padding:0;list-style:none;margin:0}
+.rig-rule li{padding:0;margin:0 0 8px;font-size:14px;line-height:1.45}
+.rig-rule button{min-height:44px;margin:2px 0 0;padding:8px 0;text-align:left;background:none;border:0;border-radius:6px;color:var(--acc);font-size:14px;box-shadow:none}
+.rig-context,.rig-small{color:var(--mut);font-size:13px;line-height:1.4;overflow-wrap:anywhere}
+.rig-howto[hidden]{display:none}
+.rig-hook{font-size:13px;font-weight:600;color:var(--tx)}
+.rig-material{margin:0 0 12px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 12px;font-size:14px}
+.rig-material dt{color:var(--mut)}
+.rig-material dd{margin:0;overflow-wrap:anywhere}
+.rig-body .rig-chain{display:flex;flex-wrap:wrap;gap:6px 8px;list-style:none;padding:10px 0;border-block:1px solid var(--sep);font-size:12px;color:var(--mut)}
+.rig-chain li{margin:0;padding:0}
+.rig-chain li:not(:last-child)::after{content:" →";white-space:pre;color:var(--acc)}
+.rig-tip{font-size:14px;line-height:1.45;padding:12px;background:var(--fill);border-radius:10px;margin:12px 0}
+#artList .rig-knot,#artList .rig-regulations{border-top:1px solid var(--sep);margin-top:12px}
+#artList :is(.rig-knot,.rig-regulations)>summary{min-height:48px;padding:12px 0;font-size:15px;font-weight:600;cursor:pointer}
+.rig-link{display:flex;align-items:center;min-height:44px;padding:8px 0;font-size:13px;line-height:1.4;overflow-wrap:anywhere}
+.rig-canton{font-size:14px}
 /* Aufklappbare Karten: Kopfzeile wie eine Listenzeile */
 details.card{padding:0}
 details.card>summary{min-height:52px;margin:0;padding:14px var(--pad);font-size:17px;font-weight:600}

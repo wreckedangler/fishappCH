@@ -15,7 +15,7 @@ Stand der Recherche: 19.11.2026. Geprüft durch direktes Auslesen der Ebenenverz
 
 ## Neu gefunden
 
-### Tessin (vollständig, Vektor, aus dem Browser abrufbar)
+### Tessin (eingebunden 19.11.2026, live über `XSRC.TI` in `map-sources.js`)
 
 WFS: `https://wfs.geo.ti.ch/service` (WFS 1.1.0, `OUTPUTFORMAT=application/json`, `SRSNAME=EPSG:4326`)
 
@@ -27,6 +27,11 @@ WFS: `https://wfs.geo.ti.ch/service` (WFS 1.1.0, `OUTPUTFORMAT=application/json`
 | `ac_064_1_v1_0_zone_protezione_ittica_linee` / `_poligoni` | **Schutzzonen** (Decreto 2025–2030): `nome_zona_protezione`, `descrizione`, `tipologia_corta` (permanent Fluss, permanent See, temporär Zander 1.4.–31.5., Netzverbot), `in_vigore_dal`, `url_decreto` | je 103 |
 
 WMS für die Darstellung: `https://wms.geo.ti.ch/service`, Ebene `ti_035_1_v1_0_settori_pesca`.
+
+In der App: Schutzzonen in Fliessgewässern (Linien) und in den Seen (Flächen), Zander-Schutzzonen
+gesperrt vom 1.4. bis 31.5., Alpenseen mit Regelgruppe `alpin`, Privatgewässer. Netzverbote
+(betreffen nur Berufsfischerei), Flusssektoren (8242 Linien, 7 MB) und die grossen Seen werden
+nicht geladen. Rund 0,8 MB, höchstens einmal täglich und nur bei Sicht auf das Tessin.
 
 ### Jura
 

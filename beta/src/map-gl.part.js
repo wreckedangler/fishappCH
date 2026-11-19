@@ -1190,7 +1190,7 @@ function buildControls(){
   $("#mapLegendBtn").onclick=()=>{const d=$("#legendDialog");d.showModal();d.scrollTop=0};
   $("#mapCreditBtn").onclick=()=>{$("#legendDialog").showModal();$("#mapCreditTitle").focus()};
   $("#mapLocate").onclick=()=>{
-    if(!state.pos){follow=true;startGeo();toast(state.geoErr||"Standort wird gesucht …");syncLocateButton();return}
+    if(!recentPosition()||state.geoErr){follow=true;startGeo();toast(state.geoErr||"Standort wird gesucht …");syncLocateButton();return}
     if(follow){follow=false;syncLocateButton();return}
     follow=true;syncLocateButton();
     map.easeTo({center:[state.pos.lon,state.pos.lat],zoom:Math.max(map.getZoom(),14.5),duration:600});

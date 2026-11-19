@@ -56,7 +56,7 @@ def ensure_once(text, old, new):
 out = ensure_once(out, 'if(shoreView&&(unknownWater()', 'if(shoreView&&!shoreView.fromMap&&(unknownWater()')
 
 # Fang an einer auf der Karte markierten Stelle speichern.
-out = ensure_once(out, 'const now=new Date(),p=state.pos;', 'const now=new Date(),p=catchAt||state.pos;')
+out = ensure_once(out, 'const now=new Date(),p=state.pos;', 'const now=new Date(),p=catchAt||recentPosition();')
 out = ensure_once(out, '      state.log=log;\n    }catch(e){\n      $("#afterSave").textContent="Fang konnte nicht gespeichert werden.',
     '      state.log=log;catchAt=null;renderCatchAt();\n    }catch(e){\n      $("#afterSave").textContent="Fang konnte nicht gespeichert werden.')
 # Fangbuch: Fang auf der Karte zeigen oder Ort setzen.

@@ -588,7 +588,6 @@ a:active{opacity:.6}
 #artList .rig-guide>summary span{min-width:0}
 #artList .rig-guide>summary small{display:block;margin-bottom:3px;color:var(--acc);font-size:12px;font-weight:600;letter-spacing:.02em}
 #artList .rig-guide>summary strong{display:block;font-size:16px;font-weight:600;overflow-wrap:anywhere}
-#artList :is(.rig-guide,.rig-knot,.rig-regulations)>summary::after{display:none}
 .rig-body{padding:0 14px 14px}
 .rig-body h4{font-size:15px;margin:18px 0 8px}
 .rig-body ol,.rig-body ul{padding-left:22px;margin:8px 0 12px}
@@ -1283,7 +1282,7 @@ const isAuto=()=>state.cantonAuto&&(state.secAuto||!isSO());
 function setAuto(on){
   state.cantonAuto=on;state.secAuto=on;state.pin=null;
   resetAutoWater();save();
-  if(on){state.geoErr=null;startGeo()}
+  if(on){state.pos=null;state.geoErr=null;startGeo()}else syncGeo();
   updateHere();
 }
 function currentSec(){
@@ -1330,16 +1329,38 @@ function check(sec,sp,len,d=new Date()){
 }
 
 /* ================= STANDORT ================= */
-let watchId=null;
+let watchId=null,geoVersion=0,geoOncePending=false,geoDenied=false;
+const geoMapActive=()=>$("#v-karte").classList.contains("on");
 function startGeo(){
-  if(!("geolocation" in navigator)){state.geoErr="Dieses Gerät unterstützt keine Standortbestimmung.";renderAll();return}
-  if(watchId!=null)return;
-  watchId=navigator.geolocation.watchPosition(onPos,e=>{state.geoErr=e.code===1?"Standortzugriff verweigert – in den Browser-Einstellungen erlauben.":"Standort gerade nicht verfügbar.";if(e.code===1){stopGeo();state.pos=null;resetAutoWater()}renderTop();renderHier()},{enableHighAccuracy:true,maximumAge:15000,timeout:30000});
+  geoDenied=false;state.geoErr=null;geoOncePending=isAuto();syncGeo();
 }
-function stopGeo(){if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null}}
+function syncGeo(){
+  if(!isAuto())geoOncePending=false;
+  if(document.hidden||(!geoMapActive()&&!geoOncePending)){stopGeo();return}
+  if(watchId!=null||geoDenied)return;
+  if(!("geolocation" in navigator)){geoOncePending=false;state.geoErr="Dieses Gerät unterstützt keine Standortbestimmung.";renderTop();renderHier();return}
+  const version=++geoVersion;
+  const current=()=>version===geoVersion&&!document.hidden&&(geoMapActive()||(geoOncePending&&isAuto()));
+  // A cancellable single fix for automatic selection; continuous updates only on the map.
+  watchId=navigator.geolocation.watchPosition(p=>{
+    if(!current())return;
+    geoOncePending=false;
+    if(!geoMapActive())stopGeo();
+    onPos(p);
+  },e=>{
+    if(!current())return;
+    geoOncePending=false;
+    state.geoErr=e.code===1?"Standortzugriff verweigert – in den Browser-Einstellungen erlauben.":"Standort gerade nicht verfügbar.";
+    if(e.code===1){geoDenied=true;state.pos=null;resetAutoWater()}
+    if(e.code===1||!geoMapActive())stopGeo();
+    renderTop();renderHier();
+  },{enableHighAccuracy:true,maximumAge:0,timeout:30000});
+}
+function stopGeo(){++geoVersion;if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null}}
+function recentPosition(){return state.pos&&Date.now()-state.pos.ts<=60000?state.pos:null}
 function onPos(p){
   const{latitude:lat,longitude:lon,accuracy:acc}=p.coords;
-  state.pos={lat,lon,acc,ts:Date.now()};state.geoErr=null;
+  state.pos={lat,lon,acc,ts:p.timestamp||Date.now()};state.geoErr=null;
   updateHere();
   if(map)updateMe();
 }
@@ -1755,7 +1776,7 @@ function saveFang(){
   if(unknownWater()||(isCM()&&!sec.id)||ruleFor(sec,sp).pickW){openWater();return}
   if(c.needLen){$("#afterSave").innerHTML=`<div class="verdict v-warn"><div class="ln">Bitte zuerst die Länge eingeben – sonst kann das Mindestmass nicht geprüft werden.</div></div>`;$("#fLen").focus();return}
   const doSave=async kept=>{
-    const now=new Date(),p=catchAt||state.pos;
+    const now=new Date(),p=catchAt||recentPosition();
     const f={id:Date.now(),ts:now.getTime(),day:dayKey(now),canton:state.canton,sec:sec.id,art:sp,len,n,kept,note:$("#fNote").value.trim(),lat:p?+p.lat.toFixed(5):null,lon:p?+p.lon.toFixed(5):null};
     if(!isSO()&&selectedWaterName())f.waterName=selectedWaterName();
     if(f.canton==="LU"&&f.waterName&&state.luRev)f.luRev=state.luRev;
@@ -3990,7 +4011,7 @@ function buildControls(){
   $("#mapLegendBtn").onclick=()=>{const d=$("#legendDialog");d.showModal();d.scrollTop=0};
   $("#mapCreditBtn").onclick=()=>{$("#legendDialog").showModal();$("#mapCreditTitle").focus()};
   $("#mapLocate").onclick=()=>{
-    if(!state.pos){follow=true;startGeo();toast(state.geoErr||"Standort wird gesucht …");syncLocateButton();return}
+    if(!recentPosition()||state.geoErr){follow=true;startGeo();toast(state.geoErr||"Standort wird gesucht …");syncLocateButton();return}
     if(follow){follow=false;syncLocateButton();return}
     follow=true;syncLocateButton();
     map.easeTo({center:[state.pos.lon,state.pos.lat],zoom:Math.max(map.getZoom(),14.5),duration:600});
@@ -5902,7 +5923,7 @@ async function fetchUpdates(){
 function loadCached(){const c=store.get("data",null);if(c&&c.version>=DATA_META.version){DATA_META={version:c.version,updated:c.updated,checked:store.get("data_checked",null)};if(c.news)NEWS=c.news;if(c.rules)Object.keys(c.rules).forEach(k=>{RULES[k]=c.rules[k]})}else DATA_META.checked=store.get("data_checked",null)}
 
 /* ================= NAVIGATION & INIT ================= */
-function renderAll(){if(shoreView&&!shoreView.fromMap&&(unknownWater()||shoreView.key!==state.canton+"/"+currentSec().id||secStatus(currentSec()).some(s=>s.lvl==="bad")))clearShore();renderTop();renderHier();if(map&&$("#v-karte").classList.contains("on")){if(mapSel&&mapSel.t==="sec")renderSheet();drawSel()}if($("#v-arten").classList.contains("on"))refreshArtenStatus();if($("#v-fang").classList.contains("on"))renderFang();if($("#v-regeln").classList.contains("on"))renderRegeln()}
+function renderAll(){syncGeo();if(shoreView&&!shoreView.fromMap&&(unknownWater()||shoreView.key!==state.canton+"/"+currentSec().id||secStatus(currentSec()).some(s=>s.lvl==="bad")))clearShore();renderTop();renderHier();if(map&&$("#v-karte").classList.contains("on")){if(mapSel&&mapSel.t==="sec")renderSheet();drawSel()}if($("#v-arten").classList.contains("on"))refreshArtenStatus();if($("#v-fang").classList.contains("on"))renderFang();if($("#v-regeln").classList.contains("on"))renderRegeln()}
 function route(){const key=location.hash.slice(1);return key==="fangbuch"?"stat":["fang","karte","arten","regeln"].includes(key)?key:"hier"}
 function show(v,restore=false){
   if(v!=="karte"){requestedLURev="";cancelMapQuery();clearShore();if(hintMsg)flashHint("")}
@@ -5911,6 +5932,7 @@ function show(v,restore=false){
     history.pushState(null,"","#"+(v==="stat"?"fangbuch":v));
   }
   document.querySelectorAll("section.view").forEach(s=>s.classList.toggle("on",s.id==="v-"+v));
+  syncGeo();
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v||(v==="stat"&&b.dataset.v==="fang")));
   document.querySelectorAll(".seg button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
   document.querySelectorAll("nav button,.seg button").forEach(b=>{
@@ -6062,7 +6084,9 @@ function refreshMapDate(force=false){
   drawGeo();drawX();sectionMap.sync(true);renderSheet();drawSel();loadX();
 }
 setInterval(()=>{if(!document.hidden&&map)refreshMapDate()},15000);
-document.addEventListener("visibilitychange",()=>{if(document.hidden)stopGeo();else{refreshMapDate();if(state.pos||state.secAuto||state.cantonAuto)startGeo()}});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)refreshMapDate();syncGeo()});
+window.addEventListener("pagehide",stopGeo);
+window.addEventListener("pageshow",syncGeo);
 window.addEventListener("online",()=>{fetchUpdates();refreshGeo()});
 
 loadCached();
@@ -6070,7 +6094,7 @@ setSpecies("Bachforelle");
 renderAll();renderStats();
 window.addEventListener("popstate",()=>{show(route(),true);window.scrollTo(0,history.state?.scroll||0)});
 show(route(),true);
-startGeo();
+if(isAuto())startGeo();
 fetchUpdates();loadBundledSO().then(()=>refreshGeo());
 if(location.protocol.startsWith("http")&&"serviceWorker" in navigator){
   const previouslyControlled=!!navigator.serviceWorker.controller;

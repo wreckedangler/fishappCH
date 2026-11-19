@@ -223,6 +223,11 @@ const FishRights=(()=>{
         return section("St. Galler Seepatent","Für diesen See gibt der Kanton ein gewässerspezifisches Patent aus. Für die Uferfreiangelei gelten eigene Geräte- und Gebietsgrenzen.");
       return answer("guide","Fischereirevier "+hit.rev+" · Kartenbezug prüfen","Die Reviernummer ist amtlich erfasst. Die konkrete Ausgabestelle ist für diesen Abschnitt ungeklärt.");
     }
+    if(c==="LU"&&hit.t==="zone"&&kind==="Gewässer"&&!hit.lake){
+      const info=answer("guide","Kein Revier und kein Patentgebiet","Dieses Gewässerstück liegt in keinem kartierten Fischereirevier und in keinem Patentgebiet. Im Kanton Luzern bezeichnet der Regierungsrat die verpachteten Gewässer (Fischereigesetz § 6). Eine öffentliche Angelberechtigung ist hier nicht ausgewiesen. Auskunft gibt die Dienststelle Landwirtschaft und Wald.");
+      info.source=["Fischereigesetz Luzern (SRL 720)","https://srl.lu.ch/app/de/texts_of_law/720"];
+      return info;
+    }
     return answer("guide","Berechtigung am Abschnitt ungeklärt",office[2]);
   }
   return {resolve,offices,sgProtection};

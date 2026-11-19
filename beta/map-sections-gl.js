@@ -144,7 +144,7 @@ const FishSections = (() => {
       ctx.drawImage(mask,x-left,y-top);
     });
     const [w,n]=unproject(left,top,zoom),[e,s]=unproject(right,bottom,zoom);
-    return [{id,canvas,coordinates:[[w,n],[e,n],[e,s],[w,s]]}];
+    return [{id,canvas,level:zoom,coordinates:[[w,n],[e,n],[e,s],[w,s]]}];
   }
   class Layer {
     // sink: {features(fc), coarse(list), credits(Set)}
@@ -233,7 +233,10 @@ const FishSections = (() => {
         const active=new Set(files.map(f=>f[0]));
         if(zoom<10&&typeof Image!=="undefined"){
           try{
-            const images=await this.coarseImages(Math.floor(zoom),active);
+            // The next level lies underneath and fades in over the second half of the zoom level,
+            // so reaches appear gradually instead of all at once at the integer zoom.
+            const level=Math.floor(zoom),next=level+1<10&&zoom-level>=.4?await this.coarseImages(level+1,active):[];
+            const images=[...next,...await this.coarseImages(level,active)];
             if(epoch!==this.epoch)return;
             this.visible.clear();this.paint(zoom);
             this.coarse=images;this.sink.coarse?.(images);

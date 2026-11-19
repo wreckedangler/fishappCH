@@ -239,6 +239,62 @@ def minor_streams(rows, lines, removed):
     return minor
 
 
+STROKE_DEFLECTION = 60.0  # degrees: at a junction a stream continues into the straightest branch
+
+
+def stroke_zoom(rows, lines, removed, skip):
+    """Unnamed reaches have no name to join them into a stream. Build cartographic strokes
+    instead: at every node the two branches that continue most straight are one stream.
+    The stroke length then sets the zoom with the same thresholds as named zones."""
+    cells, nodes = defaultdict(list), []
+    def key(p):
+        cx, cy = int(p[0] // 0.0001), int(p[1] // 0.0001)
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                for n in cells[cx + dx, cy + dy]:
+                    if dist(nodes[n], p) <= SNAP_M:
+                        return n
+        nodes.append(p)
+        cells[cx, cy].append(len(nodes) - 1)
+        return len(nodes) - 1
+    def heading(a, b):
+        mx, my = metres(a[1])
+        return math.atan2((b[1] - a[1]) * my, (b[0] - a[0]) * mx)
+    at = defaultdict(list)
+    for fid, pts in lines.items():
+        if fid in removed or fid in skip or rows[fid][0][5] or len(pts) < 2:
+            continue
+        k = min(3, len(pts) - 1)
+        at[key(pts[0])].append((fid, heading(pts[0], pts[k])))
+        at[key(pts[-1])].append((fid, heading(pts[-1], pts[-1 - k])))
+    uf = UF()
+    for edges in at.values():
+        pairs = []
+        for i in range(len(edges)):
+            for j in range(i + 1, len(edges)):
+                if edges[i][0] == edges[j][0]:
+                    continue
+                turn = abs((edges[i][1] - edges[j][1]) % (2 * math.pi) - math.pi)
+                if math.degrees(turn) <= STROKE_DEFLECTION:
+                    pairs.append((turn, i, j))
+        used = set()
+        for _, i, j in sorted(pairs):
+            if i not in used and j not in used:
+                used |= {i, j}
+                uf.union(edges[i][0], edges[j][0])
+    total = defaultdict(float)
+    members = [f for f in lines if f not in removed and f not in skip and not rows[f][0][5]]
+    for f in members:
+        total[uf.find(f)] += rows[f][2]
+    out = {}
+    for f in members:
+        t = total[uf.find(f)]
+        z = 8 if t >= 6000 else 9 if t >= 2300 else 10 if t >= 850 else 11 if t >= 330 else 12
+        if z < rows[f][1]:
+            out[f] = z
+    return out
+
+
 def zone_key(meta):
     name, kind, rev, region, detail, _buried, rule = meta
     return (name, kind, rev, region, detail, rule)
@@ -370,6 +426,12 @@ def normalise(code, entry, keep, stats):
         if f not in in_group:
             zone_zoom[f] = max(z, rows[f][1])
     s["Kleinstgewässer erst nah"] = sum(1 for f in minor if f not in in_group)
+    if code != "LU":  # LU network pieces keep their own close-up zoom
+        strokes = stroke_zoom(rows, lines, removed, set(minor))
+        for f, z in strokes.items():
+            if f not in in_group and not rows[f][0][0]:
+                zone_zoom[f] = min(z, zone_zoom.get(f, 99))
+        s["Bachläufe verbunden"] = sum(1 for f in strokes if f not in in_group and not rows[f][0][0])
 
     # 3. Rewrite.
     new = dict(entry)

@@ -2941,7 +2941,7 @@ function applyZoneDim(f,force){
   updateCantonNet(true);
   if(map.getLayer("fb-lakes-fill")){map.setPaintProperty("fb-lakes-fill","fill-opacity",lakeFillOpacity());map.setPaintProperty("fb-lakes-line","line-opacity",lakeLineOpacity())}
   if(map.getLayer("fb-hydro"))map.setPaintProperty("fb-hydro","raster-opacity",hydroOpacity());
-  for(const img of coarseImages){const id="fb-coarse-"+img.id;if(map.getLayer(id))map.setPaintProperty(id,"raster-opacity",zoneDim)}
+  for(const img of coarseImages){const id="fb-coarse-"+img.id;if(map.getLayer(id))map.setPaintProperty(id,"raster-opacity",coarseOpacity(img))}
 }
 function hydroOpacity(){
   const luft=store.get("base","luft")!=="topo",f=zoneDim<1?.75:1;
@@ -4085,18 +4085,29 @@ function addOverlays(){
   addReportLayers();addCatchLayers();
 }
 let coarseImages=[];
+// Overview image of Leaflet level L: fully shown from L on; when it is the next level
+// it fades in over L-0.6 .. L (GL zoom = Leaflet - 1).
+function coarseOpacity(img){
+  const g=(img.level??0)-1;
+  return ["interpolate",["linear"],["zoom"],g-.6,0,g,zoneDim];
+}
 function addCoarse(img){
   const id="fb-coarse-"+img.id;
   if(map.getSource(id))return;
   map.addSource(id,{type:"canvas",canvas:img.canvas,coordinates:img.coordinates,animate:false});
   const before=map.getLayer("fb-sec-fill")?"fb-sec-fill":undefined;
-  map.addLayer({id,type:"raster",source:id,paint:{"raster-opacity":zoneDim,"raster-fade-duration":0,"raster-resampling":"linear"}},before);
+  map.addLayer({id,type:"raster",source:id,paint:{"raster-opacity":coarseOpacity(img),"raster-fade-duration":0,"raster-resampling":"linear"}},before);
 }
 function setCoarse(list){
   const next=new Set(list.map(i=>"fb-coarse-"+i.id));
   if(mapReady)for(const img of coarseImages){const id="fb-coarse-"+img.id;if(!next.has(id)){if(map.getLayer(id))map.removeLayer(id);if(map.getSource(id))map.removeSource(id)}}
   coarseImages=list;
-  if(mapReady)list.forEach(addCoarse);
+  if(mapReady){
+    list.forEach(addCoarse);
+    // Keep the list order (next level below the current one) even for layers that already existed.
+    const before=map.getLayer("fb-sec-fill")?"fb-sec-fill":undefined;
+    for(const img of list){const id="fb-coarse-"+img.id;if(map.getLayer(id))map.moveLayer(id,before)}
+  }
 }
 let baseChange=0;
 async function setBase(kind){

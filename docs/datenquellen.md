@@ -38,6 +38,34 @@ enthält keine Fischereiebene. Abfrage per GetFeatureInfo möglich.
 WMS geoportal.ch `fischereikarte_kt_ai` (bereits als Bild). WFS `geoportal.ch/services/wfs/ktai`
 blockiert Browser-Abfragen; Inhalt noch nicht geprüft.
 
+### Schwyz (Vektor, ökologisch)
+
+WFS: `https://map.geo.sz.ch/mapserv_proxy` (WFS 1.1.0, nur GML)
+
+| Ebene | Inhalt | Umfang |
+|---|---|---|
+| `ms:ch.sz.a049a.fischerei.fischgewaesser` | Fischgewässer: `name_fliessgewaesser`, `eignung_fischgewaesser` (geeignet, potentiell geeignet) | 651 |
+| `ms:ch.sz.a049a.fischerei.fischregionen` | Fischregion je Abschnitt: Forellen-, Äschen-, Barben-, Brachsmenregion | 2679 |
+
+Keine Schonstrecken oder Fliegenstrecken als Geodaten. Diese stehen in den Ausführungsbestimmungen
+für Fliessgewässer (gültig ab 1.1.2025) und in der kantonalen «Legende Fischerei» (PDF).
+
+### Zug (Vektor, ökologisch)
+
+WFS: `https://services.geo.zg.ch/ows/fischatlas` (WFS 1.1.0, GML). Je Art eine Ebene
+(`zg_fischatlas_<art>`) plus Übersicht `zg_fischatlas_fischatlas` (253 Abschnitte): Abschnittsname,
+Bestandsdichte, Erhebungsjahr, Methode, Besatz. Das Feld `t_fischereirecht` enthält teils Namen von
+Privatpersonen und wird **nicht** übernommen. Keine Revier- oder Pachtgrenzen.
+
+### Appenzell Innerrhoden
+
+WMS `fischereikarte_kt_ai` ist abfragbar (GetFeatureInfo), aber ohne Vektordienst oder Download.
+
+### Neuenburg
+
+SITN (`sitn.ne.ch/services/wms`, 784 Ebenen) hat keine Fischereiebene. Reservate stehen nur im
+jährlichen «Arrêté concernant la pêche dans les eaux de l'État» (Art. 26, 39, 49, 57).
+
 ## Keine Fischerei-Geodaten im kantonalen Dienst
 
 | Kanton | Geprüft | Ergebnis |
@@ -47,14 +75,12 @@ blockiert Browser-Abfragen; Inhalt noch nicht geprüft.
 | BS | wms.geo.bs.ch, wfs.geo.bs.ch | nur Fischauf- und -abstiegsanlagen |
 | UR | geo.ur.ch WMS | nur Gewässernetz und Gewässerraum |
 | OW | gis-daten.ch Katalog | nur Nidwalden-Fischerei und Wildzählkreise |
-| ZG | ZugMap | Fischatlas (Verbreitung, Bestände), keine Reviere; Dienstadresse noch offen |
 
-## Noch zu prüfen (Dienst blockiert Browser-Abfragen)
+## Kantone ohne eigene Bestimmungen
 
-- NE: `sitn.ne.ch/mapserv_proxy` (WMS/WFS) auf Réserves de pêche
-- SZ: `map.geo.sz.ch/main/wsgi/mapserv_proxy` auf Fischgewässer, Schonstrecken, Fliegenstrecken
-- AI: `geoportal.ch/services/wfs/ktai` auf Vektor der Fischereikarte
-- ZG: Dienstadresse von ZugMap (Fischatlas)
+Wo ein Kanton für ein Gewässer keine eigenen Vorschriften erlässt, gilt die Bundesverordnung (VBGF):
+Schonzeiten je Art und Mindestmasse. Sie kennt keine allgemeine Sperrzeit für ganze Gewässer; die
+Karte färbt solche Gewässer deshalb nicht als gesperrt.
 
 ## Rechtliche Grundlagen ohne Geodaten
 

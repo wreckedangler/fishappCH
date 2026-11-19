@@ -83,10 +83,14 @@ def row(name, kind, lines, polygons):
 def st_gallen():
     rows = []
     for layer in ["Fliessgewaesser", "stehendeGewaesser"]:
-        url = SG+"SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=SG00021:Pachtgewaesser_"+layer+"&SRSNAME=EPSG:4326&OUTPUTFORMAT=GEOJSON"
+        url = SG+"SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=SG00021:Pachtgewaesser_"+layer+"&SRSNAME=urn:ogc:def:crs:EPSG::2056&OUTPUTFORMAT=GEOJSON"
+        # LV95 and our own conversion: the service's EPSG:4326 output omits the datum shift
+        # and lies about 175 m off (91 m east, 150 m north).
         for f in json.load(urlopen(url, timeout=90))["features"]:
             g, p = f["geometry"], f["properties"]
             paths = g["coordinates"]
+            paths = [[[wgs84(*pt[:2]) for pt in line] for line in part] if g["type"] == "MultiPolygon"
+                     else [wgs84(*pt[:2]) for pt in part] for part in paths]
             if g["type"] == "MultiLineString":
                 lines, polygons = [compact(line) for line in paths], []
             elif g["type"] == "MultiPolygon":

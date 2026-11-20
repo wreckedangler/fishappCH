@@ -1576,6 +1576,7 @@ function loadLUDistricts(retry=false){
   }).then(data=>luDistricts=data).catch(()=>{luDistrictError=true;return null}).finally(()=>{
     luDistrictRequest=null;
     if($("#waterDialog").open&&$("#waterCanton").value==="LU")renderWaterList();
+    if(luDistricts&&mapReady){sectionMap.repaint();drawSel()}
     if(mapSel?.code==="LU")renderSheet();
   });
   return luDistrictRequest;
@@ -2782,12 +2783,11 @@ function mapRight(hit,hits=mapHits,incomplete=!!hitWarning){
   let closed="";
   if(hit.t==="x"&&westMark(hit.code,feature)==="closed")
     closed=fisheryPeriod(hit.code,feature,mapTime)==="night"?"Nächtliche Fangpause":"Fangzeit geschlossen";
-  else if(hit.t==="zone"&&sectionMark(hit.code,kind,hit.buried,hit.rule)==="closed"||
+  else if(hit.t==="zone"&&groupClosure(hit.code,zoneGroup(hit)||hit.rule)||
           hit.t==="sec"&&feature&&soSymbol(feature)==="closed")closed="Fangzeit geschlossen";
   const overlap=hits.some(other=>other!==hit&&
     (restrictedHit(other)||/privat/i.test(other.kind)||other.code!==hit.code)&&Math.abs(other.d-hit.d)<=8);
-  return FishRights.resolve(hit,feature,{date:mapDate,closed,condition:FishSections.localCondition(kind),
-    protected:hit.code==="AI"&&/schon|verbot/i.test(hit.name),incomplete,overlap,luListed:hit.code==="LU"&&luDistricts?.[hit.rev]?.listed===true});
+  return mappedWaterRight(hit,feature,kind,{closed,incomplete,overlap});
 }
 const luMeasure=new Intl.NumberFormat("de-CH",{minimumFractionDigits:1,maximumFractionDigits:1,useGrouping:true});
 function luMeasurements(rev){
@@ -2830,20 +2830,41 @@ const swissCalendar=new Intl.DateTimeFormat("sv-SE",{timeZone:"Europe/Zurich",ye
 let mapDate=swissCalendar.format(new Date());
 let mapTime=null;
 function mapRuleDate(){const [y,m,d]=mapDate.split("-").map(Number);return new Date(y,m-1,d,12)}
-function sectionMark(c,kind,buried,rule,rev,region){
+function mappedWaterRight(hit,feature,kind,options={}){
+  return FishRights.resolve(hit,feature,{date:mapDate,condition:FishSections.localCondition(kind),
+    protected:hit.code==="AI"&&/schon|verbot/i.test(hit.name),luListed:hit.code==="LU"&&luDistricts?.[hit.rev]?.listed===true,
+    ...options});
+}
+function knownOpenSeason(season,right){
+  return !!season&&(right?.level==="section"||right?.level==="water");
+}
+function groupClosure(c,group){
+  return group&&RULES[c]?.closed?.find(cl=>cl.w.includes(group)&&inRange(mapRuleDate(),cl.from,cl.to));
+}
+function sectionMark(hit){
+  const {code:c,kind,buried,rule,rev,region}=hit;
   const mark=FishSections.symbol(kind,buried);
   if(buried||FishSections.restriction(kind))return mark;
   if(c==="SG"&&FishRights.sgProtection(rev,region))return "condition";
-  if(rule&&RULES[c]?.closed?.some(cl=>cl.w.includes(rule)&&inRange(mapRuleDate(),cl.from,cl.to)))return "closed";
-  // Known water class with cantonal rules and no general closure today: season open.
-  if(rule&&(mark==="permit"||mark==="district")&&RULES[c]?.w?.some(([k])=>k===rule))return "open";
-  return mark;
+  const group=zoneGroup(hit);
+  if(groupClosure(c,group||rule))return "closed";
+  if(mark==="private")return mark;
+  return group&&knownOpenSeason(group,mappedWaterRight(hit,hit.source,kind))?"open":mark;
 }
+const westMarks=new WeakMap();
 function westMark(c,f){
-  const mark=sectionMark(c,f.art,false,f.cw);
-  if(mark==="closed")return mark;
-  const period=fisheryPeriod(c,f,mapTime);
-  return period==="night"?"closed":period||mark;
+  const stamp=mapDate+"|"+DATA_META.version+"|"+mapTime?.glNight;
+  const cached=westMarks.get(f);
+  if(cached?.stamp===stamp)return cached.mark;
+  const group=westRuleGroup(c,f),period=fisheryPeriod(c,f,mapTime);
+  let mark=FishSections.symbol(f.art);
+  if(groupClosure(c,group)||period==="closed"||period==="night")mark="closed";
+  else if(mark!=="private"&&!FishSections.restriction(f.art)&&(group||period==="open")){
+    const hit={t:"x",code:c,id:f.id,kind:f.art,name:f.name};
+    if(knownOpenSeason(true,mappedWaterRight(hit,f,f.art)))mark="open";
+  }
+  westMarks.set(f,{stamp,mark});
+  return mark;
 }
 function soSymbol(f){
   const sec=secById(f.id);
@@ -2986,7 +3007,7 @@ function drawGeo(){
     if(detailBounds&&!FishSections.intersects(box,detailBounds))continue;
     const k=kindOf(f.art),mark=soSymbol(f);
     if(f._z===undefined)f._z=lodZoom(pathMetres(f.l,false),secById(f.id)?.name?.split(/[\s,(]/)[0],false);
-    const z=["protected","closed"].includes(mark)?Math.min(f._z,10):f._z;
+    const z=mark==="open"?6:["protected","closed"].includes(mark)?Math.min(f._z,10):f._z;
     if(z>zoom+1)continue;
     const tiny=FishSections.subPixel(box,lz());
     const geometry=tiny?{type:"LineString",coordinates:FishSections.shortMark(f.l[0][0],lz())}:{type:"MultiLineString",coordinates:f.l};
@@ -3162,14 +3183,14 @@ function drawX(){
         const z=lodZoom(members.reduce((t,m)=>t+pathMetres(m.l,m.poly),0),f.name,false);
         for(const m of members)m._z=z;f._z=z;
       }
-      const restricted=["protected","closed"].includes(westMark(code,f));
-      if(!restricted&&f._z>zoom+1)continue;
       const mark=westMark(code,f),tiny=FishSections.subPixel(f.bounds,lz());
+      const z=mark==="open"?6:["protected","closed"].includes(mark)?Math.min(f._z,10):f._z;
+      if(z>zoom+1)continue;
       let geometry;
       if(tiny)geometry={type:"LineString",coordinates:FishSections.shortMark(f.l[0][0],lz())};
       else if(f.poly)geometry={type:"Polygon",coordinates:FishSections.orient(f.l)};
       else geometry={type:"LineString",coordinates:f.l[0]};
-      features.push({type:"Feature",geometry,properties:{k:mark,a:f.poly&&!tiny?1:0,key:"X/"+code+"/"+f.id,z:restricted?Math.min(f._z,10):f._z}});
+      features.push({type:"Feature",geometry,properties:{k:mark,a:f.poly&&!tiny?1:0,key:"X/"+code+"/"+f.id,z}});
     }
   }
   setCredits("west",new Set([...active].map(c=>XSRC[c]?.attr).filter(Boolean)));
@@ -3312,10 +3333,10 @@ function drawSel(){
   }
   parts=syncGroup(hit,parts);
   if(hit?.t==="zone"&&!hit.districtView){
-    const mark=sectionMark(hit.code,hit.kind,hit.buried,hit.rule,hit.rev,hit.region);
-    if(mark==="closed"||mark==="condition")parts=parts.map(p=>({...p,symbol:mark}));
+    const mark=sectionMark(hit);
+    if(["open","closed","condition"].includes(mark))parts=parts.map(p=>({...p,symbol:mark}));
   }
-  const key=[identity,hit?.t==="x"?hit.id:"",mapDate,DATA_META.version,xVersion,!!hit?.districtView,(hit?.group||hit?.wholeDistrict)&&!hit.fullParts?hit.id:"",parts.length].join("|");
+  const key=[identity,hit?.t==="x"?hit.id:"",mapDate,DATA_META.version,xVersion,!!hit?.districtView,(hit?.group||hit?.wholeDistrict)&&!hit.fullParts?hit.id:"",parts.map(p=>p.symbol).join(",")].join("|");
   if(key!==selKey){
     selKey=key;selParts=parts;selFC=selectionFC(parts);
     if(mapReady)map.getSource("fb-sel")?.setData(selFC);
@@ -3430,9 +3451,8 @@ function waterStatus(hit,hits=[hit],incomplete=false){
   if(right?.level==="restriction")return {cls:"warn",label:"Einschränkung beachten",note:right.title};
   if(incomplete||hit.partial||right?.level==="unknown")return {cls:"warn",label:"Status ungeklärt",note:right?.title||"Gewässerdaten unvollständig"};
   if(/privat/i.test(kind))return {cls:"warn",label:"Berechtigung erforderlich",note:right?.title||"Privates Fischereirecht"};
-  const known=["section","water"].includes(right?.level);
   const season=hit.t==="sec"?sec.kind==="patent"&&GEO.official:!!sec.id||period==="open";
-  if(known&&season)return {cls:"ok",label:"Fangsaison offen",note:hit.t==="sec"?"Patent erforderlich":right.title};
+  if(knownOpenSeason(season,right))return {cls:"ok",label:"Fangsaison offen",note:hit.t==="sec"?"Patent erforderlich":right.title};
   return {cls:"warn",label:"Berechtigung prüfen",note:right?.title||"Status am Abschnitt ungeklärt"};
 }
 function hitRules(hit){
@@ -3657,7 +3677,7 @@ function cancelMapQuery(){
 function restrictedHit(hit){
   if(hit.code==="SG"&&FishRights.sgProtection(hit.rev,hit.region))return true;
   if(hit.t==="x"){const f=xg(hit.code).feats[hit.id];if(f&&westMark(hit.code,f)==="closed")return true}
-  if(hit.t==="zone"&&sectionMark(hit.code,hit.kind,hit.buried,hit.rule)==="closed")return true;
+  if(hit.t==="zone"&&groupClosure(hit.code,zoneGroup(hit)||hit.rule))return true;
   if(hit.t==="sec"&&hit.source&&soSymbol(hit.source)==="closed")return true;
   return FishSections.restriction(hit.kind)||(hit.code==="AI"&&/schon|verbot/i.test(hit.name));
 }
@@ -3733,7 +3753,7 @@ async function resolveMapTap(e,seq){
       const matches=[];
       for(const f of Object.values(g.feats)){
         if(!FishSections.intersects(box,f.bounds))continue;
-        if(f._z>lz()+.5&&!["protected","closed"].includes(westMark(code,f)))continue;
+        if(f._z>lz()+.5&&!["open","protected","closed"].includes(westMark(code,f)))continue;
         const point=FishSections.nearest(lat,lon,f.l,f.poly);
         if(point.d<=tol)matches.push({...point,t:"x",code,id:f.id,zoneId:f.zoneId,area:f.poly,name:f.name,kind:f.art});
       }
@@ -4084,7 +4104,7 @@ function addOverlays(){
   map.addSource("fb-sel",{type:"geojson",data:selFC,tolerance:.2});
   map.addLayer({id:"fb-sel-fill",type:"fill",source:"fb-sel",filter:isArea,paint:{"fill-color":colorExpr(),"fill-opacity":["case",["in",["get","k"],["literal",RULE_MARKS]],.62,.25]}});
   map.addLayer({id:"fb-sel-dark",type:"line",source:"fb-sel",filter:["==",["get","fp"],0],layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#203038","line-width":selWidth(7.4),"line-opacity":.92}});
-  map.addLayer({id:"fb-sel-edge",type:"line",source:"fb-sel",filter:["==",["get","fp"],0],layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":FishSections.highlight,"line-width":selWidth(5)}});
+  map.addLayer({id:"fb-sel-edge",type:"line",source:"fb-sel",filter:["==",["get","fp"],0],layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":["case",kIs("open"),"#9ce5c5",FishSections.highlight],"line-width":selWidth(5)}});
   map.addLayer({id:"fb-sel-ink",type:"line",source:"fb-sel",filter:["==",["get","fp"],0],layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":colorExpr(),"line-width":selWidth(0)}});
   map.addLayer({id:"fb-labels",type:"symbol",source:"fb-sec",minzoom:8,filter:["all",["!=",["get","n"],""],["==",["get","a"],0]],
     layout:{"symbol-placement":"line","text-field":["get","n"],"text-font":labelFont,"text-size":["interpolate",["linear"],["zoom"],8,11,14,13.5],
@@ -4190,7 +4210,12 @@ function initialMapView(){
 function prepareSections(preload=true){
   if(sectionMap)return;
   sectionMap=new FishSections.Layer({getZoom:()=>lz(),getBounds:()=>map.getBounds()},updateHint,
-    row=>sectionMark(row.code,row.meta[1],row.meta[5],row.meta[6],row.meta[2],row.meta[3]),{
+    row=>{
+      const [water,kind,rev,region,,buried,rule]=row.meta;
+      const lake=row.code==="LU"?["see","sempach","hallwil","vws","zugersee"].includes(rule):
+        row.code==="AG"?/(see|weiher|teich)(?:$|[\s(/-])/i.test(water):!!row.poly;
+      return sectionMark({t:"zone",code:row.code,water,kind,rev,region,name:water||region,buried,rule,lake,area:!!row.poly});
+    },{
       features:fc=>setZones("fb-sec",fc),coarse:list=>setCoarse(list),credits:set=>setCredits("sections",set)});
   if(preload){const view=initialMapView();sectionMap.preload(view.center,(view.zoom??5)+1)}
 }
@@ -4215,6 +4240,7 @@ async function initMap(){
   if(!$("#v-karte").classList.contains("on"))return;
   if(results.some(r=>r.status==="rejected")||!window.maplibregl){mapFailure(initMap);return}
   refreshMapDate();
+  loadLUDistricts();
   const style=results[0].value,view=initialMapView();
   labelFont=fontFrom(style);
   msg.className="hide";

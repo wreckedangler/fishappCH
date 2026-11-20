@@ -112,7 +112,8 @@ function statusApp(){
   const ctx=app({RULES:rules,mapTime:{ordinal:1119},GEO:{official:true},mapRuleDate:()=>new Date(2026,10,19),
     withCanton:(_c,fn)=>fn(),secStatus:()=>[],fisheryPeriod:()=>null,xg:()=>({feats:{}}),
     cwLabel:(c,id)=>rules[c]?.w?.find(r=>r[0]===id)?.[1]||"",pickCW:()=>""});
-  vm.runInContext(mapCode.slice(mapCode.indexOf("function westRuleGroup("),mapCode.indexOf("function hitRules(")),ctx);
+  vm.runInContext(mapCode.slice(mapCode.indexOf("function knownOpenSeason("),mapCode.indexOf("function groupClosure("))+
+    mapCode.slice(mapCode.indexOf("function westRuleGroup("),mapCode.indexOf("function hitRules(")),ctx);
   ctx.hitRuleContext=()=>({c:"SO",sec:{id:"A4",kind:"patent"}});
   ctx.mapRight=()=>({level:"section",title:"Patent erforderlich"});
   return ctx;
@@ -152,6 +153,29 @@ test("Bern Aare reaches activate the matching existing rule group",()=>{
     const f=rows.find(r=>r.id===id);assert.ok(f,id);
     assert.equal(ctx.westRuleGroup("BE",{...f,zoneId:JSON.stringify(["BE",0,id])}),expected);
   }
+});
+
+test("the Kander's official reaches are green before selection, while the protected reach stays red",()=>{
+  const ctx=statusApp();
+  const {fisheryPeriod,swissFishingTime}=require("../map-sources.js");
+  Object.assign(ctx,{FishRights:require("../map-rights.js"),DATA_META:{version:7},mapDate:"2026-11-20",
+    mapTime:swissFishingTime(new Date("2026-11-20T12:00:00Z")),fisheryPeriod,
+    temperatureWaterName:name=>name.toLowerCase(),pickCW:(c,[name])=>rules[c].w.find(([,label])=>label.includes(name))?.[0]||""});
+  vm.runInContext(mapCode.slice(mapCode.indexOf("function mappedWaterRight("),mapCode.indexOf("function soSymbol(")),ctx);
+  const rows=JSON.parse(read("data/fisheries/BE.json")).layers.flat().map(r=>r[1]);
+  for(const id of ["P130","P131","S9a"]){
+    const reach=rows.find(r=>r.id===id);
+    ctx.xg=()=>({feats:{[id]:reach}});
+    vm.runInContext(mapCode.slice(mapCode.indexOf("function hitRuleContext("),mapCode.indexOf("function hitRules(")),ctx);
+    const hit={t:"x",id,code:"BE",kind:reach.art};
+    ctx.mapRight=()=>ctx.mappedWaterRight(hit,reach,reach.art);
+    assert.equal(ctx.westMark("BE",reach),id==="S9a"?"protected":"open",id);
+    assert.equal(ctx.waterStatus(hit).cls,id==="S9a"?"bad":"ok",id);
+  }
+  const unknown={name:"Kander",art:"Gewässer"};
+  assert.equal(ctx.westMark("BE",unknown),"water");
+  const closed={name:"Kander",art:"Patent",closedPeriod:[1101,1130]};
+  assert.equal(ctx.westMark("BE",closed),"closed");
 });
 
 test("a different section with the same river name can always be activated",()=>{

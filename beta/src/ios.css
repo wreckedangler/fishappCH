@@ -110,6 +110,7 @@ dialog[open]{animation:iosIn .22s var(--ease)}
 .ios-foot:empty{display:none}
 #hereWaterInfo[hidden],#hereWaterInfo details[hidden]{display:none}
 #hereWaterInfo details{margin:0;padding:0;background:transparent;border:0}
+#hereWaterInfo details:not([hidden])+details:not([hidden]){border-top:1px solid var(--sep)}
 #hereWaterInfo summary{padding:10px var(--pad,16px);min-height:48px;cursor:pointer}
 #hereWaterInfo summary:focus-visible{outline-offset:-3px}
 #hereWaterInfo summary span{min-width:0}
@@ -135,28 +136,21 @@ dialog[open]{animation:iosIn .22s var(--ease)}
 #hereTemperature strong{font-size:18px;font-variant-numeric:tabular-nums;white-space:nowrap}
 #hereTemperature small{display:block;margin-top:2px;font-size:13px;color:var(--mut);overflow-wrap:anywhere}
 
-.hydro-cards{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin-top:16px}
-.hydro-cards[hidden],.hydro-card[hidden]{display:none}
-@media(min-width:600px){.hydro-cards:has(.hydro-card:nth-child(2):not([hidden])):has(.hydro-card:first-child:not([hidden])){grid-template-columns:repeat(2,minmax(0,1fr))}}
-.hydro-card{
-  --chart:#00659d;
-  padding:15px 15px 0;min-width:0;border:1px solid var(--sep);border-radius:20px;
-  background-color:var(--sf);
-  background-image:linear-gradient(145deg,color-mix(in srgb,var(--chart) 9%,var(--sf)),var(--sf) 66%);
-  box-shadow:var(--shadow);color:var(--tx);
-}
+.hydro-charts{padding:0 var(--pad,16px)}
+.hydro-chart{--chart:#00659d;padding:12px 0 0;border-top:1px solid var(--sep)}
+.hydro-chart[hidden]{display:none}
 .hydro-temperature{--chart:#a34d0c}
-.hydro-card[data-level]{--chart:#087761}
+.hydro-chart[data-level]{--chart:#087761}
 @media(prefers-color-scheme:dark){
-  .hydro-card{--chart:#78c8f9}
+  .hydro-chart{--chart:#78c8f9}
   .hydro-temperature{--chart:#f7b773}
-  .hydro-card[data-level]{--chart:#75d5ba}
+  .hydro-chart[data-level]{--chart:#75d5ba}
 }
 .hydro-heading{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:3px 10px}
 .hydro-heading h2{margin:0;font-size:15px;font-weight:670;color:var(--chart)}
 .hydro-heading time{font-size:12px;font-weight:550;color:var(--mut);font-variant-numeric:tabular-nums}
 .hydro-reading{display:flex;align-items:baseline;gap:4px 7px;flex-wrap:wrap;margin:5px 0 7px}
-.hydro-reading strong{font-size:clamp(30px,9vw,39px);line-height:1.14;font-weight:700;letter-spacing:-.055em;font-variant-numeric:tabular-nums}
+.hydro-reading strong{font-size:22px;line-height:1.14;font-weight:700;letter-spacing:-.025em;font-variant-numeric:tabular-nums}
 .hydro-reading span{font-size:14px;color:var(--mut)}
 .hydro-reading .hydro-trend{align-self:center;margin-left:auto;border-radius:99px;padding:4px 9px;color:var(--chart);background:color-mix(in srgb,var(--chart) 12%,transparent);font-size:12px;font-weight:650}
 .hydro-period{margin:0 0 2px;color:var(--mut);font-size:12px;font-weight:550}

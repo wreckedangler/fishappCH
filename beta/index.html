@@ -429,6 +429,7 @@ dialog[open]{animation:iosIn .22s var(--ease)}
 .ios-foot:empty{display:none}
 #hereWaterInfo[hidden],#hereWaterInfo details[hidden]{display:none}
 #hereWaterInfo details{margin:0;padding:0;background:transparent;border:0}
+#hereWaterInfo details:not([hidden])+details:not([hidden]){border-top:1px solid var(--sep)}
 #hereWaterInfo summary{padding:10px var(--pad,16px);min-height:48px;cursor:pointer}
 #hereWaterInfo summary:focus-visible{outline-offset:-3px}
 #hereWaterInfo summary span{min-width:0}
@@ -454,28 +455,21 @@ dialog[open]{animation:iosIn .22s var(--ease)}
 #hereTemperature strong{font-size:18px;font-variant-numeric:tabular-nums;white-space:nowrap}
 #hereTemperature small{display:block;margin-top:2px;font-size:13px;color:var(--mut);overflow-wrap:anywhere}
 
-.hydro-cards{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin-top:16px}
-.hydro-cards[hidden],.hydro-card[hidden]{display:none}
-@media(min-width:600px){.hydro-cards:has(.hydro-card:nth-child(2):not([hidden])):has(.hydro-card:first-child:not([hidden])){grid-template-columns:repeat(2,minmax(0,1fr))}}
-.hydro-card{
-  --chart:#00659d;
-  padding:15px 15px 0;min-width:0;border:1px solid var(--sep);border-radius:20px;
-  background-color:var(--sf);
-  background-image:linear-gradient(145deg,color-mix(in srgb,var(--chart) 9%,var(--sf)),var(--sf) 66%);
-  box-shadow:var(--shadow);color:var(--tx);
-}
+.hydro-charts{padding:0 var(--pad,16px)}
+.hydro-chart{--chart:#00659d;padding:12px 0 0;border-top:1px solid var(--sep)}
+.hydro-chart[hidden]{display:none}
 .hydro-temperature{--chart:#a34d0c}
-.hydro-card[data-level]{--chart:#087761}
+.hydro-chart[data-level]{--chart:#087761}
 @media(prefers-color-scheme:dark){
-  .hydro-card{--chart:#78c8f9}
+  .hydro-chart{--chart:#78c8f9}
   .hydro-temperature{--chart:#f7b773}
-  .hydro-card[data-level]{--chart:#75d5ba}
+  .hydro-chart[data-level]{--chart:#75d5ba}
 }
 .hydro-heading{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:3px 10px}
 .hydro-heading h2{margin:0;font-size:15px;font-weight:670;color:var(--chart)}
 .hydro-heading time{font-size:12px;font-weight:550;color:var(--mut);font-variant-numeric:tabular-nums}
 .hydro-reading{display:flex;align-items:baseline;gap:4px 7px;flex-wrap:wrap;margin:5px 0 7px}
-.hydro-reading strong{font-size:clamp(30px,9vw,39px);line-height:1.14;font-weight:700;letter-spacing:-.055em;font-variant-numeric:tabular-nums}
+.hydro-reading strong{font-size:22px;line-height:1.14;font-weight:700;letter-spacing:-.025em;font-variant-numeric:tabular-nums}
 .hydro-reading span{font-size:14px;color:var(--mut)}
 .hydro-reading .hydro-trend{align-self:center;margin-left:auto;border-radius:99px;padding:4px 9px;color:var(--chart);background:color-mix(in srgb,var(--chart) 12%,transparent);font-size:12px;font-weight:650}
 .hydro-period{margin:0 0 2px;color:var(--mut);font-size:12px;font-weight:550}
@@ -987,11 +981,14 @@ main{overscroll-behavior-y:none}
     <label class="ios-row chk"><input type="checkbox" id="cbCantonAuto"><span class="k">Automatisch per Standort</span></label>
   </div>
   <p id="geoMsg" class="ios-foot"></p>
-  <div id="hereCharts" class="hydro-cards" hidden>
-    <article id="hereTemperatureChart" class="hydro-card hydro-temperature" hidden></article>
-    <article id="hereHydro" class="hydro-card" hidden></article>
-  </div>
   <div id="hereWaterInfo" class="ios-group" hidden>
+    <details id="hereMeasurements" hidden>
+      <summary><strong>Messverlauf</strong></summary>
+      <div id="hereCharts" class="hydro-charts">
+        <section id="hereTemperatureChart" class="hydro-chart hydro-temperature" hidden></section>
+        <section id="hereHydro" class="hydro-chart" hidden></section>
+      </div>
+    </details>
     <details id="hereCatches" hidden><summary><span><strong>Zuletzt hier gefangen</strong><small></small></span></summary><div class="water-info-detail"></div></details>
   </div>
   <!-- Ältere Auswahlfelder: bleiben für die Auswahldialoge im Hintergrund. -->
@@ -5385,7 +5382,15 @@ function paintHereChart(card,content){
       <a class="hydro-station" href="https://www.hydrodaten.admin.ch/de/seen-und-fluesse/stationen-und-daten/${encodeURIComponent(id)}" target="_blank" rel="noopener noreferrer"><span><small>${reference?"BAFU · Referenzstation":"BAFU · Messstation"}</small>${esc(station)}</span></a>`;
   }else card.replaceChildren();
   card.hidden=!content;
-  $("#hereCharts").hidden=$("#hereTemperatureChart").hidden&&$("#hereHydro").hidden;
+  const measurements=$("#hereMeasurements");
+  if(card.id==="hereHydro"){
+    measurements.querySelector("summary strong").textContent=content
+      ?[content.title+" "+content.number.format(content.value)+" "+content.unit,content.trend].filter(Boolean).join(" · ")
+      :"Messverlauf";
+  }
+  measurements.hidden=$("#hereTemperatureChart").hidden&&$("#hereHydro").hidden;
+  if(measurements.hidden)measurements.open=false;
+  syncHereWaterInfo();
 }
 function temperatureTarget(choice,index,network){
   const section=choice.temperatureSection||choice.section;
@@ -5459,7 +5464,10 @@ function paintHereRow(row,content){
       row.hereBody=content.body;
     }
   }else row.open=false;
-  $("#hereWaterInfo").hidden=row.hidden;
+  syncHereWaterInfo();
+}
+function syncHereWaterInfo(){
+  $("#hereWaterInfo").hidden=$("#hereMeasurements").hidden&&$("#hereCatches").hidden;
 }
 function updateHereRow(row,key,ttl,read,paint=paintHereRow){
   if(row.hereKey!==key){
@@ -5485,7 +5493,13 @@ function renderHereWater(){
   const visible=!document.hidden&&navigator.onLine&&route()==="hier"&&$("#v-hier").classList.contains("on");
   const choice=visible&&hereSelection();
   const section=choice?.section,picker=choice?.picker,station=choice?.station;
-  updateHereRow($("#hereTemperature"),choice?JSON.stringify(choice):"",10*hydroMinute,()=>hereTemperatureContent(choice),(link,content)=>{
+  const choiceKey=choice?JSON.stringify(choice):"";
+  const measurements=$("#hereMeasurements");
+  if(measurements.hereChoice!==choiceKey){
+    measurements.hereChoice=choiceKey;
+    measurements.open=false;
+  }
+  updateHereRow($("#hereTemperature"),choiceKey,10*hydroMinute,()=>hereTemperatureContent(choice),(link,content)=>{
     paintHereTemperature(link,content);
     paintHereChart($("#hereTemperatureChart"),content?.chart);
   });

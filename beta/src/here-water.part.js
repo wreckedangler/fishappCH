@@ -116,7 +116,15 @@ function paintHereChart(card,content){
       <a class="hydro-station" href="https://www.hydrodaten.admin.ch/de/seen-und-fluesse/stationen-und-daten/${encodeURIComponent(id)}" target="_blank" rel="noopener noreferrer"><span><small>${reference?"BAFU · Referenzstation":"BAFU · Messstation"}</small>${esc(station)}</span></a>`;
   }else card.replaceChildren();
   card.hidden=!content;
-  $("#hereCharts").hidden=$("#hereTemperatureChart").hidden&&$("#hereHydro").hidden;
+  const measurements=$("#hereMeasurements");
+  if(card.id==="hereHydro"){
+    measurements.querySelector("summary strong").textContent=content
+      ?[content.title+" "+content.number.format(content.value)+" "+content.unit,content.trend].filter(Boolean).join(" · ")
+      :"Messverlauf";
+  }
+  measurements.hidden=$("#hereTemperatureChart").hidden&&$("#hereHydro").hidden;
+  if(measurements.hidden)measurements.open=false;
+  syncHereWaterInfo();
 }
 function temperatureTarget(choice,index,network){
   const section=choice.temperatureSection||choice.section;
@@ -190,7 +198,10 @@ function paintHereRow(row,content){
       row.hereBody=content.body;
     }
   }else row.open=false;
-  $("#hereWaterInfo").hidden=row.hidden;
+  syncHereWaterInfo();
+}
+function syncHereWaterInfo(){
+  $("#hereWaterInfo").hidden=$("#hereMeasurements").hidden&&$("#hereCatches").hidden;
 }
 function updateHereRow(row,key,ttl,read,paint=paintHereRow){
   if(row.hereKey!==key){
@@ -216,7 +227,13 @@ function renderHereWater(){
   const visible=!document.hidden&&navigator.onLine&&route()==="hier"&&$("#v-hier").classList.contains("on");
   const choice=visible&&hereSelection();
   const section=choice?.section,picker=choice?.picker,station=choice?.station;
-  updateHereRow($("#hereTemperature"),choice?JSON.stringify(choice):"",10*hydroMinute,()=>hereTemperatureContent(choice),(link,content)=>{
+  const choiceKey=choice?JSON.stringify(choice):"";
+  const measurements=$("#hereMeasurements");
+  if(measurements.hereChoice!==choiceKey){
+    measurements.hereChoice=choiceKey;
+    measurements.open=false;
+  }
+  updateHereRow($("#hereTemperature"),choiceKey,10*hydroMinute,()=>hereTemperatureContent(choice),(link,content)=>{
     paintHereTemperature(link,content);
     paintHereChart($("#hereTemperatureChart"),content?.chart);
   });

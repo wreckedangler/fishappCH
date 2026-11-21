@@ -6,13 +6,16 @@ function resetAutoWater(){
   Object.assign(autoWater,{hit:null,hits:[],position:null,pending:null,due:0,error:"",incomplete:false});
   state.here=null;
 }
-async function loadWaterGeometry(){
+function loadZoneModules(){
   const jobs=[];
   if(typeof FishSections==="undefined")jobs.push(loadScript("./beta/map-sections-gl.js"));
   if(typeof FishRights==="undefined")jobs.push(loadScript("./map-rights.js"));
   if(typeof FishRegisters==="undefined")jobs.push(loadScript("./map-rights-registers.js"));
   if(typeof XSRC==="undefined")jobs.push(loadScript("./map-sources.js"));
-  await Promise.all(jobs);
+  return Promise.all(jobs);
+}
+async function loadWaterGeometry(){
+  await loadZoneModules();
   prepareSections(false);refreshMapDate();
   await loadBundledSO();
 }

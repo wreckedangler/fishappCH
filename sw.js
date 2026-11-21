@@ -1,20 +1,59 @@
 // Fischer-Begleiter Service Worker
-const APP = "fb-app-v81";      // versionierte App-Dateien
+const APP = "fb-app-v82";      // versionierte App-Dateien
 const LIB = "fb-lib-v1";      // Kartenbibliothek: Cache zuerst
 const TILES = "fb-tiles-v1";  // Kartenkacheln: Cache zuerst, begrenzt
 const MAX_TILES = 600;
 const IMG = "fb-img-v1";     // Fischfotos (Wikimedia): Cache zuerst
 const SECTIONS = "fb-sections-v1"; // Abschnittsdateien mit Inhalts-Hash
 
-const FILES = ["./index.html", "./beta/index.html", "./beta/map-sections-gl.js", "./map-search.js", "./data/sections/index.json", "./data/so-sections.json", "./manifest.webmanifest", "./icon.svg", "./data/updates.json", "./vendor/maplibre-gl/maplibre-gl.js", "./vendor/maplibre-gl/maplibre-gl.css", "./data/basemaps/luft.json", "./data/basemaps/topo.json"];
-FILES.push("./map-sources.js","./map-rights.js","./map-rights-registers.js","./data/map-overview.json","./data/alpenraum.webp","./data/luzern-reviere.json","./data/lakes.json","./data/canton-areas.json",...["BE","FR","GE","GL","NW","SH","TG","VD","VS"].map(c=>"./data/fisheries/"+c+".json"));
-FILES.push(...["favicon-32","schild-apple-180","schild-192","schild-512","schild-maskable-512"].map(name=>"./assets/"+name+".png"));
-FILES.push("./data/here-stations.json","./data/temperature-waters.json");
+const CORE=["./index.html","./beta/index.html","./manifest.webmanifest","./assets/favicon-32.png"];
+const OFFLINE="fb-offline-v1";
+const scope=self.registration.scope;
+function optionalAsset(url){
+  if(!url.href.startsWith(scope))return false;
+  const path=url.pathname.slice(new URL(scope).pathname.length);
+  return /^(?:data|assets|vendor)\//.test(path)||/^(?:map-[\w-]+|beta\/map-sections-gl)\.js$/.test(path)||path==="icon.svg";
+}
 
-self.addEventListener("install", e => e.waitUntil(caches.open(APP).then(c => c.addAll(FILES.map(path=>new Request(path,{cache:"no-cache",priority:"low"})))).then(() => self.skipWaiting())));
-self.addEventListener("activate", e => e.waitUntil(
-  caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith("fb-")&&![APP, LIB, TILES, IMG, SECTIONS].includes(k)).map(k => caches.delete(k)))).then(() => self.clients.claim())
-));
+self.addEventListener("install",event=>event.waitUntil((async()=>{
+  const cache=await caches.open(APP);
+  await cache.addAll(CORE.map(path=>new Request(path,{cache:"reload"})));
+  await self.skipWaiting();
+})()));
+self.addEventListener("activate",event=>event.waitUntil((async()=>{
+  const offline=await caches.open(OFFLINE);
+  for(const key of await caches.keys()){
+    if(!/^fb-app-v\d+$/.test(key)||key===APP)continue;
+    const previous=await caches.open(key);
+    for(const req of await previous.keys()){
+      if(optionalAsset(new URL(req.url))){
+        const response=await previous.match(req);
+        try{await offline.put(req,response)}catch{return self.clients.claim()}
+      }
+    }
+    await caches.delete(key);
+  }
+  await self.clients.claim();
+})()));
+
+async function optionalResponse(event){
+  const req=event.request,cache=await caches.open(APP);
+  const hit=await cache.match(req);
+  if(hit)return hit;
+  try{
+    const response=await fetch(req,{signal:AbortSignal.timeout(20000)});
+    if(response.ok){
+      event.waitUntil(cache.put(req,response.clone()).catch(()=>{}));
+      return response;
+    }
+    if(response.status<500)return response;
+    return (await caches.match(req,{cacheName:OFFLINE}))||response;
+  }catch(error){
+    const saved=await caches.match(req,{cacheName:OFFLINE});
+    if(saved)return saved;
+    throw error;
+  }
+}
 
 async function trim(name, max) {
   const c = await caches.open(name); const keys = await c.keys();
@@ -39,14 +78,16 @@ async function cacheFirst(event, name, limit) {
   }
   return res;
 }
-async function networkFirst(req) {
+async function networkFirst(event) {
+  const req=event.request;
   const c = await caches.open(APP);
   try {
-    const res = await fetch(req);
-    if (res.ok) c.put(req, res.clone());
+    const res = await fetch(req,{signal:AbortSignal.timeout(8000)});
+    if (res.ok) event.waitUntil(c.put(req,res.clone()).catch(()=>{}));
+    else if(res.status>=500)throw Error("Server "+res.status);
     return res;
   } catch (e) {
-    const hit = await c.match(req, { ignoreSearch: true });
+    const hit = await c.match(req,{ignoreSearch:true})||await caches.match(req,{cacheName:OFFLINE,ignoreSearch:true});
     if (hit) return hit;
     throw e;
   }
@@ -57,8 +98,9 @@ self.addEventListener("fetch", e => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin === location.origin) {
-    if (url.pathname.endsWith("/data/updates.json")) return e.respondWith(networkFirst(req));
+    if (url.pathname.endsWith("/data/updates.json")) return e.respondWith(networkFirst(e));
     if (/\/data\/sections\/[\w-]+-[0-9a-f]{10}\.json$/.test(url.pathname)) return e.respondWith(cacheFirst(e, SECTIONS, 160));
+    if(req.mode!=="navigate"&&optionalAsset(url))return e.respondWith(optionalResponse(e));
     const page = /\/beta\/(?:index\.html)?$/.test(url.pathname) ? "./beta/index.html" : "./index.html";
     const shell = req.mode === "navigate" ? new URL(page,self.registration.scope).href : req;
     return e.respondWith(caches.open(APP).then(async cache=>(await cache.match(shell)) || fetch(req)));

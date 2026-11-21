@@ -943,6 +943,9 @@ main{overscroll-behavior-y:none}
 #placeBar{position:absolute;left:12px;right:12px;top:68px;z-index:7;display:flex;align-items:center;gap:10px;padding:10px 10px 10px 14px;border-radius:16px;background:#12222a;color:#fff;font-size:14px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.35)}
 #placeBar[hidden]{display:none}#placeBar span{flex:1}
 #placeBar button{min-height:40px;padding:6px 12px;border:0;border-radius:10px;background:rgba(255,255,255,.16);color:#fff}
+
+#mapUI.base-only .mui-row,#mapUI.base-only .mui-bottom-left,#mapUI.base-only .mui-right>.mui-round,#mapUI.base-only .mui-locate{display:none}
+#v-karte:has(.base-only) #mapMsg{top:auto;bottom:calc(var(--navspace) + 12px);background:var(--sf);color:var(--tx);padding:10px;border-radius:14px}
 </style>
 </head>
 <body>
@@ -1224,7 +1227,14 @@ let toastT;function toast(t){const el=$("#toast");el.textContent=t;el.classList.
 function ask(html,yes,noBtn){const d=$("#dlg");$("#dlgBody").innerHTML=html;$("#dlgNo").classList.toggle("hide",noBtn===false);$("#dlgYes").onclick=()=>{d.close();yes&&yes()};$("#dlgNo").onclick=()=>d.close();try{d.showModal()}catch(e){}}
 
 let state={xsel:store.get("xsel",{}),cw:store.get("cw",{}),luRev:store.get("luRev",""),canton:store.get("canton","SO"),cantonAuto:store.get("cantonAuto",true),sec:store.get("sec","A2"),secAuto:store.get("secAuto",true),log:store.get("log",[]),sess:store.get("sess",null),pos:null,here:null,geoErr:null};
-function save(){["xsel","cw","luRev","canton","cantonAuto","sec","secAuto","log","sess"].forEach(k=>store.set(k,state[k]))}
+const selectionKeys=["xsel","cw","luRev","canton","cantonAuto","sec","secAuto"];
+const savedSelection=new Map(selectionKeys.map(k=>[k,JSON.stringify(state[k])]));
+function save(){
+  for(const key of selectionKeys){
+    const value=JSON.stringify(state[key]);
+    if(savedSelection.get(key)!==value&&store.set(key,state[key]))savedSelection.set(key,value);
+  }
+}
 
 /* ================= GEODATEN (offizielle SO-Gewässer) ================= */
 const WFS="https://geo.so.ch/api/wfs?SERVICE=WFS&VERSION=1.1.0&REQUEST=GetFeature&TYPENAME=ch.so.awjf.gewaesser.patentgewaesser&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326";
@@ -1242,12 +1252,17 @@ async function loadBundledSO(){
     }
   }catch{/* Live WFS and previously saved geometry can still be used. */}
 }
-async function refreshGeo(force){
+let geoRefresh=null;
+function refreshGeo(force){
+  if(!geoRefresh)geoRefresh=fetchGeoSnapshot(force).finally(()=>{geoRefresh=null});
+  return geoRefresh;
+}
+async function fetchGeoSnapshot(force){
   if(!location.protocol.startsWith("http")||!navigator.onLine)return"offline";
   const age=GEO.date?(Date.now()-new Date(GEO.date).getTime())/864e5:1e9;
   if(!force&&GEO.official&&GEO.precision===1&&age<7)return"fresh";
   try{
-    const j=await fetch(WFS,{cache:"no-store"}).then(r=>{if(!r.ok)throw 0;return r.json()});
+    const j=await fetch(WFS,{cache:"no-store",signal:AbortSignal.timeout(10000)}).then(r=>{if(!r.ok)throw 0;return r.json()});
     const tol=1/111320,r5=c=>[+c[0].toFixed(5),+c[1].toFixed(5)];
     const feats=(j.features||[]).map(x=>{const g=x.geometry||{};let L=[];
       if(g.type==="MultiLineString")L=g.coordinates;else if(g.type==="LineString")L=[g.coordinates];else if(g.type==="Polygon")L=[g.coordinates[0]];else if(g.type==="MultiPolygon")L=g.coordinates.map(p=>p[0]);
@@ -1591,10 +1606,24 @@ function ctxLabel(){return isSO()?currentSec().name:selectedWaterName()||(isCM()
 function renderSess(){
   const s=state.sess,box=$("#sessBox");clearInterval(tick);
   if(!s){box.innerHTML=`<button class="pri full" id="btnStart">Angelzeit starten</button>`;
-    $("#btnStart").onclick=()=>{if(unknownWater()){openWater();return}state.sess={sec:state.sec,cw:isCM()?cwOf(state.canton):null,canton:state.canton,start:Date.now()};save();renderSess()};return}
+    $("#btnStart").onclick=()=>{
+      if(unknownWater()){openWater();return}
+      const session={sec:state.sec,cw:isCM()?cwOf(state.canton):null,canton:state.canton,start:Date.now()};
+      if(!store.set("sess",session)){toast("Session konnte nicht gespeichert werden.");return}
+      state.sess=session;renderSess();
+    };
+    return;
+  }
   box.innerHTML=`<div class="mut small">${esc(s.canton&&s.canton!=="SO"?cname(s.canton)+(s.cw?" · "+cwLabel(s.canton,s.cw):""):secById(s.sec).name)} seit ${new Date(s.start).toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"})}</div><div class="big timer" id="tmr"></div><button class="bad full" id="btnStop">Stop Fischen</button>`;
   const up=()=>{const m=Math.floor((Date.now()-s.start)/6e4);const el=$("#tmr");if(el)el.textContent=`${Math.floor(m/60)} h ${p2(m%60)} min`};up();tick=setInterval(up,15000);
-  $("#btnStop").onclick=()=>{const mins=Math.max(1,Math.round((Date.now()-s.start)/6e4));const ss=store.get("sessions",[]);ss.push({sec:s.sec,canton:s.canton||"SO",start:s.start,mins});store.set("sessions",ss);state.sess=null;save();renderSess();renderStats();
+  $("#btnStop").onclick=()=>{
+    const mins=Math.max(1,Math.round((Date.now()-s.start)/6e4)),sessions=store.get("sessions",[]);
+    if(!sessions.some(row=>row.start===s.start)){
+      sessions.push({sec:s.sec,canton:s.canton||"SO",start:s.start,mins});
+      if(!store.set("sessions",sessions)){toast("Session konnte nicht gespeichert werden.");return}
+    }
+    if(!store.set("sess",null)){toast("Session konnte nicht abgeschlossen werden.");return}
+    state.sess=null;renderSess();renderStats();
     $("#afterSave").innerHTML=`<div class="verdict v-ok"><div class="big">Angeldauer ${Math.floor(mins/60)} h ${mins%60} min</div><div class="ln">Jetzt auch in der offiziellen App «Stop Fischen» drücken.</div></div>`};
 }
 function waterLabel(c,id){
@@ -1896,6 +1925,7 @@ const bookPhotoObserver="IntersectionObserver" in window?new IntersectionObserve
   }
 },{rootMargin:"240px"}):null;
 function renderStats(){
+  if(!$("#v-stat").classList.contains("on"))return;
   const now=new Date(),today=dayKey(now),year=today.slice(0,4);
   const inPeriod=day=>bookPeriod==="all"||(bookPeriod==="today"?day===today:day.startsWith(year));
   const catches=state.log.filter(f=>inPeriod(f.day)).sort((a,b)=>b.ts-a.ts);
@@ -1951,10 +1981,10 @@ function parseCSV(text){
   if(row.length||field){row.push(field);rows.push(row)}
   return rows;
 }
-function importCSV(file){const r=new FileReader();r.onload=()=>{const rows=parseCSV(String(r.result)),head=rows.shift()||[];const ix=k=>head.indexOf(k);let n=0;
-  rows.forEach(c=>{const g=k=>ix(k)>=0?c[ix(k)]:"";const[dd,mm,yy]=g("datum").split(".");if(!yy)return;const ts=new Date(`${yy}-${p2(mm)}-${p2(dd)}T${g("zeit")||"12:00"}`).getTime();if(isNaN(ts)||state.log.some(f=>f.ts===ts&&f.art===g("art")))return;
-    state.log.push({id:ts+Math.random(),ts,day:dayKey(new Date(ts)),canton:g("kanton")||"SO",sec:g("gewaesser")||g("abschnitt"),art:g("art"),len:g("laenge_cm")?parseFloat(g("laenge_cm")):null,n:parseInt(g("anzahl"))||1,kept:g("behalten")==="ja",note:g("notiz"),lat:g("lat")?+g("lat"):null,lon:g("lon")?+g("lon"):null});n++});
-  state.log.sort((a,b)=>b.ts-a.ts);save();renderStats();ask(`<h2>Import</h2><p>${n} Fänge importiert.</p>`,null,false)};r.readAsText(file)}
+function importCSV(file){const r=new FileReader();r.onload=()=>{const rows=parseCSV(String(r.result)),head=rows.shift()||[];const ix=k=>head.indexOf(k);const log=state.log.slice();let n=0;
+  rows.forEach(c=>{const g=k=>ix(k)>=0?c[ix(k)]:"";const[dd,mm,yy]=g("datum").split(".");if(!yy)return;const ts=new Date(`${yy}-${p2(mm)}-${p2(dd)}T${g("zeit")||"12:00"}`).getTime();if(isNaN(ts)||log.some(f=>f.ts===ts&&f.art===g("art")))return;
+    log.push({id:ts+Math.random(),ts,day:dayKey(new Date(ts)),canton:g("kanton")||"SO",sec:g("gewaesser")||g("abschnitt"),art:g("art"),len:g("laenge_cm")?parseFloat(g("laenge_cm")):null,n:parseInt(g("anzahl"))||1,kept:g("behalten")==="ja",note:g("notiz"),lat:g("lat")?+g("lat"):null,lon:g("lon")?+g("lon"):null});n++});
+  log.sort((a,b)=>b.ts-a.ts);if(!store.set("log",log)){toast("Import konnte nicht gespeichert werden.");return}state.log=log;renderStats();ask(`<h2>Import</h2><p>${n} Fänge importiert.</p>`,null,false)};r.readAsText(file)}
 
 /* ================= RENDER: REGELN ================= */
 function renderRegeln(){
@@ -3171,10 +3201,18 @@ async function loadXc(c){
     if(!res.ok)throw Error("Kartenstand "+res.status);
     const {layers,date}=await res.json(),next={feats:{},zones:new Map()};
     for(const [i,rows] of layers.entries()){
-      const features=rows.map(([id,properties,area,parts])=>({id,properties,geometry:area?
-        {type:"MultiPolygon",coordinates:parts.map(rings=>rings.map(FishSections.decode))}:
-        {type:"MultiLineString",coordinates:parts.map(FishSections.decode)}}));
-      xAdd(c,{features},p=>p,i,next);
+      let sliceStart=performance.now();
+      for(const [offset,row] of rows.entries()){
+        const [id,properties,area,parts]=row;
+        const geometry=area?{type:"MultiPolygon",coordinates:parts.map(rings=>rings.map(FishSections.decode))}:
+          {type:"MultiLineString",coordinates:parts.map(FishSections.decode)};
+        xAdd(c,{features:[{id:id??properties.OBJECTID??offset,properties,geometry}]},p=>p,i,next);
+        if(performance.now()-sliceStart>=8){
+          if(globalThis.scheduler?.yield)await scheduler.yield();
+          else await new Promise(resolve=>setTimeout(resolve,0));
+          sliceStart=performance.now();
+        }
+      }
     }
     Object.assign(G,next,{all:true,fail:0,built:date});++xVersion;
     refreshWest(c);
@@ -3987,8 +4025,20 @@ function bindInlineSearch(localRows,select){
     }
     status(state);
   }
-  function update(){
+  async function update(){
     stop();
+    if(typeof FishMapSearch==="undefined"){
+      const id=serial;
+      try{await loadScript("./map-search.js")}catch{
+        if(id===serial){
+          panel.hidden=false;bar.classList.add("open");
+          const retry=document.createElement("button");retry.textContent="Suche erneut laden";
+          retry.onclick=update;panel.replaceChildren(retry);
+        }
+        return;
+      }
+      if(id!==serial)return;
+    }
     const query=input.value.trim(),id=serial,browse=FishMapSearch.isLUList(query);
     clear.hidden=!input.value;
     if(query.length<2){if(document.activeElement===input){shell();status("Gewässer, Revier oder Ort eingeben")}else panel.hidden=true;return}
@@ -4002,6 +4052,7 @@ function bindInlineSearch(localRows,select){
         render([[browse?"Luzerner Fischereireviere ("+zones.length+")":"Gewässer und Reviere",zones],["Orte und Gewässer",locations]],
           fail.length?fail.join(" "):remaining?(zones.length||locations.length?"Weitere Treffer werden gesucht …":"Suche läuft …"):(zones.length||locations.length?"":"Keine Treffer für «"+query+"»."))};
       const local=async()=>{
+        if(!map||!sectionMap)throw Error("Zonen werden geladen");
         const result=await FishMapSearch.localSearch(sectionMap,localRows,query,map.getCenter(),loadLUDistricts,items=>{zones=items;paint()});
         zones=result.zones;if(result.partial)throw Error("Teilindex");
       };
@@ -4038,7 +4089,7 @@ function syncLocateButton(){
   b.innerHTML=follow&&state.pos?ICONS.follow:ICONS.locate;b.classList.toggle("on",follow&&!!state.pos);
   b.setAttribute("aria-pressed",String(follow&&!!state.pos));
 }
-function buildControls(){
+function buildControls(viewMap){
   const host=$("#v-karte");
   const ui=document.createElement("div");ui.id="mapUI";
   ui.innerHTML=`
@@ -4063,8 +4114,8 @@ function buildControls(){
     <button type="button" class="mui-round mui-locate" id="mapLocate" aria-label="Zu meinem Standort">${ICONS.locate}</button>
     <div id="mapLayers" class="mui-layers" hidden></div>`;
   host.append(ui);
-  $("#mapZoomIn").onclick=()=>map.zoomIn({duration:250});
-  $("#mapZoomOut").onclick=()=>map.zoomOut({duration:250});
+  $("#mapZoomIn").onclick=()=>viewMap.zoomIn({duration:250});
+  $("#mapZoomOut").onclick=()=>viewMap.zoomOut({duration:250});
   $("#mapCompass").onclick=()=>map.easeTo({bearing:0,pitch:0,duration:400});
   $("#mapLegendBtn").onclick=()=>{const d=$("#legendDialog");d.showModal();d.scrollTop=0};
   $("#mapCreditBtn").onclick=()=>{$("#legendDialog").showModal();$("#mapCreditTitle").focus()};
@@ -4255,41 +4306,8 @@ function prepareSections(preload=true){
       features:fc=>setZones("fb-sec",fc),coarse:list=>setCoarse(list),credits:set=>setCredits("sections",set)});
   if(preload){const view=initialMapView();sectionMap.preload(view.center,(view.zoom??5)+1)}
 }
-async function initMap(){
-  if(map){refreshMapDate();requestAnimationFrame(()=>{map.resize();sectionMap.sync();scheduleWest();loadX();refreshReports()});renderSheet();drawSel();showShoreMarkers();if(mapReady)focusRequestedLU();return}
-  if(initMap.loading)return;
-  initMap.loading=true;
-  const msg=$("#mapMsg");msg.className="";msg.textContent="Karte wird geladen …";
-  if(!document.querySelector("#maplibreStyle")){
-    const css=document.createElement("link");css.id="maplibreStyle";css.rel="stylesheet";css.href=MAPLIBRE.css;css.crossOrigin="anonymous";css.integrity=MAPLIBRE_SRI.css;document.head.append(css);
-  }
-  const kind=store.get("base","luft")==="topo"?"topo":"luft";
-  const jobs=[baseStyle(kind)];
-  if(!window.maplibregl)jobs.push(loadScript(MAPLIBRE.js));
-  if(typeof FishSections==="undefined")jobs.push(loadScript("./beta/map-sections-gl.js").then(prepareSections));else prepareSections();
-  if(typeof FishRights==="undefined")jobs.push(loadScript("./map-rights.js"));
-  if(typeof FishRegisters==="undefined")jobs.push(loadScript("./map-rights-registers.js"));
-  if(typeof FishMapSearch==="undefined")jobs.push(loadScript("./map-search.js"));
-  if(typeof XSRC==="undefined")jobs.push(loadScript("./map-sources.js"));
-  const results=await Promise.allSettled(jobs);
-  initMap.loading=false;
-  if(!$("#v-karte").classList.contains("on"))return;
-  if(results.some(r=>r.status==="rejected")||!window.maplibregl){mapFailure(initMap);return}
-  refreshMapDate();
-  loadLUDistricts();
-  const style=results[0].value,view=initialMapView();
-  labelFont=fontFrom(style);
-  msg.className="hide";
-  map=new maplibregl.Map({container:"map",style,...(view.bounds?{bounds:view.bounds,fitBoundsOptions:{padding:16}}:view),
-    minZoom:5,maxZoom:19.5,maxBounds:[[3.5,44.6],[12.9,49.0]],attributionControl:false,dragRotate:true,pitchWithRotate:false,touchPitch:false,
-    fadeDuration:180,cooperativeGestures:false,locale:{"NavigationControl.ZoomIn":"Vergrössern","NavigationControl.ZoomOut":"Verkleinern"}});
-  map.touchZoomRotate.enableRotation();
-  map.keyboard.enable();
-  window.fbMap=map;
-  new ResizeObserver(()=>map.resize()).observe($("#map"));
-  bindMapCredits();
-  sectionMap.sync();
-  buildControls();
+function bindBaseControls(viewMap){
+  buildControls(viewMap);
   bindInlineSearch(()=>{
     const places=[];
     for(const f of GEO.official?GEO.features:[]){
@@ -4301,7 +4319,54 @@ async function initMap(){
       places.push([f.name,"",f.art,p[1],p[0],code]);
     }
     return places;
-  },focusMapPlace);
+  },(place,fit)=>{
+    if(map)return focusMapPlace(place,fit);
+    viewMap.flyTo({center:[place.lon,place.lat],zoom:(place.zoom||14)-1});
+  });
+  $("#mapUI").classList.add("base-only");
+}
+async function initMap(){
+  if(map){refreshMapDate();requestAnimationFrame(()=>{map.resize();sectionMap.sync();scheduleWest();loadX();refreshReports()});renderSheet();drawSel();showShoreMarkers();if(mapReady)focusRequestedLU();return}
+  if(initMap.loading)return;
+  initMap.loading=true;
+  const msg=$("#mapMsg");msg.className="";msg.textContent="Karte wird geladen …";
+  if(!document.querySelector("#maplibreStyle")){
+    const css=document.createElement("link");css.id="maplibreStyle";css.rel="stylesheet";css.href=MAPLIBRE.css;css.crossOrigin="anonymous";css.integrity=MAPLIBRE_SRI.css;document.head.append(css);
+  }
+  const kind=store.get("base","luft")==="topo"?"topo":"luft";
+  const zonesReady=loadZoneModules().then(()=>true,()=>false);
+  let viewMap=initMap.baseMap;
+  try{
+    if(!viewMap){
+      const [style]=await Promise.all([baseStyle(kind),window.maplibregl||loadScript(MAPLIBRE.js)]);
+      if(!$("#v-karte").classList.contains("on"))return;
+      labelFont=fontFrom(style);
+      const view=initialMapView();
+      viewMap=new maplibregl.Map({container:"map",style,...(view.bounds?{bounds:view.bounds,fitBoundsOptions:{padding:16}}:view),
+        minZoom:5,maxZoom:19.5,maxBounds:[[3.5,44.6],[12.9,49.0]],attributionControl:false,dragRotate:true,pitchWithRotate:false,touchPitch:false,
+        fadeDuration:180,cooperativeGestures:false,locale:{"NavigationControl.ZoomIn":"Vergrössern","NavigationControl.ZoomOut":"Verkleinern"}});
+      initMap.baseMap=viewMap;
+      bindBaseControls(viewMap);
+      viewMap.once("style.load",()=>{initMap.baseStyleReady=true});
+    }
+    viewMap.resize();
+    msg.textContent="Gewässerzonen werden geladen · Status ungeklärt";
+    if(!await zonesReady)throw Error("Zonendaten fehlen");
+    if(!$("#v-karte").classList.contains("on"))return;
+    prepareSections(false);
+  }catch{
+    mapFailure(initMap);
+    if(viewMap)msg.querySelector(".card").firstChild.textContent="Gewässerzonen fehlen · Status ungeklärt";
+    return;
+  }finally{initMap.loading=false}
+  refreshMapDate();loadLUDistricts();msg.className="hide";
+  map=viewMap;
+  map.touchZoomRotate.enableRotation();
+  map.keyboard.enable();
+  window.fbMap=map;
+  new ResizeObserver(()=>map.resize()).observe($("#map"));
+  bindMapCredits();
+  $("#mapUI").classList.remove("base-only");
   const symbols=Object.values(FishSections.symbols);
   $("#zoneSymbols").innerHTML=symbols.map(s=>'<div><i style="background:'+(s.dash?'repeating-linear-gradient(90deg,'+s.color+' 0 5px,transparent 5px 8px)':s.color)+'"></i>'+esc(s.label)+'</div>').join("")+
     '<div><i style="background:'+FishSections.highlight+';height:7px"></i>Ausgewählte Zone</div>';
@@ -4310,9 +4375,11 @@ async function initMap(){
   sheet.onclick=e=>{const b=e.target.closest("[data-sh]");if(b)sheetAction(b.dataset.sh)};
   bindLongPress();
   map.on("styleimagemissing",addCatchImage);
-  map.on("style.load",()=>{if(mapReady)return;
+  const activateStyle=()=>{if(mapReady)return;
     updateDetailBounds();drawGeo();drawX();addOverlays();mapReady=true;
-    drawLakes();loadX();drawCatches();refreshSpots();updateMe();sectionMap.sync();renderSheet();drawSel();showShoreMarkers();updateHint();focusRequestedLU();refreshReports()});
+    drawLakes();loadX();drawCatches();refreshSpots();updateMe();sectionMap.sync();renderSheet();drawSel();showShoreMarkers();updateHint();focusRequestedLU();refreshReports()};
+  map.on("style.load",activateStyle);
+  if(initMap.baseStyleReady)activateStyle();
   map.on("click",e=>{
     if(!mapReady)return;
     if(placeMode){applyPlace(e.lngLat);return}
@@ -4322,13 +4389,13 @@ async function initMap(){
     mapTap({latlng:{lat:e.lngLat.lat,lng:e.lngLat.lng},point:e.point});
   });
   map.on("dragstart",()=>{if(follow){follow=false;syncLocateButton()}});
-  map.on("move",()=>{if(mapReady&&updateDetailBounds()){drawGeo();scheduleWest()}});
   map.on("movestart",e=>{if(!e.originalEvent)return;cancelMapQuery();if(hintMsg)flashHint("");$("#mapMsg").className="hide"});
   map.on("rotate",()=>{const b=$("#mapCompass");if(!b)return;const r=map.getBearing();b.hidden=Math.abs(r)<.5;b.firstElementChild.style.transform=`rotate(${-r}deg)`});
   let zoomLevel=Math.floor(lz());
   map.on("zoomend",()=>{const z=Math.floor(lz());if(z!==zoomLevel){zoomLevel=z;drawGeo();scheduleWest()}});
   map.on("moveend",()=>{
     if(!$("#v-karte").classList.contains("on")||!mapReady)return;
+    if(updateDetailBounds()){drawGeo();scheduleWest()}
     loadX();sectionMap.sync();updateHint();refreshReports();
     const c=map.getCenter();store.set("mapViewGL",[c.lat,c.lng,map.getZoom()]);
   });
@@ -5536,13 +5603,16 @@ function resetAutoWater(){
   Object.assign(autoWater,{hit:null,hits:[],position:null,pending:null,due:0,error:"",incomplete:false});
   state.here=null;
 }
-async function loadWaterGeometry(){
+function loadZoneModules(){
   const jobs=[];
   if(typeof FishSections==="undefined")jobs.push(loadScript("./beta/map-sections-gl.js"));
   if(typeof FishRights==="undefined")jobs.push(loadScript("./map-rights.js"));
   if(typeof FishRegisters==="undefined")jobs.push(loadScript("./map-rights-registers.js"));
   if(typeof XSRC==="undefined")jobs.push(loadScript("./map-sources.js"));
-  await Promise.all(jobs);
+  return Promise.all(jobs);
+}
+async function loadWaterGeometry(){
+  await loadZoneModules();
   prepareSections(false);refreshMapDate();
   await loadBundledSO();
 }
@@ -6101,14 +6171,14 @@ function applyData(j){
 }
 async function fetchUpdates(){
   if(!location.protocol.startsWith("http")||!navigator.onLine)return"offline";
-  try{const j=await fetch("./data/updates.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw 0;return r.json()});
+  try{const j=await fetch("./data/updates.json",{cache:"no-store",signal:AbortSignal.timeout(10000)}).then(r=>{if(!r.ok)throw 0;return r.json()});
     DATA_META.checked=new Date().toISOString();store.set("data_checked",DATA_META.checked);
     const ch=applyData(j);if(ch){renderAll();refreshMapDate(true)}return ch?"new":"same"}catch(e){return"offline"}
 }
 function loadCached(){const c=store.get("data",null);if(c&&c.version>=DATA_META.version){DATA_META={version:c.version,updated:c.updated,checked:store.get("data_checked",null)};if(c.news)NEWS=c.news;if(c.rules)Object.keys(c.rules).forEach(k=>{RULES[k]=c.rules[k]})}else DATA_META.checked=store.get("data_checked",null)}
 
 /* ================= NAVIGATION & INIT ================= */
-function renderAll(){syncGeo();if(shoreView&&!shoreView.fromMap&&(unknownWater()||shoreView.key!==state.canton+"/"+currentSec().id||secStatus(currentSec()).some(s=>s.lvl==="bad")))clearShore();renderTop();renderHier();if(map&&$("#v-karte").classList.contains("on")){if(mapSel&&mapSel.t==="sec")renderSheet();drawSel()}if($("#v-arten").classList.contains("on"))refreshArtenStatus();if($("#v-fang").classList.contains("on"))renderFang();if($("#v-regeln").classList.contains("on"))renderRegeln()}
+function renderAll(){syncGeo();if(shoreView&&!shoreView.fromMap&&(unknownWater()||shoreView.key!==state.canton+"/"+currentSec().id||secStatus(currentSec()).some(s=>s.lvl==="bad")))clearShore();renderTop();if($("#v-hier").classList.contains("on"))renderHier();if(map&&$("#v-karte").classList.contains("on")){if(mapSel&&mapSel.t==="sec")renderSheet();drawSel()}if($("#v-arten").classList.contains("on"))refreshArtenStatus();if($("#v-fang").classList.contains("on"))renderFang();if($("#v-regeln").classList.contains("on"))renderRegeln()}
 function route(){const key=location.hash.slice(1);return key==="fangbuch"?"stat":["fang","karte","arten","regeln"].includes(key)?key:"hier"}
 function show(v,restore=false){
   if(v!=="karte"){requestedLURev="";cancelMapQuery();clearShore();if(hintMsg)flashHint("")}
@@ -6276,7 +6346,6 @@ window.addEventListener("online",()=>{fetchUpdates();refreshGeo()});
 
 loadCached();
 setSpecies("Bachforelle");
-renderAll();renderStats();
 window.addEventListener("popstate",()=>{show(route(),true);window.scrollTo(0,history.state?.scroll||0)});
 show(route(),true);
 if(isAuto())startGeo();

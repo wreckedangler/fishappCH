@@ -145,3 +145,6 @@
 #placeBar{position:absolute;left:12px;right:12px;top:68px;z-index:7;display:flex;align-items:center;gap:10px;padding:10px 10px 10px 14px;border-radius:16px;background:#12222a;color:#fff;font-size:14px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.35)}
 #placeBar[hidden]{display:none}#placeBar span{flex:1}
 #placeBar button{min-height:40px;padding:6px 12px;border:0;border-radius:10px;background:rgba(255,255,255,.16);color:#fff}
+
+#mapUI.base-only .mui-row,#mapUI.base-only .mui-bottom-left,#mapUI.base-only .mui-right>.mui-round,#mapUI.base-only .mui-locate{display:none}
+#v-karte:has(.base-only) #mapMsg{top:auto;bottom:calc(var(--navspace) + 12px);background:var(--sf);color:var(--tx);padding:10px;border-radius:14px}

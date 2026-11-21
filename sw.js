@@ -1,5 +1,5 @@
 // Fischer-Begleiter Service Worker
-const APP = "fb-app-v82";      // versionierte App-Dateien
+const APP = "fb-app-v83";      // versionierte App-Dateien
 const LIB = "fb-lib-v1";      // Kartenbibliothek: Cache zuerst
 const TILES = "fb-tiles-v1";  // Kartenkacheln: Cache zuerst, begrenzt
 const MAX_TILES = 600;
@@ -41,7 +41,7 @@ async function optionalResponse(event){
   const hit=await cache.match(req);
   if(hit)return hit;
   try{
-    const response=await fetch(req,{signal:AbortSignal.timeout(20000)});
+    const response=await fetch(req,{cache:"no-cache",signal:AbortSignal.timeout(20000)});
     if(response.ok){
       event.waitUntil(cache.put(req,response.clone()).catch(()=>{}));
       return response;

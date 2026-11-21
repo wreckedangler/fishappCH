@@ -3058,6 +3058,24 @@ let labelFont=["Frutiger Neue Regular"];
 
 /* ---- Datenquellen zeichnen ---- */
 function setZones(src,fc){zoneData[src]=fc;if(mapReady)map.getSource(src)?.setData(fc)}
+// The renderer only needs subpixel precision in the overview. Queries and selection use the original coordinates.
+const overviewLines=new WeakMap();
+function overviewLine(line,zoom){
+  if(zoom>12||line.length<4)return line;
+  const previous=overviewLines.get(line);
+  if(previous?.zoom===zoom)return previous.points;
+  const dx=0.4*360/(256*2**zoom),dy=dx*0.66;
+  const points=[line[0]];
+  let last=line[0];
+  for(let i=1;i<line.length-1;i++){
+    const point=line[i];
+    if(Math.abs(point[0]-last[0])<dx&&Math.abs(point[1]-last[1])<dy)continue;
+    points.push(point);last=point;
+  }
+  points.push(line[line.length-1]);
+  overviewLines.set(line,{zoom,points});
+  return points;
+}
 const soFeatureCache={key:"",fc:null};
 function drawGeo(){
   if(!map||!GEO.official)return;
@@ -3074,7 +3092,7 @@ function drawGeo(){
     const z=mark==="open"?6:["protected","closed"].includes(mark)?Math.min(f._z,10):f._z;
     if(z>zoom+1)continue;
     const tiny=FishSections.subPixel(box,lz());
-    const geometry=tiny?{type:"LineString",coordinates:FishSections.shortMark(f.l[0][0],lz())}:{type:"MultiLineString",coordinates:f.l};
+    const geometry=tiny?{type:"LineString",coordinates:FishSections.shortMark(f.l[0][0],lz())}:{type:"MultiLineString",coordinates:f.l.map(line=>overviewLine(line,zoom))};
     features.push({type:"Feature",geometry,properties:{k:mark,a:0,z,key:"SO/"+f.id,lb:k==="patent"||k==="schon"?f.id:"",ls:k==="schon"?1:0}});
   }
   setZones("fb-so",FC(features));
@@ -3261,7 +3279,7 @@ function drawX(){
       let geometry;
       if(tiny)geometry={type:"LineString",coordinates:FishSections.shortMark(f.l[0][0],lz())};
       else if(f.poly)geometry={type:"Polygon",coordinates:FishSections.orient(f.l)};
-      else geometry={type:"LineString",coordinates:f.l[0]};
+      else geometry={type:"LineString",coordinates:overviewLine(f.l[0],zoom)};
       features.push({type:"Feature",geometry,properties:{k:mark,a:f.poly&&!tiny?1:0,key:"X/"+code+"/"+f.id,z}});
     }
   }
@@ -4149,10 +4167,12 @@ function buildControls(viewMap){
 const STYLE_URL={luft:"https://vectortiles.geo.admin.ch/styles/ch.swisstopo.imagerybasemap.vt/style.json",
   topo:"https://vectortiles.geo.admin.ch/styles/ch.swisstopo.basemap.vt/style.json"};
 const styleCache={};
+const packagedStyles=new WeakSet();
 async function baseStyle(kind){
   const read=async url=>{const response=await fetch(url,{signal:AbortSignal.timeout(6500)});if(!response.ok)throw Error("Stil "+response.status);return response.json()};
-  if(!styleCache[kind])styleCache[kind]=read("./data/basemaps/"+kind+".json").catch(()=>read(STYLE_URL[kind])).catch(e=>{delete styleCache[kind];throw e});
-  const s=structuredClone(await styleCache[kind]);
+  if(!styleCache[kind])styleCache[kind]=read("./data/basemaps/"+kind+".json").then(style=>{packagedStyles.add(style);return style}).catch(()=>read(STYLE_URL[kind])).catch(e=>{delete styleCache[kind];throw e});
+  const source=await styleCache[kind],s=structuredClone(source);
+  if(packagedStyles.has(source))packagedStyles.add(s);
   // Keep the aerial view calm: no hiking paths, points of interest or park outlines.
   const hide=new Set(["road_paths","road_via_ferrata","tunnel_pedestrian","park","park_label","aerialway","poi_rank1","poi_rank2","spot_elevation"]);
   if(kind==="luft")s.layers=s.layers.filter(l=>!hide.has(l.id));
@@ -4244,7 +4264,7 @@ async function setBase(kind){
     const style=await baseStyle(kind);if(change!==baseChange)return;
     labelFont=fontFrom(style);
     mapReady=false;
-    map.setStyle(style,{diff:false});
+    map.setStyle(style,{diff:false,validate:!packagedStyles.has(style)});
   }catch(e){if(change===baseChange)toast("Kartenhintergrund konnte nicht geladen werden.")}
 }
 function bindMapCredits(){
@@ -4340,7 +4360,7 @@ async function initMap(){
       if(!$("#v-karte").classList.contains("on"))return;
       labelFont=fontFrom(style);
       const view=initialMapView();
-      viewMap=new maplibregl.Map({container:"map",style,...(view.bounds?{bounds:view.bounds,fitBoundsOptions:{padding:16}}:view),
+      viewMap=new maplibregl.Map({container:"map",style,validateStyle:!packagedStyles.has(style),...(view.bounds?{bounds:view.bounds,fitBoundsOptions:{padding:16}}:view),
         minZoom:5,maxZoom:19.5,maxBounds:[[3.5,44.6],[12.9,49.0]],attributionControl:false,dragRotate:true,pitchWithRotate:false,touchPitch:false,
         fadeDuration:180,cooperativeGestures:false,locale:{"NavigationControl.ZoomIn":"Vergrössern","NavigationControl.ZoomOut":"Verkleinern"}});
       initMap.baseMap=viewMap;

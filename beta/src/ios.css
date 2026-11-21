@@ -159,6 +159,7 @@ dialog[open]{animation:iosIn .22s var(--ease)}
 .hydro-reading strong{font-size:clamp(30px,9vw,39px);line-height:1.14;font-weight:700;letter-spacing:-.055em;font-variant-numeric:tabular-nums}
 .hydro-reading span{font-size:14px;color:var(--mut)}
 .hydro-reading .hydro-trend{align-self:center;margin-left:auto;border-radius:99px;padding:4px 9px;color:var(--chart);background:color-mix(in srgb,var(--chart) 12%,transparent);font-size:12px;font-weight:650}
+.hydro-period{margin:0 0 2px;color:var(--mut);font-size:12px;font-weight:550}
 .hydro-plot{display:block;width:100%;height:auto;max-height:145px;color:var(--chart);overflow:visible;font:13px system-ui,sans-serif;font-variant-numeric:tabular-nums}
 .hydro-plot text{fill:var(--mut)}
 .hydro-grid{stroke:var(--sep);stroke-width:1}

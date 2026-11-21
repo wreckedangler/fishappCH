@@ -36,6 +36,14 @@ test("no invented trends, no stale or future readings, no substituted river leve
   const lake=hydroReading("2063",true,[row("Q",250,3),row("W",412.25,8)],"m ü.M.",now);
   assert.equal(lake.value,412.25);assert.equal(lake.trend,"");
 });
+test("rolling discharge covers 24 hours using archive before live, omitting earlier or incompatible values",()=>{
+  const {hydroReading}=app();
+  const archived=(value,minutes,unitSymbol="m3/s")=>({...row("Q",value,minutes),unitSymbol});
+  const m=hydroReading("2063",false,[row("Q",60,5),row("Q",50,700)],"m³/s",now,
+    [archived(10,1441),archived(20,1440),archived(30,800,"l/s"),archived(999,700),archived(998,400)]);
+  assert.equal(m.chartEnd,now);assert.equal(m.chartWindow,1440*60000);
+  assert.deepEqual(JSON.parse(JSON.stringify(m.history)),[[now-1440*60000,20],[now-700*60000,50],[now-5*60000,60]]);
+});
 test("the name and the geometry must agree, including polygon holes",()=>{
   const {stationOnGeometry,hydroNameIndex}=app();
   const stations={1:{water:"Aare",lat:47,lon:8,lake:false},2:{water:"See",lat:46,lon:8,lake:true}};
@@ -130,11 +138,13 @@ test("one temperature-only query serves multiple sections, handles zero, and exp
     calls++;
     assert.match(query,/parameterName:\{_eq:"WT"\}/);assert.deepEqual(variables.stations,ids);
     return {data_live:[row("WT",0,2,"2016"),row("WT",9,15,"2016"),row("WT",9,-2,"2029"),
-      row("WT",null,10,"2029"),row("WT",8,95,"2029"),row("WT",4,1,"2018")]};
+      row("WT",null,10,"2029"),row("WT",8,95,"2029"),row("WT",4,1,"2018")],history:[
+      {...row("WT",10,1430),station:{no:"2016"}}, {...row("WT",33,1430),station:{no:"2029"}},
+      {...row("WT",99,1441),station:{no:"2016"}}, {...row("WT",99,15),station:{no:"2016"}}]};
   };
   const [first,second]=await Promise.all([ctx.waterTemperatures(ids),ctx.waterTemperatures(ids)]);
   assert.equal(first,second);assert.equal(calls,1);assert.equal(first.size,1);assert.equal(first.get("2016").value,0);
-  assert.deepEqual(JSON.parse(JSON.stringify(first.get("2016").history)),[[now-15*60000,9],[now-2*60000,0]]);
+  assert.deepEqual(JSON.parse(JSON.stringify(first.get("2016").history)),[[now-1430*60000,10],[now-15*60000,9],[now-2*60000,0]]);
   await ctx.waterTemperatures(ids);assert.equal(calls,1);
   clock+=100*60000;
   assert.equal((await ctx.waterTemperatures(ids)).size,0);assert.equal(calls,2);

@@ -69,13 +69,14 @@ function hereHydroContent(id,station,reading){
 }
 
 function hereHydroPlot(cardId,content){
-  const {history,time,value,title,number,minSpan,unit}=content;
+  const {history,time,value,title,number,minSpan,unit,chartEnd,chartWindow}=content;
   if(history.length<2)return '<p class="hydro-empty">Noch kein Messverlauf verfügbar</p>';
   const values=history.map(([,v])=>v),low=Math.min(...values),high=Math.max(...values);
   const middle=(low+high)/2,span=Math.max(minSpan,(high-low)*1.25);
   const min=unit==="m³/s"?Math.max(0,middle-span/2):middle-span/2,max=middle+span/2;
-  const start=time-hydroChartWindow,left=51,right=311,top=9,bottom=79;
-  const x=t=>left+(t-start)/hydroChartWindow*(right-left);
+  const daily=chartWindow===hydroDayWindow,steps=daily?3:2;
+  const start=chartEnd-chartWindow,left=51,right=311,top=9,bottom=79;
+  const x=t=>left+(t-start)/chartWindow*(right-left);
   const y=v=>bottom-(v-min)/(max-min)*(bottom-top);
   const point=(t,v)=>x(t).toFixed(1)+","+y(v).toFixed(1);
   const segments=[];
@@ -94,10 +95,14 @@ function hereHydroPlot(cardId,content){
     return `<path fill="url(#${gradient})" d="${path}L${x(segment.at(-1)[0])},${bottom}H${x(segment[0][0])}Z"/><path class="hydro-line" d="${path}"/>`;
   }).join("");
   const grid=[max,(max+min)/2,min].map(v=>`<path class="hydro-grid" d="M${left},${y(v)}H${right}"/><text x="44" y="${y(v)+4}" text-anchor="end">${esc(number.format(v))}</text>`).join("");
-  const labels=[start,start+hydroChartWindow/2,time].map((t,i)=>
-    `<text x="${x(t)}" y="99" text-anchor="${["start","middle","end"][i]}">${esc(hereSwissClock.format(t))}</text>`).join("");
-  const label=`${title}, drei Stunden bis ${hereSwissClock.format(time)} Uhr. Minimum ${number.format(low)}, Maximum ${number.format(high)}, letzter Wert ${number.format(value)} ${unit}.`;
-  return `<svg class="hydro-plot" viewBox="0 0 320 105" role="img" aria-label="${esc(label)}"><defs><linearGradient id="${gradient}" x2="0" y2="1"><stop class="hydro-fill" stop-color="currentColor"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs>${grid}${lines}<circle class="hydro-latest" cx="${x(time)}" cy="${y(value)}" r="3.5"/>${labels}</svg>`;
+  const labels=Array.from({length:steps+1},(_,i)=>{
+    const t=start+chartWindow*i/steps;
+    const label=daily&&i===0?"−24 h":daily&&i===steps?"Jetzt":hereSwissClock.format(t);
+    const anchor=i===0?"start":i===steps?"end":"middle";
+    return `<text x="${x(t)}" y="99" text-anchor="${anchor}">${esc(label)}</text>`;
+  }).join("");
+  const label=`${title}, ${daily?"letzte 24 Stunden":"drei Stunden bis "+hereSwissClock.format(time)+" Uhr"}. Minimum ${number.format(low)}, Maximum ${number.format(high)}, letzter Wert ${number.format(value)} ${unit}.`;
+  return `${daily?'<p class="hydro-period">Letzte 24 Stunden</p>':''}<svg class="hydro-plot" viewBox="0 0 320 105" role="img" aria-label="${esc(label)}"><defs><linearGradient id="${gradient}" x2="0" y2="1"><stop class="hydro-fill" stop-color="currentColor"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs>${grid}${lines}<circle class="hydro-latest" cx="${x(time)}" cy="${y(value)}" r="3.5"/>${labels}</svg>`;
 }
 
 function paintHereChart(card,content){
@@ -106,7 +111,7 @@ function paintHereChart(card,content){
     card.toggleAttribute("data-level",unit==="m ü. M.");
     const clock=hereSwissDay.format(time)===hereSwissDay.format(Date.now())?hereSwissClock:hereSwissTime;
     card.innerHTML=`<header class="hydro-heading"><h2>${esc(title)}</h2><time datetime="${new Date(time).toISOString()}">${esc(clock.format(time))} Uhr</time></header>
-      <div class="hydro-reading"><strong>${esc(number.format(value))}</strong><span>${esc(unit)}</span>${trend?`<span class="hydro-trend" title="Vergleich mit dem Messwert vor rund drei Stunden">${esc(trend)}</span>`:""}</div>
+      <div class="hydro-reading"><strong>${esc(number.format(value))}</strong><span>${esc(unit)}</span>${trend?`<span class="hydro-trend" title="Vergleich mit dem Messwert vor rund drei Stunden">${esc(trend)} · 3 h</span>`:""}</div>
       ${hereHydroPlot(card.id,content)}
       <a class="hydro-station" href="https://www.hydrodaten.admin.ch/de/seen-und-fluesse/stationen-und-daten/${encodeURIComponent(id)}" target="_blank" rel="noopener noreferrer"><span><small>${reference?"BAFU · Referenzstation":"BAFU · Messstation"}</small>${esc(station)}</span></a>`;
   }else card.replaceChildren();

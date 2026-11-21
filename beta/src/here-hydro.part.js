@@ -42,43 +42,48 @@ function stationOnGeometry(byName,names,parts) {
   return best;
 }
 
-const hydroMinute=60000,hydroFresh=90*hydroMinute,hydroChartWindow=180*hydroMinute;
-function hydroHistory(rows,end,factor=1){
+const hydroMinute=60000,hydroFresh=90*hydroMinute;
+const hydroShortWindow=180*hydroMinute,hydroDayWindow=24*60*hydroMinute;
+function hydroHistory(live,archive,end,window,factor=1){
   const byTime=new Map();
-  for(const {time,value} of rows){
-    if(time>=end-hydroChartWindow&&time<=end)byTime.set(time,value*factor);
+  const startLive=live.reduce((earliest,row)=>Math.min(earliest,row.time),Infinity);
+  for(const {time,value} of [...archive.filter(row=>row.time<startLive),...live]){
+    if(time>=end-window&&time<=end)byTime.set(time,value*factor);
   }
   return [...byTime].sort(([a],[b])=>a-b);
 }
-const hydroQuery=`query HereWater($station:String!, $from:AWSDateTime!, $main:String!) {
+const hydroQuery=`query HereWater($station:String!, $from:AWSDateTime!, $main:String!, $historyFrom:AWSDateTime!, $daily:Boolean!) {
   water { observations {
     data_live(where:{stationNo:{_eq:$station},parameterName:{_eq:$main},timestamp:{_gte:$from}}) {stationNo parameterName timestamp value}
     unit:data_10min_mean(where:{station:{no:{_eq:$station}},parameterName:{_eq:$main}},limit:1) {unitSymbol}
+    history:data_10min_mean(where:{station:{no:{_eq:$station}},parameterName:{_eq:$main},timestamp:{_gte:$historyFrom}}) @include(if:$daily) {timestamp value unitSymbol}
   } }
 }`;
 async function hydroObservations(query,variables) {
   const response=await fetch("https://data.bafu.admin.ch/api",{method:"POST",credentials:"omit",referrerPolicy:"no-referrer",
     headers:{"Content-Type":"application/json"},body:JSON.stringify({query,variables}),signal:AbortSignal.timeout(15000)});
   if(!response.ok)throw Error("BAFU "+response.status);
-  const {data,errors}=await response.json(),observation=data?.water?.observations;
-  if(errors?.length||!Array.isArray(observation?.data_live))throw Error("BAFU-Messwerte fehlen");
+  const {data}=await response.json(),observation=data?.water?.observations;
+  if(!Array.isArray(observation?.data_live))throw Error("BAFU-Messwerte fehlen");
   return observation;
 }
 async function fetchHydro(id,station) {
-  const main=station.lake?"W":"Q";
-  const observation=await hydroObservations(hydroQuery,{station:id,main,from:new Date(Date.now()-5*60*hydroMinute).toISOString()});
-  return hydroReading(id,station.lake,observation.data_live,observation.unit?.[0]?.unitSymbol,Date.now());
+  const now=Date.now(),main=station.lake?"W":"Q",daily=!station.lake;
+  const observation=await hydroObservations(hydroQuery,{station:id,main,daily,
+    from:new Date(now-(daily?hydroDayWindow:5*60*hydroMinute)).toISOString(),historyFrom:new Date(now-hydroDayWindow).toISOString()});
+  return hydroReading(id,station.lake,observation.data_live,observation.unit?.[0]?.unitSymbol,Date.now(),observation.history);
 }
-function hydroReading(id,lake,rows,unit,now) {
-  const u=String(unit||"").toLowerCase().replace(/\s|\./g,"");
+const hydroUnit=unit=>String(unit||"").toLowerCase().replace(/\s|\./g,"").replace("³","3");
+function hydroReading(id,lake,rows,unit,now,history=[]) {
+  const u=hydroUnit(unit);
   let factor=1;
   if(lake&&u!=="müm")return null;
-  if(!lake&&!["m3/s","m³/s"].includes(u)){
+  if(!lake&&u!=="m3/s"){
     if(!["l/s","l/sec"].includes(u))return null;
     factor=.001;
   }
   const values=rows.filter(r=>r.stationNo===id&&Number.isFinite(r.value)).map(r=>({...r,time:Date.parse(r.timestamp)}))
-    .filter(r=>r.time<=now&&r.time>=now-5*60*hydroMinute).sort((a,b)=>b.time-a.time);
+    .filter(r=>r.time<=now&&r.time>=now-(lake?5*60*hydroMinute:hydroDayWindow)).sort((a,b)=>b.time-a.time);
   const main=values.filter(r=>r.parameterName===(lake?"W":"Q")&&(lake||r.value>=0));
   const current=main[0];
   if(!current||now-current.time>hydroFresh)return null;
@@ -90,12 +95,17 @@ function hydroReading(id,lake,rows,unit,now) {
     const tolerance=Math.max(.01,Math.abs(prior.value*factor)*.03);
     trend=Math.abs(delta)<=tolerance?"stabil":delta>0?"steigend":"fallend";
   }
-  return {value:current.value*factor,time:current.time,trend,history:hydroHistory(main,current.time,factor)};
+  const chartWindow=lake?hydroShortWindow:hydroDayWindow;
+  const chartEnd=lake?current.time:now;
+  const archive=(history||[]).filter(r=>hydroUnit(r.unitSymbol)===u&&Number.isFinite(r.value)&&r.value>=0)
+    .map(r=>({time:Date.parse(r.timestamp),value:r.value}));
+  return {value:current.value*factor,time:current.time,trend,chartEnd,chartWindow,history:hydroHistory(main,archive,chartEnd,chartWindow,factor)};
 }
 
 const temperatureQuery=`query WaterTemperature($stations:[String!]!,$from:AWSDateTime!) {
   water { observations {
     data_live(where:{stationNo:{_in:$stations},parameterName:{_eq:"WT"},timestamp:{_gte:$from}}) {stationNo timestamp value}
+    history:data_10min_mean(where:{station:{no:{_in:$stations}},parameterName:{_eq:"WT"},timestamp:{_gte:$from}}) {station{no} timestamp value}
   } }
 }`;
 const temperatureFeedCache=new Map();
@@ -103,8 +113,8 @@ function waterTemperatures(ids) {
   const key=ids.join(","),now=Date.now(),cached=temperatureFeedCache.get(key);
   if(cached&&now<cached.expires)return cached.request;
   const entry={expires:Infinity};
-  entry.request=hydroObservations(temperatureQuery,{stations:ids,from:new Date(now-hydroFresh-hydroChartWindow).toISOString()}).then(observations=>{
-    const latest=new Map(),series=new Map(),at=Date.now();
+  entry.request=hydroObservations(temperatureQuery,{stations:ids,from:new Date(now-hydroDayWindow).toISOString()}).then(observations=>{
+    const latest=new Map(),series=new Map(),archive=new Map(),at=Date.now();
     for(const {stationNo,timestamp,value} of observations.data_live){
       const time=Date.parse(timestamp);
       if(!ids.includes(stationNo)||!Number.isFinite(value)||!Number.isFinite(time)||time>at)continue;
@@ -112,7 +122,17 @@ function waterTemperatures(ids) {
       series.get(stationNo).push({time,value});
       if(time+hydroFresh>at&&(!latest.has(stationNo)||latest.get(stationNo).time<time))latest.set(stationNo,{id:stationNo,value,time});
     }
-    for(const [id,reading] of latest)reading.history=hydroHistory(series.get(id),reading.time);
+    for(const {station,timestamp,value} of observations.history||[]){
+      const id=station?.no,time=Date.parse(timestamp);
+      if(!latest.has(id)||!Number.isFinite(value)||!Number.isFinite(time))continue;
+      if(!archive.has(id))archive.set(id,[]);
+      archive.get(id).push({time,value});
+    }
+    for(const [id,reading] of latest){
+      reading.chartEnd=at;
+      reading.chartWindow=hydroDayWindow;
+      reading.history=hydroHistory(series.get(id),archive.get(id)||[],at,hydroDayWindow);
+    }
     entry.expires=Math.min(at+10*hydroMinute,...[...latest.values()].map(r=>r.time+hydroFresh));
     return latest;
   }).catch(error=>{temperatureFeedCache.delete(key);throw error;});

@@ -108,6 +108,48 @@ test("failed lookups clear the previous water and permit a retry",async()=>{
   assert.equal(ctx.auto.hit.name,"retry");
 });
 
+function rankwogLookup(){
+  const position={lat:47.3695,lon:7.9145,acc:15};
+  const feature=JSON.parse(read("data/so-sections.json")).features.find(row=>row.id==="A2");
+  const ctx=app({navigator:{onLine:true},eastWms:[]});
+  const reach={...ctx.api.nearest(position.lat,position.lon,feature.l),t:"sec",code:"SO",id:"A2",kind:"Patent",name:"Aare A2",zoneId:"SO/A2",source:feature};
+  ctx.loadWaterGeometry=async()=>{};
+  ctx.waterAt=async()=>{throw Error("hydrography offline");};
+  return {ctx,position,reach};
+}
+
+test("Rankwog keeps the mapped Aare A2 status when hydrography or an unrelated nearby layer fails",async()=>{
+  const {ctx,position,reach}=rankwogLookup();
+  const calls=[];
+  ctx.nearbyMappedWaters=async(lat,lon,radius)=>{
+    calls.push({lat,lon,radius});return {hits:[reach],incomplete:radius===300};
+  };
+  const result=await ctx.findNearestWater(position);
+  assert.equal(result.hit.id,"A2");
+  assert.ok(result.hit.d>200&&result.hit.d<300);
+  assert.equal(result.incomplete,false);
+  assert.deepEqual(calls[1],{lat:reach.lat,lon:reach.lon,radius:12});
+});
+
+test("a failed zone query at the actual fishing reach still marks the status incomplete",async()=>{
+  const {ctx,position,reach}=rankwogLookup();
+  ctx.nearbyMappedWaters=async(_lat,_lon,radius)=>{
+    if(radius===12)throw Error("zone file unavailable");
+    return {hits:[reach],incomplete:false};
+  };
+  const result=await ctx.findNearestWater(position);
+  assert.equal(result.hit.id,"A2");assert.equal(result.incomplete,true);
+});
+
+test("a nearby protected polygon is evaluated at the matching reach, not at the phone",async()=>{
+  const {ctx,position,reach}=rankwogLookup();
+  const reserve={...reach,id:"S1",zoneId:"SO/S1",kind:"Schongebiet",area:true,d:0};
+  ctx.nearbyMappedWaters=async(_lat,_lon,radius)=>({hits:radius===12?[reserve]:[reach],incomplete:false});
+  const result=await ctx.findNearestWater(position);
+  assert.equal(result.hit.id,"A2");assert.equal(result.hits[1].id,"S1");
+  assert.equal(result.hits[1].d,result.hit.d);
+});
+
 function statusApp(){
   const ctx=app({RULES:rules,mapTime:{ordinal:1119},GEO:{official:true},mapRuleDate:()=>new Date(2026,10,19),
     withCanton:(_c,fn)=>fn(),secStatus:()=>[],fisheryPeriod:()=>null,xg:()=>({feats:{}}),

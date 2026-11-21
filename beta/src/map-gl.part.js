@@ -422,18 +422,18 @@ async function cantonalWmsHits(entry,lat,lon,tol,zoom=lz()){
 
 /* ---- Auswahl ---- */
 let mapSel=null;
-async function identifyJSON(url){
-  const response=await fetch(url,{signal:AbortSignal.timeout(9000)});
+async function identifyJSON(url,signal=AbortSignal.timeout(9000)){
+  const response=await fetch(url,{signal});
   if(!response.ok)throw Error();
   const data=await response.json();if(!Array.isArray(data.results))throw Error();
   return data;
 }
-async function waterAt(lat,lon,tolm){
+async function waterAt(lat,lon,tolm,signal){
   const d=tolm/111320,dx=d/Math.cos(lat*Math.PI/180),ext=[lon-dx*10,lat-d*10,lon+dx*10,lat+d*10].join(",");
   const layers="ch.swisstopo.swisstlm3d-gewaessernetz";
   const params=new URLSearchParams({geometry:lon+","+lat,geometryType:"esriGeometryPoint",layers:"all:"+layers,sr:"4326",
     tolerance:"10",mapExtent:ext,imageDisplay:"200,200,96",returnGeometry:"true",geometryFormat:"geojson",lang:"de",limit:"100"});
-  const data=await identifyJSON("https://api3.geo.admin.ch/rest/services/api/MapServer/identify?"+params);
+  const data=await identifyJSON("https://api3.geo.admin.ch/rest/services/api/MapServer/identify?"+params,signal);
   const candidates=[];
   for(const record of data.results){
     const attrs=record.attributes||record.properties||{},g=record.geometry;

@@ -82,31 +82,54 @@ async function federalWaterCanton(hit){
 }
 async function findNearestWater(position){
   await loadWaterGeometry();
+  let searchIncomplete=false;
   for(const radius of [300,1500,6000,24000]){
-    const [mapped,federal]=await Promise.allSettled([
-      nearbyMappedWaters(position.lat,position.lon,radius),
-      navigator.onLine?waterAt(position.lat,position.lon,radius):Promise.reject(Error("offline"))
-    ]);
-    const result=rankNearbyWaters(mapped.status==="fulfilled"?mapped.value.hits:[],federal.status==="fulfilled"?federal.value:null);
-    if(!result)continue;
-    result.incomplete=mapped.status==="rejected"||mapped.value.incomplete||federal.status==="rejected";
+    const mappedJob=nearbyMappedWaters(position.lat,position.lon,radius).catch(()=>({hits:[],incomplete:true}));
+    const additionalSearch=new AbortController();
+    const federalJob=navigator.onLine?waterAt(position.lat,position.lon,radius,
+      AbortSignal.any([additionalSearch.signal,AbortSignal.timeout(9000)])).catch(()=>{searchIncomplete=true;return null}):null;
+    const mapped=await mappedJob;
+    const candidate=rankNearbyWaters(mapped.hits,null);
+    // A slow hydrography service must not hold up a known mapped reach for its full timeout.
+    const timer=candidate&&federalJob?setTimeout(()=>additionalSearch.abort(),2500):null;
+    const federal=await federalJob;
+    if(timer!==null)clearTimeout(timer);
+    const result=rankNearbyWaters(mapped.hits,federal);
+    if(!result){searchIncomplete||=mapped.incomplete;continue}
     if(result.hit.t==="w"){
       result.hit=await federalWaterCanton(result.hit);
       result.hits[0]=result.hit;
-      const service=eastWms.find(([code])=>code===result.hit.code);
-      if(service){
-        try{
-          const local=await cantonalWmsHits(service,result.hit.lat,result.hit.lon,30,16);
-          for(const hit of local)hit.d=positionDistance(position,hit);
-          const official=rankNearbyWaters(local,result.hit.water);
-          if(official?.hit.code)Object.assign(result,official);
-        }catch{result.incomplete=true}
-      }
     }
+    await checkLocatedWater(result,position);
     if(result.hit.code==="LU"&&result.hit.rev)await loadLUDistricts();
     return result;
   }
-  throw Error(navigator.onLine?"Kein Gewässer gefunden. Auf der Karte oder in der Liste wählen.":"Gewässerdaten offline nicht verfügbar. Manuell wählen oder erneut verbinden.");
+  if(!navigator.onLine)throw Error("Gewässerdaten offline nicht verfügbar. Manuell wählen oder erneut verbinden.");
+  throw Error(searchIncomplete?"Gewässersuche unvollständig. Erneut versuchen oder auf der Karte wählen.":"Kein Gewässer gefunden. Auf der Karte oder in der Liste wählen.");
+}
+async function checkLocatedWater(result,position){
+  const selected=result.hit;
+  const {lat,lon}=selected;
+  const radius=12,box=FishSections.tapBox(lat,lon,radius);
+  const services=eastWms.filter(([, , ,b])=>FishSections.intersects(box,[b[0][1],b[0][0],b[1][1],b[1][0]]));
+  const [mapped,...local]=await Promise.allSettled([
+    nearbyMappedWaters(lat,lon,radius),
+    ...services.map(service=>cantonalWmsHits(service,lat,lon,radius,16))
+  ]);
+  result.incomplete=mapped.status==="rejected"||mapped.value.incomplete||local.some(entry=>entry.status==="rejected");
+  const nearby=mapped.status==="fulfilled"?mapped.value.hits.slice():[];
+  for(const entry of local)if(entry.status==="fulfilled")nearby.push(...entry.value);
+  if(selected.t==="w"&&!selected.water.ambiguous&&!(selected.border?.length>1)){
+    const official=rankNearbyWaters(nearby.filter(hit=>hit.code===selected.code),null)?.hit;
+    if(official&&!unclearHit(official))result.hit={...official,d:positionDistance(position,official)};
+  }
+  const hit=result.hit;
+  const overlaps=new Map();
+  for(const other of nearby){
+    if(other.zoneId===hit.zoneId||other.buried||positionDistance(other,hit)>8)continue;
+    overlaps.set(other.zoneId||other.id,{...other,d:hit.d+positionDistance(other,hit)});
+  }
+  result.hits=[hit,...overlaps.values()];
 }
 function activateLocatedWater(result,position){
   const hit=result.hit,{c,sec}=hitRuleContext(hit),old=autoWater.hit;

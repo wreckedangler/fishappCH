@@ -19,9 +19,11 @@ test("discharge and trend use two real measurements at the same station, regardl
   const rows=[row("Q",5,4,"2434"),row("Q",50,190),row("WT",12.3,12),row("Q",65,10),row("Q",900,1,"2000")];
   const m=hydroReading("2063",false,rows,"m3/s",now);
   assert.equal(m.value,65);assert.equal(m.trend,"steigend");
+  assert.deepEqual(JSON.parse(JSON.stringify(m.history)),[[now-190*60000,50],[now-10*60000,65]]);
   assert.equal(hydroReading("2063",false,[row("Q",70,187),row("Q",60,8)],"m³/s",now).trend,"fallend");
   assert.equal(hydroReading("2063",false,[row("Q",70,187),row("Q",71,8)],"m³/s",now).trend,"stabil");
-  assert.equal(hydroReading("2063",false,[row("Q",250,1)],"l/s",now).value,.25);
+  const small=hydroReading("2063",false,[row("Q",250,1),row("Q",200,11)],"l/s",now);
+  assert.equal(small.value,.25);assert.equal(small.history[0][1],.2);
 });
 test("no invented trends, no stale or future readings, no substituted river level or temperature",()=>{
   const {hydroReading}=app();
@@ -132,6 +134,7 @@ test("one temperature-only query serves multiple sections, handles zero, and exp
   };
   const [first,second]=await Promise.all([ctx.waterTemperatures(ids),ctx.waterTemperatures(ids)]);
   assert.equal(first,second);assert.equal(calls,1);assert.equal(first.size,1);assert.equal(first.get("2016").value,0);
+  assert.deepEqual(JSON.parse(JSON.stringify(first.get("2016").history)),[[now-15*60000,9],[now-2*60000,0]]);
   await ctx.waterTemperatures(ids);assert.equal(calls,1);
   clock+=100*60000;
   assert.equal((await ctx.waterTemperatures(ids)).size,0);assert.equal(calls,2);

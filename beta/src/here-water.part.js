@@ -62,14 +62,56 @@ function hereCatchContent(rows){
 }
 function hereHydroContent(id,station,reading){
   if(!reading||Date.now()-reading.time>hydroFresh)return null;
-  const {value,trend,time}=reading;
-  const title=station.lake?"Seepegel":"Abfluss";
-  const parts=[station.lake?hereLevelNumber.format(value)+" m ü. M.":hereFlowNumber.format(value)+" m³/s"];
-  if(trend)parts.push(trend);
-  let body="<p><strong>"+esc(station.water+" – "+station.place)+"</strong></p><p>Messung am "+esc(hereSwissTime.format(time))+" Uhr</p>";
-  if(trend)body+="<p>Vergleich mit dem Abfluss vor rund drei Stunden. Bis 3 % Unterschied (mindestens 0.01 m³/s) gilt als stabil.</p>";
-  body+='<a href="https://www.hydrodaten.admin.ch/de/seen-und-fluesse/stationen-und-daten/'+encodeURIComponent(id)+'" target="_blank" rel="noopener noreferrer">Messstation beim BAFU öffnen</a>';
-  return {title,text:parts.join(" · "),body,expires:time+hydroFresh};
+  const {value,time}=reading;
+  return {...reading,id,title:station.lake?"Wasserstand":"Abfluss",unit:station.lake?"m ü. M.":"m³/s",
+    number:station.lake?hereLevelNumber:hereFlowNumber,minSpan:station.lake?.1:Math.max(.1,Math.abs(value)*.04),
+    station:station.water+" – "+station.place,expires:time+hydroFresh};
+}
+
+function hereHydroPlot(cardId,content){
+  const {history,time,value,title,number,minSpan,unit}=content;
+  if(history.length<2)return '<p class="hydro-empty">Noch kein Messverlauf verfügbar</p>';
+  const values=history.map(([,v])=>v),low=Math.min(...values),high=Math.max(...values);
+  const middle=(low+high)/2,span=Math.max(minSpan,(high-low)*1.25);
+  const min=unit==="m³/s"?Math.max(0,middle-span/2):middle-span/2,max=middle+span/2;
+  const start=time-hydroChartWindow,left=51,right=311,top=9,bottom=79;
+  const x=t=>left+(t-start)/hydroChartWindow*(right-left);
+  const y=v=>bottom-(v-min)/(max-min)*(bottom-top);
+  const point=(t,v)=>x(t).toFixed(1)+","+y(v).toFixed(1);
+  const segments=[];
+  for(const [i,[t,v]] of history.entries()){
+    // A gap in the feed should be visible in the chart.
+    if(!i||t-history[i-1][0]>35*hydroMinute)segments.push([]);
+    segments.at(-1).push([t,v]);
+  }
+  const gradient=cardId+"Fill";
+  const lines=segments.map(segment=>{
+    if(segment.length===1){
+      const [[t,v]]=segment;
+      return `<circle class="hydro-point" cx="${x(t)}" cy="${y(v)}" r="2.5"/>`;
+    }
+    const path="M"+segment.map(([t,v])=>point(t,v)).join("L");
+    return `<path fill="url(#${gradient})" d="${path}L${x(segment.at(-1)[0])},${bottom}H${x(segment[0][0])}Z"/><path class="hydro-line" d="${path}"/>`;
+  }).join("");
+  const grid=[max,(max+min)/2,min].map(v=>`<path class="hydro-grid" d="M${left},${y(v)}H${right}"/><text x="44" y="${y(v)+4}" text-anchor="end">${esc(number.format(v))}</text>`).join("");
+  const labels=[start,start+hydroChartWindow/2,time].map((t,i)=>
+    `<text x="${x(t)}" y="99" text-anchor="${["start","middle","end"][i]}">${esc(hereSwissClock.format(t))}</text>`).join("");
+  const label=`${title}, drei Stunden bis ${hereSwissClock.format(time)} Uhr. Minimum ${number.format(low)}, Maximum ${number.format(high)}, letzter Wert ${number.format(value)} ${unit}.`;
+  return `<svg class="hydro-plot" viewBox="0 0 320 105" role="img" aria-label="${esc(label)}"><defs><linearGradient id="${gradient}" x2="0" y2="1"><stop class="hydro-fill" stop-color="currentColor"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs>${grid}${lines}<circle class="hydro-latest" cx="${x(time)}" cy="${y(value)}" r="3.5"/>${labels}</svg>`;
+}
+
+function paintHereChart(card,content){
+  if(content){
+    const {title,unit,value,number,trend,id,time,station,reference}=content;
+    card.toggleAttribute("data-level",unit==="m ü. M.");
+    const clock=hereSwissDay.format(time)===hereSwissDay.format(Date.now())?hereSwissClock:hereSwissTime;
+    card.innerHTML=`<header class="hydro-heading"><h2>${esc(title)}</h2><time datetime="${new Date(time).toISOString()}">${esc(clock.format(time))} Uhr</time></header>
+      <div class="hydro-reading"><strong>${esc(number.format(value))}</strong><span>${esc(unit)}</span>${trend?`<span class="hydro-trend" title="Vergleich mit dem Messwert vor rund drei Stunden">${esc(trend)}</span>`:""}</div>
+      ${hereHydroPlot(card.id,content)}
+      <a class="hydro-station" href="https://www.hydrodaten.admin.ch/de/seen-und-fluesse/stationen-und-daten/${encodeURIComponent(id)}" target="_blank" rel="noopener noreferrer"><span><small>${reference?"BAFU · Referenzstation":"BAFU · Messstation"}</small>${esc(station)}</span></a>`;
+  }else card.replaceChildren();
+  card.hidden=!content;
+  $("#hereCharts").hidden=$("#hereTemperatureChart").hidden&&$("#hereHydro").hidden;
 }
 function temperatureTarget(choice,index,network){
   const section=choice.temperatureSection||choice.section;
@@ -122,6 +164,7 @@ async function hereTemperatureContent(choice){
   if(!r)return null;
   const s=index.stations[r.id],clock=hereSwissDay.format(r.time)===hereSwissDay.format(Date.now())?hereSwissClock:hereSwissTime;
   return {value:hereTempNumber.format(r.value)+" °C",id:r.id,expires:r.time+hydroFresh,
+    chart:{...r,title:"Wassertemperatur",unit:"°C",number:hereTempNumber,minSpan:.5,station:s.water+" – "+s.place,reference:target.local!==r.id},
     source:(target.local===r.id?"Messstation":"Referenzstation")+" · "+s.water+" – "+s.place+" · "+clock.format(r.time)+" Uhr"};
 }
 function paintHereTemperature(link,content){
@@ -142,7 +185,7 @@ function paintHereRow(row,content){
       row.hereBody=content.body;
     }
   }else row.open=false;
-  $("#hereWaterInfo").hidden=$("#hereCatches").hidden&&$("#hereHydro").hidden;
+  $("#hereWaterInfo").hidden=row.hidden;
 }
 function updateHereRow(row,key,ttl,read,paint=paintHereRow){
   if(row.hereKey!==key){
@@ -168,7 +211,10 @@ function renderHereWater(){
   const visible=!document.hidden&&navigator.onLine&&route()==="hier"&&$("#v-hier").classList.contains("on");
   const choice=visible&&hereSelection();
   const section=choice?.section,picker=choice?.picker,station=choice?.station;
-  updateHereRow($("#hereTemperature"),choice?JSON.stringify(choice):"",10*hydroMinute,()=>hereTemperatureContent(choice),paintHereTemperature);
+  updateHereRow($("#hereTemperature"),choice?JSON.stringify(choice):"",10*hydroMinute,()=>hereTemperatureContent(choice),(link,content)=>{
+    paintHereTemperature(link,content);
+    paintHereChart($("#hereTemperatureChart"),content?.chart);
+  });
   const reportKey=(section||picker||"");
   updateHereRow(catches,reportKey&&reportKey+"/"+hereSwissDay.format(new Date()),60000,async()=>{
     const id=section||(await loadHereStations()).pickerSections[picker];
@@ -181,7 +227,7 @@ function renderHereWater(){
     const id=station||(section?index.sections[section]:index.rules[picker]);
     if(!id||!index.stations[id])return null;
     return hereHydroContent(id,index.stations[id],await fetchHydro(id,index.stations[id]));
-  });
+  },paintHereChart);
 }
 function invalidateHereCatches(){
   const row=$("#hereCatches");

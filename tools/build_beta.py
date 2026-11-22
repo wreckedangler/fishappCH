@@ -56,7 +56,7 @@ def ensure_once(text, old, new):
 out = ensure_once(out, 'if(shoreView&&(unknownWater()', 'if(shoreView&&!shoreView.fromMap&&(unknownWater()')
 
 # Fang an einer auf der Karte markierten Stelle speichern.
-out = ensure_once(out, 'const now=new Date(),p=state.pos;', 'const now=new Date(),p=catchAt||recentPosition();')
+out = ensure_once(out, 'const now=new Date(),p=state.pos;', 'const now=new Date(draftStarted||Date.now()),p=catchAt||recentPosition();')
 out = ensure_once(out, '      state.log=log;\n    }catch(e){\n      $("#afterSave").textContent="Fang konnte nicht gespeichert werden.',
     '      state.log=log;catchAt=null;renderCatchAt();\n    }catch(e){\n      $("#afterSave").textContent="Fang konnte nicht gespeichert werden.')
 # Fangbuch: Fang auf der Karte zeigen oder Ort setzen.
@@ -67,8 +67,7 @@ out = ensure_once(out, '$("#logList").onclick=e=>{\n', '$("#logList").onclick=e=
 out = ensure_once(out, 's=z?((z.code?cname(z.code):"Solothurn")', 's=z?.t==="spot"?"Mein Spot":z?.t==="catch"?"Mein Fang":z?((z.code?cname(z.code):"Solothurn")')
 # Vollsicherung inklusive Spots.
 out = ensure_once(out, 'const data={format:"fangbuch-v1",log:state.log.slice(),', 'const data={format:"fangbuch-v1",spots:store.get("spots",[]),log:state.log.slice(),')
-out = ensure_once(out, '    state.log=log;state.sess=active;renderStats();',
-    '    if(Array.isArray(data.spots)){const cur=store.get("spots",[]);const add=data.spots.filter(s=>s&&typeof s.id==="string"&&Number.isFinite(s.lat)&&Number.isFinite(s.lon)&&typeof s.name==="string"&&!cur.some(c=>c.id===s.id));if(add.length){store.set("spots",cur.concat(add));refreshSpots()}}\n    state.log=log;state.sess=active;renderStats();')
+
 
 
 out = replace_once(out, "</style>", css.rstrip() + "\n</style>")

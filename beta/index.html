@@ -1001,6 +1001,7 @@ main{overscroll-behavior-y:none}
     <div id="secPick"><select id="selSec" aria-label="Patentabschnitt"></select></div>
   </details>
   <div id="hereRules"></div>
+  <details class="card" id="offlineWater"><summary>Gewässer offline</summary><button id="pinWater" type="button">Für offline merken</button><div id="offlineList"></div></details>
   <div id="waterFish" hidden></div>
   <p class="ios-foot" id="hereCoverage" hidden></p>
 </section>
@@ -1018,7 +1019,7 @@ main{overscroll-behavior-y:none}
 <section class="view" id="v-fang">
   <h1 class="ios-title">Fang</h1>
   <div class="seg"><button type="button" data-v="fang">Erfassen</button><button type="button" data-v="stat">Fangbuch</button></div>
-  <div id="fangCtx"></div>
+  <div id="fangCtx"></div><button type="button" id="resumeCatch" hidden>Fang fortsetzen</button>
 
   <div class="card">
     <div class="chips" id="spChips"></div>
@@ -1046,7 +1047,7 @@ main{overscroll-behavior-y:none}
     </div>
     </fieldset>
     <label class="share-catch" for="shareNew"><span><b>Auf der Fangkarte teilen</b><small id="shareSectionLabel">Abschnitt, Art, Länge, Anzahl und Fangdatum</small></span><input type="checkbox" class="ios-switch" id="shareNew" autocomplete="off"></label>
-    <div class="save-bar"><button class="pri full" id="btnSave">Fang speichern</button></div>
+    <label for="catchOutcome">Fang dokumentieren</label><select id="catchOutcome"><option value="">Bitte wählen</option><option value="kept">Behalten</option><option value="released">Zurückgesetzt</option></select><div class="save-bar"><button class="pri full" id="btnSave">Fang speichern</button></div>
     <div id="afterSave" role="status"></div>
   </div>
   <div class="card"><div id="sessBox"></div></div>
@@ -1066,7 +1067,7 @@ main{overscroll-behavior-y:none}
     <p class="mut small" id="fishOutcome"></p>
 
   </div>
-  <div class="card"><h2>Letzte Fänge</h2><div id="logList" class="list"></div>
+  <div class="card"><h2>Letzte Fänge</h2><details><summary>Fänge filtern</summary><label for="bookWater">Gewässer</label><select id="bookWater"></select><label for="bookFish">Fischart</label><select id="bookFish"></select></details><div id="logList" class="list"></div>
     <button type="button" id="moreCatches" class="full" hidden>Weitere Einträge anzeigen</button>
   </div>
   <details class="card" id="statsDetail"><summary>Statistik</summary><dl id="bookMetrics"></dl><h2>Fänge nach Fischart</h2><div id="bookSpecies"></div></details>
@@ -1354,8 +1355,8 @@ function secStatus(sec,d=new Date()){
   if(sec.kind==="privat")out.push({lvl:"warn",txt:"Privatgewässer – das Patent gilt hier nicht"});
   return out;
 }
-function countToday(sp,grp){const t=dayKey(new Date());return state.log.filter(f=>f.day===t&&f.kept&&(f.canton||"SO")==="SO"&&(grp?TROUT_GROUP.includes(f.art):f.art===sp)).reduce((a,f)=>a+(f.n||1),0)}
-function countYear(sp){const y=String(new Date().getFullYear());return state.log.filter(f=>f.day.startsWith(y)&&f.kept&&f.art===sp&&(f.canton||"SO")==="SO"&&SECTIONS.some(s=>s.id===f.sec)).reduce((a,f)=>a+(f.n||1),0)}
+function countToday(sp,grp,d=new Date()){const t=dayKey(d);return state.log.filter(f=>f.day===t&&f.kept&&(f.canton||"SO")==="SO"&&(grp?TROUT_GROUP.includes(f.art):f.art===sp)).reduce((a,f)=>a+(f.n||1),0)}
+function countYear(sp,d=new Date()){const y=String(d.getFullYear());return state.log.filter(f=>f.day.startsWith(y)&&f.kept&&f.art===sp&&(f.canton||"SO")==="SO"&&SECTIONS.some(s=>s.id===f.sec)).reduce((a,f)=>a+(f.n||1),0)}
 function check(sec,sp,len,d=new Date()){
   const r=ruleFor(sec,sp),issues=[],infos=[],n=Math.max(1,parseInt($("#fAnz").value)||1);
   secStatus(sec,d).forEach(x=>x.lvl==="bad"?issues.push(x.txt):infos.push(x.txt));
@@ -1368,8 +1369,8 @@ function check(sec,sp,len,d=new Date()){
   else if(r.slot){if(len==null||isNaN(len)){needLen=true;infos.push(`Erlaubt: ${fmtSlot(r.slot)}`)}
     else if(!r.slot.some(([a,b])=>len>=a&&(b==null||len<=b)))issues.push(`${len} cm ist nicht erlaubt – erlaubt: ${fmtSlot(r.slot)}`);
     else infos.push(`Mass ok (${fmtSlot(r.slot)})`)}
-  if(r.day){const c=countToday(sp,r.dayGroup==="trout");if(c+n>r.day)issues.push(`Tageslimite erreicht (${c+n}/${r.day})`);else infos.push(`Mit diesem Eintrag heute: ${c+n}/${r.day}${r.dayGroup==="trout"?" Forellen+Saiblinge":""}`)}
-  if(r.year&&sec.kind==="patent"){const c=countYear(sp);if(c+n>r.year)issues.push(`Jahreslimite erreicht (${c+n}/${r.year})`);else infos.push(`Mit diesem Eintrag diese Saison: ${c+n}/${r.year} Bachforellen`)}
+  if(r.day){const c=countToday(sp,r.dayGroup==="trout",d);if(c+n>r.day)issues.push(`Tageslimite erreicht (${c+n}/${r.day})`);else infos.push(`Mit diesem Eintrag heute: ${c+n}/${r.day}${r.dayGroup==="trout"?" Forellen+Saiblinge":""}`)}
+  if(r.year&&sec.kind==="patent"){const c=countYear(sp,d);if(c+n>r.year)issues.push(`Jahreslimite erreicht (${c+n}/${r.year})`);else infos.push(`Mit diesem Eintrag diese Saison: ${c+n}/${r.year} Bachforellen`)}
   if(r.lims){const y=String(d.getFullYear()),t=dayKey(d);r.lims.forEach(l=>{const yr=l.per==="Jahr";
       const c=state.log.filter(f=>f.kept&&f.canton===state.canton&&l.sp.includes(f.art)&&(!l.w||l.w.includes(f.sec))&&(yr?f.day.startsWith(y):f.day===t)).reduce((a,f)=>a+(f.n||1),0);
       if(c+n>l.n)issues.push(`${yr?"Jahres":"Tages"}limite erreicht: ${l.t} (${c+n}/${l.n})`);else infos.push(`${l.t}: ${c+n}/${l.n} behalten`)})}
@@ -1738,7 +1739,7 @@ function renderFang(){
 function setSpecies(sp){$("#fArt").value=sp;syncPickers($("#v-fang"));document.querySelectorAll("#spChips button").forEach(b=>{b.classList.toggle("on",b.dataset.sp===sp);b.setAttribute("aria-pressed",String(b.dataset.sp===sp))});liveCheck()}
 function liveCheck(){
   const sp=$("#fArt").value,len=parseFloat($("#fLen").value);
-  const c=check(currentSec(),sp,isNaN(len)?null:len);
+  const c=check(currentSec(),sp,isNaN(len)?null:len,new Date(draftStarted||Date.now()));
   const review=c.review&&!c.issues.length;
   const missing=unknownWater()||(isCM()&&!currentSec().id);
   const cls=missing||c.needLen||review?"v-warn":c.ok?"v-ok":"v-bad",head=missing?"Gewässer wählen":review?"Amtliche Regel prüfen":c.needLen?"Länge eingeben":c.ok?"Hinterlegte Fangregeln erfüllt":"Nicht behalten";
@@ -1795,6 +1796,10 @@ async function preparePhoto(file){
     if(revision!==photoRevision)return;
     if(draftPhoto)URL.revokeObjectURL(draftPhoto.url);
     draftPhoto={blob,url:URL.createObjectURL(blob)};
+    const key=crypto.randomUUID();
+    await accessPhoto("put",key,blob);
+    if(revision!==photoRevision){await accessPhoto("delete",key);return}
+    replaceDraftPhotoKey(key);persistCatchDraft();
     $("#photoPreview").src=draftPhoto.url;
     $("#photoDraft").classList.remove("hide");
   }catch(e){
@@ -1840,11 +1845,13 @@ async function showCatchPhoto(key){
 }
 function saveFang(){
   const sec=currentSec(),sp=$("#fArt").value,lv=parseFloat($("#fLen").value),len=isNaN(lv)?null:lv,n=Math.max(1,parseInt($("#fAnz").value)||1);
-  const c=check(sec,sp,len);
+  const c=check(sec,sp,len,new Date(draftStarted||Date.now()));
   if(unknownWater()||(isCM()&&!sec.id)||ruleFor(sec,sp).pickW){openWater();return}
-  if(c.needLen){$("#afterSave").innerHTML=`<div class="verdict v-warn"><div class="ln">Bitte zuerst die Länge eingeben – sonst kann das Mindestmass nicht geprüft werden.</div></div>`;$("#fLen").focus();return}
+  const outcome=$("#catchOutcome").value;
+  if(!outcome){toast("Behalten oder zurückgesetzt wählen.");$("#catchOutcome").focus();return}
+  if(c.needLen&&outcome==="kept"){$("#afterSave").innerHTML=`<div class="verdict v-warn"><div class="ln">Bitte zuerst die Länge eingeben – sonst kann das Mindestmass nicht geprüft werden.</div></div>`;$("#fLen").focus();return}
   const doSave=async kept=>{
-    const now=new Date(),p=catchAt||recentPosition();
+    const now=new Date(draftStarted||Date.now()),p=catchAt||recentPosition();
     const f={id:Date.now(),ts:now.getTime(),day:dayKey(now),canton:state.canton,sec:sec.id,art:sp,len,n,kept,note:$("#fNote").value.trim(),lat:p?+p.lat.toFixed(5):null,lon:p?+p.lon.toFixed(5):null};
     if(!isSO()&&selectedWaterName())f.waterName=selectedWaterName();
     if(f.canton==="LU"&&f.waterName&&state.luRev)f.luRev=state.luRev;
@@ -1870,6 +1877,7 @@ function saveFang(){
       $("#btnSave").disabled=$("#takePhoto").disabled=$("#choosePhoto").disabled=$("#fPhoto").disabled=$("#removePhoto").disabled=false;
     }
     if(toShare)queueShare(f,toShare);
+    clearCatchDraft();$("#catchOutcome").value="";syncPickers($("#v-fang"));
     resetShareDraft();
     resetPhoto();
     const t=now.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
@@ -1889,7 +1897,10 @@ function saveFang(){
     const bc=$("#btnCopy");if(bc)bc.onclick=async()=>{try{await navigator.clipboard.writeText(txt);bc.textContent="Kopiert"}catch(e){bc.textContent="Kopieren nicht möglich – bitte abtippen"}};
     $("#fLen").value="";$("#fAnz").value="1";$("#fNote").value="";liveCheck();renderStats();if(map)drawCatches();toast(kept?"Fang gespeichert":"Als zurückgesetzt gespeichert");
   };
-  if(!c.ok)ask(`<h2>Nicht behalten</h2><ul>${c.issues.map(i=>`<li>${esc(i)}</li>`).join("")}</ul><p class="mut small">Fisch schonend zurücksetzen. Als «zurückgesetzt» speichern?</p>`,()=>doSave(false));
+  if(outcome==="released"){
+    if(ruleFor(sec,sp).keep)ask("<h2>Entnahmepflicht hinterlegt</h2><p>Tatsächlich zurückgesetzten Fang dokumentieren?</p>",()=>doSave(false));
+    else doSave(false);
+  }else if(!c.ok)ask(`<h2>Nicht behalten</h2><ul>${c.issues.map(i=>`<li>${esc(i)}</li>`).join("")}</ul><p class="mut small">Fisch schonend zurücksetzen. Als «zurückgesetzt» speichern?</p>`,()=>doSave(false));
   else if(c.review)ask("<h2>Amtliche Regel geprüft?</h2><p>Als behalten speichern, wenn du die Vorschriften für dieses Gewässer geprüft hast.</p>",()=>doSave(true));
   else doSave(true);
 }
@@ -1956,11 +1967,21 @@ function renderStats(){
   $("#soCounts").hidden=!isSO();
   const troutToday=countToday("Bachforelle",true);
   $("#bookLimits").textContent="Heute: "+troutToday+"/"+R_SO().troutDay+" Forellen und Saiblinge · Dieses Jahr: "+countYear("Bachforelle")+"/"+R_SO().troutYear+" Bachforellen im Patentgewässer";
-  $("#moreCatches").hidden=catches.length<=bookLimit;
+  const water=f=>f.canton==="SO"||!f.canton?waterLabel("SO",f.sec):cname(f.canton)+" · "+(f.waterName||cwLabel(f.canton,f.sec)||f.sec);
+  function filterOptions(id,values){
+    const el=$(id),prior=el.value;
+    el.replaceChildren(new Option("Alle",""),...[...new Set(values)].filter(Boolean).sort((a,b)=>a.localeCompare(b,"de")).map(v=>new Option(v,v)));
+    el.value=prior;if(el.selectedIndex<0)el.selectedIndex=0;
+    el.onchange=()=>{bookLimit=30;renderStats()};
+    return el.value;
+  }
+  const chosenWater=filterOptions("#bookWater",catches.map(water)),fish=filterOptions("#bookFish",catches.map(f=>f.art));
+  const matching=catches.filter(f=>(!chosenWater||water(f)===chosenWater)&&(!fish||f.art===fish));
+  $("#moreCatches").hidden=matching.length<=bookLimit;
   bookPhotoObserver?.disconnect();
   for(const url of previewUrls)URL.revokeObjectURL(url);
   previewUrls.clear();
-  $("#logList").innerHTML=catches.length?catches.slice(0,bookLimit).map(f=>`<div class="it" id="catch-${f.id}" tabindex="-1"><div class="row" style="align-items:center"><div style="flex:3"><b>${esc(f.art)}</b>${f.len!=null?` · ${f.len} cm`:""}${f.n>1?` · ${f.n} Stk.`:""} <span class="pill ${f.kept?"p-ok":"p-mut"}">${f.kept?"behalten":"zurück"}</span><div class="mut small">${new Date(f.ts).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"})} · ${esc((f.canton||"SO")==="SO"?waterLabel("SO",f.sec):cname(f.canton)+((f.waterName||cwLabel(f.canton,f.sec))?" · "+(f.waterName||cwLabel(f.canton,f.sec)):""))}${f.note?" · "+esc(f.note):""}</div><small class="share-status" id="share-status-${esc(f.id)}">${esc(shareStatus(f.id))}</small></div>${f.photoKey?`<button type="button" class="book-photo" data-photo="${esc(f.photoKey)}" aria-label="Fangfoto vergrössern: ${esc(f.art)}">Foto laden …</button>`:`<button type="button" data-add-photo="${esc(f.id)}">Foto hinzufügen</button>`}<details class="entry-menu"><summary>Mehr</summary><button type="button" data-map="${f.id}">${Number.isFinite(f.lat)?"Auf der Karte zeigen":"Ort auf der Karte setzen"}</button><button type="button" data-edit="${f.id}">Bearbeiten</button>${shareButton(f)}<button class="del" data-del="${f.id}">Löschen</button></details></div></div>`).join(""):`<p class="mut">Keine Fangeinträge in diesem Zeitraum.</p>`;
+  $("#logList").innerHTML=matching.length?matching.slice(0,bookLimit).map(f=>`<div class="it" id="catch-${f.id}" tabindex="-1"><div class="row" style="align-items:center"><div style="flex:3"><b>${esc(f.art)}</b>${f.len!=null?` · ${f.len} cm`:""}${f.n>1?` · ${f.n} Stk.`:""} <span class="pill ${f.kept?"p-ok":"p-mut"}">${f.kept?"behalten":"zurück"}</span><div class="mut small">${new Date(f.ts).toLocaleString("de-CH",{dateStyle:"short",timeStyle:"short"})} · ${esc((f.canton||"SO")==="SO"?waterLabel("SO",f.sec):cname(f.canton)+((f.waterName||cwLabel(f.canton,f.sec))?" · "+(f.waterName||cwLabel(f.canton,f.sec)):""))}${f.note?" · "+esc(f.note):""}</div><small class="share-status" id="share-status-${esc(f.id)}">${esc(shareStatus(f.id))}</small></div>${f.photoKey?`<button type="button" class="book-photo" data-photo="${esc(f.photoKey)}" aria-label="Fangfoto vergrössern: ${esc(f.art)}">Foto laden …</button>`:`<button type="button" data-add-photo="${esc(f.id)}">Foto hinzufügen</button>`}<details class="entry-menu"><summary>Mehr</summary><button type="button" data-map="${f.id}">${Number.isFinite(f.lat)?"Auf der Karte zeigen":"Ort auf der Karte setzen"}</button><button type="button" data-edit="${f.id}">Bearbeiten</button>${shareButton(f)}<button class="del" data-del="${f.id}">Löschen</button></details></div></div>`).join(""):`<p class="mut">Keine Fangeinträge in diesem Zeitraum.</p>`;
   for(const button of $("#logList").querySelectorAll("[data-photo]")){
     if(bookPhotoObserver)bookPhotoObserver.observe(button);else loadBookPhoto(button);
   }
@@ -4311,6 +4332,12 @@ function focusMapPlace(place,fitDistrict=false){
 function initialMapView(){
   const oldView=store.get("mapView",null);
   const saved=store.get("mapViewGL",null)||(Array.isArray(oldView)&&oldView.length===3&&oldView.every(Number.isFinite)?[oldView[0],oldView[1],oldView[2]-1]:null);
+  if(!saved&&!isAuto()){
+    const hit=chosenMapHit;
+    if(hit?.code===state.canton&&hit.choiceName===selectedWaterName()&&Number.isFinite(hit.lon)&&Number.isFinite(hit.lat))return {center:[hit.lon,hit.lat],zoom:13};
+    const line=state.canton==="SO"&&GEO.features.find(f=>f.id===currentSec().id)?.l[0];
+    if(line?.length)return {center:line[Math.floor(line.length/2)],zoom:13};
+  }
   return Array.isArray(saved)&&saved.length===3&&saved.every(Number.isFinite)&&saved[0]>=45.6&&saved[0]<=48&&saved[1]>=5.7&&saved[1]<=10.7?
     {center:[saved[1],saved[0]],zoom:Math.max(5,Math.min(19,saved[2]))}:state.pos?{center:[state.pos.lon,state.pos.lat],zoom:13}:{bounds:[[5.95,45.81],[10.5,47.82]]};
 }
@@ -4345,6 +4372,15 @@ function bindBaseControls(viewMap){
   });
   $("#mapUI").classList.add("base-only");
 }
+function warmMapEngine(){
+  if(document.hidden||navigator.connection?.saveData||window.maplibregl)return;
+  loadScript(MAPLIBRE.js).then(()=>window.maplibregl.prewarm?.()).catch(()=>{});
+}
+document.querySelector('nav [data-v="karte"]').addEventListener("pointerdown",warmMapEngine,{passive:true});
+window.addEventListener("load",()=>{
+  if(navigator.connection?.effectiveType&&navigator.connection.effectiveType!=="4g")return;
+  if("requestIdleCallback" in window)requestIdleCallback(warmMapEngine);
+});
 async function initMap(){
   if(map){refreshMapDate();requestAnimationFrame(()=>{map.resize();sectionMap.sync();scheduleWest();loadX();refreshReports()});renderSheet();drawSel();showShoreMarkers();if(mapReady)focusRequestedLU();return}
   if(initMap.loading)return;
@@ -4354,7 +4390,12 @@ async function initMap(){
     const css=document.createElement("link");css.id="maplibreStyle";css.rel="stylesheet";css.href=MAPLIBRE.css;css.crossOrigin="anonymous";css.integrity=MAPLIBRE_SRI.css;document.head.append(css);
   }
   const kind=store.get("base","luft")==="topo"?"topo":"luft";
-  const zonesReady=loadZoneModules().then(()=>true,()=>false);
+  const zonesReady=loadZoneModules().then(()=>{
+    prepareSections(false);
+    const view=initialMapView();
+    void sectionMap.preload(view.center,(view.zoom??5)+1);
+    return true;
+  },()=>false);
   let viewMap=initMap.baseMap;
   try{
     if(!viewMap){
@@ -4362,9 +4403,19 @@ async function initMap(){
       if(!$("#v-karte").classList.contains("on"))return;
       labelFont=fontFrom(style);
       const view=initialMapView();
-      viewMap=new maplibregl.Map({container:"map",style,validateStyle:!packagedStyles.has(style),...(view.bounds?{bounds:view.bounds,fitBoundsOptions:{padding:16}}:view),
+      const later=kind==="luft"&&packagedStyles.has(style)?style.layers.filter(layer=>style.sources[layer.source]?.type==="vector"):[];
+      const initial=later.length?{...style,layers:style.layers.filter(layer=>!later.includes(layer))}:style;
+      viewMap=new maplibregl.Map({container:"map",style:initial,validateStyle:!packagedStyles.has(style),...(view.bounds?{bounds:view.bounds,fitBoundsOptions:{padding:16}}:view),
         minZoom:5,maxZoom:19.5,maxBounds:[[3.5,44.6],[12.9,49.0]],attributionControl:false,dragRotate:true,pitchWithRotate:false,touchPitch:false,
         fadeDuration:180,cooperativeGestures:false,locale:{"NavigationControl.ZoomIn":"Vergrössern","NavigationControl.ZoomOut":"Verkleinern"}});
+      const version=baseChange;
+      if(later.length)viewMap.once("idle",async()=>{
+        for(const layer of later){
+          if(baseChange!==version||!viewMap.getSource(layer.source)||viewMap.getLayer(layer.id))return;
+          viewMap.addLayer(layer,viewMap.getLayer("fb-hydro")?"fb-hydro":undefined);
+          await new Promise(resolve=>requestAnimationFrame(resolve));
+        }
+      });
       initMap.baseMap=viewMap;
       bindBaseControls(viewMap);
       viewMap.once("style.load",()=>{initMap.baseStyleReady=true});
@@ -6240,10 +6291,12 @@ $("#fArt").onchange=e=>setSpecies(e.target.value);
 $("#fLen").oninput=$("#fAnz").oninput=liveCheck;
 document.querySelectorAll(".lenrow [data-d]").forEach(b=>b.onclick=()=>{const v=parseFloat($("#fLen").value)||0;$("#fLen").value=Math.max(0,v+parseFloat(b.dataset.d));liveCheck()});
 $("#btnSave").onclick=saveFang;
+$("#takePhoto").addEventListener("click",persistCatchDraft);
 $("#takePhoto").onclick=()=>{$("#fPhoto").value="";$("#fPhoto").click()};
 $("#choosePhoto").onclick=()=>openGallery(null);
 $("#fPhoto").onchange=e=>preparePhoto(e.target.files[0]);
-$("#removePhoto").onclick=resetPhoto;
+$("#v-fang").addEventListener("change",e=>{if(e.target.matches("#fArt,#catchOutcome"))persistCatchDraft()});
+$("#removePhoto").onclick=()=>{resetPhoto();replaceDraftPhotoKey(null);persistCatchDraft()};
 $("#artQ").oninput=renderArten;
 $("#artTags").onclick=e=>{const b=e.target.closest("[data-tag]");if(b){artFilter=b.dataset.tag;renderArten()}};
 $("#artList").addEventListener("toggle",e=>{
@@ -6278,10 +6331,10 @@ $("#logList").onclick=e=>{
   if(edit){
     const f=state.log.find(f=>String(f.id)===edit.dataset.edit);
     if(!f)return;
-    ask('<h2>Fang bearbeiten</h2><label for="editSpecies">Fischart</label><select id="editSpecies"></select><label for="editLen">Länge (cm)</label><input id="editLen" type="number" min="0" step="any"><label for="editCount">Anzahl</label><input id="editCount" type="number" min="1"><label for="editNote">Notiz</label><textarea id="editNote"></textarea>',()=>{
+    ask('<h2>Fang bearbeiten</h2><label for="editSpecies">Fischart</label><select id="editSpecies"></select><label for="editLen">Länge (cm)</label><input id="editLen" type="number" min="0" step="any"><label for="editCount">Anzahl</label><input id="editCount" type="number" min="1"><label for="editOutcome">Entnahme</label><select id="editOutcome"><option value="kept">Behalten</option><option value="released">Zurückgesetzt</option></select><label for="editNote">Notiz</label><textarea id="editNote"></textarea>',()=>{
       const len=$("#editLen").valueAsNumber,n=$("#editCount").valueAsNumber;
       if(!Number.isInteger(n)||n<1||len<0){toast("Bitte gültige Länge und Anzahl eingeben.");return}
-      const log=state.log.map(row=>row.id===f.id?{...row,art:$("#editSpecies").value,len:Number.isFinite(len)?len:null,n,note:$("#editNote").value}:row);
+      const log=state.log.map(row=>row.id===f.id?{...row,kept:$("#editOutcome").value==="kept",art:$("#editSpecies").value,len:Number.isFinite(len)?len:null,n,note:$("#editNote").value}:row);
       if(!store.set("log",log)){toast("Speichern fehlgeschlagen");return}
       state.log=log;
       const rec=shareState(f.id),changed=log.find(entry=>entry.id===f.id);
@@ -6289,7 +6342,7 @@ $("#logList").onclick=e=>{
       renderStats();if(map)drawCatches();toast("Änderungen gespeichert");
     });
     for(const art of new Set([f.art,...SPECIES]))$("#editSpecies").add(new Option(art,art));
-    $("#editLen").value=f.len??"";$("#editCount").value=f.n||1;$("#editNote").value=f.note||"";return;
+    $("#editOutcome").value=f.kept?"kept":"released";$("#editLen").value=f.len??"";$("#editCount").value=f.n||1;$("#editNote").value=f.note||"";return;
   }
   const add=e.target.closest("[data-add-photo]");
   if(add){openGallery(add.dataset.addPhoto);return}
@@ -6310,9 +6363,43 @@ $("#logList").onclick=e=>{
 function photoData(blob){return new Promise((resolve,reject)=>{
   const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(blob);
 })}
+function transferPassword(creating){
+  return new Promise(resolve=>{
+    const dlg=$("#dlg");
+    ask('<h2>'+ (creating?"Sicherung verschlüsseln":"Sicherung entsperren")+'</h2><p>Das Passwort schützt die Verwaltung deiner öffentlichen Fänge.</p><label for="transferPass">Passwort</label><input id="transferPass" type="password" autocomplete="off">'+(creating?'<label for="transferAgain">Passwort bestätigen</label><input id="transferAgain" type="password" autocomplete="off">':""),()=>{});
+    let result=null;
+    $("#dlgYes").onclick=()=>{
+      const value=$("#transferPass").value;
+      if(creating&&(value.length<10||value!==$("#transferAgain").value)){toast("Mindestens 10 Zeichen und gleiche Passwörter eingeben.");return}
+      result=value;dlg.close();
+    };
+    dlg.addEventListener("close",()=>{resolve(result);$("#dlgBody").replaceChildren()},{once:true});
+  });
+}
+async function transferKey(password,salt){
+  const raw=await crypto.subtle.importKey("raw",new TextEncoder().encode(password),"PBKDF2",false,["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:310000,hash:"SHA-256"},raw,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+}
+async function exportShares(data){
+  const shares=shareIds().map(id=>[id,shareState(id)]);
+  if(!shares.length)return true;
+  const pass=await transferPassword(true);if(!pass)return false;
+  const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
+  const encrypted=await crypto.subtle.encrypt({name:"AES-GCM",iv},await transferKey(pass,salt),new TextEncoder().encode(JSON.stringify(shares)));
+  data.privateShares={salt:[...salt],iv:[...iv],cipher:[...new Uint8Array(encrypted)]};return true;
+}
+async function importShares(box){
+  if(!box)return [];
+  const pass=await transferPassword(false);if(!pass)return null;
+  const bytes=await crypto.subtle.decrypt({name:"AES-GCM",iv:new Uint8Array(box.iv)},await transferKey(pass,new Uint8Array(box.salt)),new Uint8Array(box.cipher));
+  const records=JSON.parse(new TextDecoder().decode(bytes));
+  if(!Array.isArray(records)||!records.every(([id,r])=>/^\d+(?:\.\d+)?$/.test(id)&&/^[0-9a-f]{64}$/.test(r.key)&&Number.isSafeInteger(r.revision)))throw Error();
+  return records;
+}
 $("#backup").onclick=async()=>{
   try{
     const data={format:"fangbuch-v1",spots:store.get("spots",[]),log:state.log.slice(),sessions:store.get("sessions",[]),active:state.sess,photos:{}};
+    if(!await exportShares(data))return;
     for(const f of data.log)if(f.photoKey)data.photos[f.photoKey]=await photoData(await accessPhoto("get",f.photoKey));
     const url=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:"application/json"}));
     const a=document.createElement("a");a.href=url;a.download="fangbuch-"+dayKey(new Date())+".json";a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);
@@ -6323,6 +6410,7 @@ async function restoreBackup(file){
   const added=[];
   try{
     const data=JSON.parse(await file.text());
+    const shares=await importShares(data.privateShares);if(!shares)return;
     const validSession=s=>s&&Number.isFinite(s.start)&&typeof s.sec==="string"&&(!s.canton||typeof s.canton==="string");
     if(data.format!=="fangbuch-v1"||!Array.isArray(data.log)||!Array.isArray(data.sessions)||!data.sessions.every(s=>validSession(s)&&Number.isFinite(s.mins)&&s.mins>=0)||(data.active&&!validSession(data.active)))throw Error();
     const imported=[];
@@ -6342,7 +6430,9 @@ async function restoreBackup(file){
     if(!store.set("sessions",sessions))throw Error();
     if(!store.set("sess",active)||!store.set("log",log)){store.set("sessions",old);store.set("sess",state.sess);throw Error()}
     if(Array.isArray(data.spots)){const cur=store.get("spots",[]);const add=data.spots.filter(s=>s&&typeof s.id==="string"&&Number.isFinite(s.lat)&&Number.isFinite(s.lon)&&typeof s.name==="string"&&!cur.some(c=>c.id===s.id));if(add.length){store.set("spots",cur.concat(add));refreshSpots()}}
-    state.log=log;state.sess=active;renderStats();if(map)drawCatches();toast(imported.length+" Fangeinträge ergänzt");
+    state.log=log;state.sess=active;added.length=0;
+    for(const [id,r] of shares){const old=shareState(id);if((!old||old.key===r.key&&old.revision<r.revision)&&!shareWrite(id,r))throw Error()}
+    retryShares();renderStats();if(map)drawCatches();toast(imported.length+" Fangeinträge ergänzt");
   }catch(e){for(const key of added)await accessPhoto("delete",key);toast("Sicherung konnte nicht eingelesen werden.")}
 }
 $("#backupFile").onchange=e=>{if(e.target.files[0])restoreBackup(e.target.files[0])};
@@ -6364,6 +6454,105 @@ window.addEventListener("pagehide",stopGeo);
 window.addEventListener("pageshow",syncGeo);
 window.addEventListener("online",()=>{fetchUpdates();refreshGeo()});
 
+function offlineRecords(){return store.get("offlineWaters",[])}
+function showOfflineWaters(){
+  const box=$("#offlineList");box.replaceChildren();
+  for(const item of offlineRecords()){
+    const row=document.createElement("details"),title=document.createElement("summary");
+    title.textContent=item.name;row.append(title);
+    const text=document.createElement("p");text.textContent="Gespeichert "+new Date(item.time).toLocaleString("de-CH")+" · "+(item.photo?"Kartenausschnitt gespeichert · © swisstopo":"Kartenausschnitt fehlt");row.append(text);
+    if(item.photo){
+      const img=document.createElement("img");img.alt="Kartenausschnitt beim Gewässer · © swisstopo";img.style.width="100%";
+      row.append(img);row.ontoggle=async()=>{if(row.open&&!img.src){const blob=await accessPhoto("get",item.photo).catch(()=>null);if(blob){img.src=URL.createObjectURL(blob);img.onload=()=>URL.revokeObjectURL(img.src)}else img.alt="Kartenausschnitt fehlt"}};
+    }
+    const rules=document.createElement("p");rules.style.whiteSpace="pre-line";rules.textContent=item.rules;row.append(rules);
+    const del=document.createElement("button");del.textContent="Offline-Kopie entfernen";del.onclick=()=>{if(store.set("offlineWaters",offlineRecords().filter(r=>r.id!==item.id))){if(item.photo)accessPhoto("delete",item.photo).catch(()=>{});showOfflineWaters()}};
+    row.append(del);box.append(row);
+  }
+}
+async function offlineMapPoint(){
+  const ref=formCatch().reportSection,code=state.canton;
+  const hit=isAuto()?autoWater.hit:chosenMapHit;
+  if(hit?.code===code&&(isAuto()||hit.choiceName===selectedWaterName()&&hit.choiceName)&&Number.isFinite(hit.lon)&&Number.isFinite(hit.lat))return [hit.lon,hit.lat];
+  if(code==="SO"){const l=GEO.features.find(f=>f.id===currentSec().id)?.l[0];if(l?.length)return l[Math.floor(l.length/2)]}
+  const res=await fetch("./server/catalogue.json",{signal:AbortSignal.timeout(10000)});if(!res.ok)return null;
+  const rows=(await res.json()).sections.filter(([id,n])=>ref?id===ref:id.startsWith(code+":")&&n===(selectedWaterName()||ctxLabel()));
+  return rows.length===1?rows[0].slice(2):null;
+}
+async function offlineMapPhoto([lon,lat],lines){
+  const z=14,n=2**z,x=(lon+180)/360*n,y=(1-Math.asinh(Math.tan(lat*Math.PI/180))/Math.PI)/2*n;
+  const canvas=document.createElement("canvas");canvas.width=canvas.height=512;const ctx=canvas.getContext("2d");
+  const tiles=[];
+  for(let i=Math.floor(x)-1;i<=Math.floor(x)+1;i++)for(let j=Math.floor(y)-1;j<=Math.floor(y)+1;j++)tiles.push((async()=>{
+    const url="https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/"+z+"/"+i+"/"+j+".jpeg";
+    const res=await fetch(url,{signal:AbortSignal.timeout(15000)});if(!res.ok)throw Error();
+    const tile=await createImageBitmap(await res.blob());ctx.drawImage(tile,Math.round(256+(i-x)*256),Math.round(256+(j-y)*256),256,256);tile.close();
+  })());
+  await Promise.all(tiles);
+  for(const line of lines){
+    ctx.beginPath();
+    for(const [i,[lng,latitude]] of line.entries()){
+      const px=256+256*((lng+180)/360*n-x),py=256+256*((1-Math.asinh(Math.tan(latitude*Math.PI/180))/Math.PI)/2*n-y);
+      if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);
+    }
+    ctx.lineWidth=4;ctx.strokeStyle="#186f82";ctx.stroke();
+  }
+  ctx.strokeStyle="black";ctx.lineWidth=2;ctx.beginPath();ctx.arc(256,256,7,0,2*Math.PI);ctx.fillStyle="white";ctx.fill();ctx.stroke();
+  return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(Error()),"image/jpeg",.85));
+}
+$("#offlineWater").ontoggle=()=>{if($("#offlineWater").open)showOfflineWaters()};
+$("#pinWater").onclick=async()=>{
+  if(unknownWater()){openWater();return}
+  const name=ctxLabel(),id=JSON.stringify([state.canton,currentSec().id,name]),button=$("#pinWater");
+  const rules=($("#hereRules").hidden?"Keine Abschnittsregeln verfügbar.":$("#hereRules").innerText)+"\nMomentaufnahme. Aktuelle Sperren und Berechtigung vor Ort prüfen.";
+  const item={id,name,rules,time:Date.now(),photo:null};button.disabled=true;button.textContent="Wird gespeichert …";
+  const lines=state.canton==="SO"?GEO.features.find(f=>f.id===currentSec().id)?.l||[]:[];
+  const previous=offlineRecords().find(r=>r.id===id);
+  try{
+    const point=await offlineMapPoint();if(point){const blob=await offlineMapPhoto(point,lines);const key=crypto.randomUUID();await accessPhoto("put",key,blob);item.photo=key}
+  }catch{}
+  if(previous?.photo&&!item.photo){button.disabled=false;button.textContent="Für offline merken";toast("Karte nicht aktualisiert. Vorhandene Kopie bleibt erhalten.");return}
+  const saved=store.set("offlineWaters",[item,...offlineRecords().filter(r=>r.id!==id)]);
+  const unused=saved?previous?.photo:item.photo;if(unused)accessPhoto("delete",unused).catch(()=>{});
+  button.disabled=false;button.textContent="Für offline merken";showOfflineWaters();toast(saved?(item.photo?"Gewässer offline gespeichert":"Regelstand gespeichert · Karte fehlt"):"Speichern fehlgeschlagen");
+};
+let draftStarted=0,draftPhotoKey=null;
+function replaceDraftPhotoKey(key){
+  const old=draftPhotoKey;draftPhotoKey=key;
+  if(old&&old!==key)accessPhoto("delete",old).catch(()=>{});
+}
+function clearCatchDraft(){
+  localStorage.removeItem("fb_catchDraft");replaceDraftPhotoKey(null);draftStarted=0;$("#resumeCatch").hidden=true;
+}
+function persistCatchDraft(){
+  if(!$("#resumeCatch").hidden)return;
+  draftStarted||=Date.now();
+  const water=Object.fromEntries(selectionKeys.map(k=>[k,state[k]]));
+  if(isAuto()&&selectedWaterName())water.xsel={...state.xsel,[state.canton]:selectedWaterName()};
+  const data={started:draftStarted,photo:draftPhotoKey,water,name:ctxLabel(),point:catchAt||recentPosition(),values:{}};
+  for(const id of ["fArt","fLen","fAnz","fNote","catchOutcome"])data.values[id]=$("#"+id).value;
+  if(!store.set("catchDraft",data))toast("Entwurf konnte nicht gesichert werden.");
+}
+$("#v-fang").addEventListener("input",e=>{if(e.target.matches("#fArt,#fLen,#fAnz,#fNote,#catchOutcome"))persistCatchDraft()});
+$("#v-fang").addEventListener("click",e=>{if(e.target.closest("[data-sp],[data-d]"))persistCatchDraft()});
+const savedDraft=store.get("catchDraft",null);
+if(savedDraft){
+  const resume=$("#resumeCatch"),form=$("#v-fang .card");form.inert=true;
+  const discard=document.createElement("button");discard.textContent="Entwurf verwerfen";resume.after(discard);
+  discard.onclick=()=>ask("<h2>Entwurf verwerfen?</h2>",()=>{draftPhotoKey=savedDraft.photo;clearCatchDraft();discard.remove();form.inert=false});
+  resume.hidden=false;resume.textContent="Fang fortsetzen · "+savedDraft.name;
+  resume.onclick=async()=>{
+    resume.disabled=true;
+    try{
+      const blob=savedDraft.photo?await accessPhoto("get",savedDraft.photo):null;
+      resetAutoWater();Object.assign(state,savedDraft.water,{secAuto:false,cantonAuto:false});save();onCantonChanged();
+      for(const [id,value] of Object.entries(savedDraft.values))$("#"+id).value=value;
+      draftStarted=savedDraft.started;catchAt=savedDraft.point;draftPhotoKey=savedDraft.photo;
+      if(blob){draftPhoto={blob,url:URL.createObjectURL(blob)};$("#photoPreview").src=draftPhoto.url;$("#photoDraft").classList.remove("hide")}
+      setSpecies(savedDraft.values.fArt);renderCatchAt();resume.hidden=true;discard.remove();form.inert=false;
+    }finally{resume.disabled=false}
+  };
+}
 loadCached();
 setSpecies("Bachforelle");
 window.addEventListener("popstate",()=>{show(route(),true);window.scrollTo(0,history.state?.scroll||0)});

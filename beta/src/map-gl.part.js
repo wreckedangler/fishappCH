@@ -1422,6 +1422,12 @@ function focusMapPlace(place,fitDistrict=false){
 function initialMapView(){
   const oldView=store.get("mapView",null);
   const saved=store.get("mapViewGL",null)||(Array.isArray(oldView)&&oldView.length===3&&oldView.every(Number.isFinite)?[oldView[0],oldView[1],oldView[2]-1]:null);
+  if(!saved&&!isAuto()){
+    const hit=chosenMapHit;
+    if(hit?.code===state.canton&&hit.choiceName===selectedWaterName()&&Number.isFinite(hit.lon)&&Number.isFinite(hit.lat))return {center:[hit.lon,hit.lat],zoom:13};
+    const line=state.canton==="SO"&&GEO.features.find(f=>f.id===currentSec().id)?.l[0];
+    if(line?.length)return {center:line[Math.floor(line.length/2)],zoom:13};
+  }
   return Array.isArray(saved)&&saved.length===3&&saved.every(Number.isFinite)&&saved[0]>=45.6&&saved[0]<=48&&saved[1]>=5.7&&saved[1]<=10.7?
     {center:[saved[1],saved[0]],zoom:Math.max(5,Math.min(19,saved[2]))}:state.pos?{center:[state.pos.lon,state.pos.lat],zoom:13}:{bounds:[[5.95,45.81],[10.5,47.82]]};
 }
@@ -1456,6 +1462,15 @@ function bindBaseControls(viewMap){
   });
   $("#mapUI").classList.add("base-only");
 }
+function warmMapEngine(){
+  if(document.hidden||navigator.connection?.saveData||window.maplibregl)return;
+  loadScript(MAPLIBRE.js).then(()=>window.maplibregl.prewarm?.()).catch(()=>{});
+}
+document.querySelector('nav [data-v="karte"]').addEventListener("pointerdown",warmMapEngine,{passive:true});
+window.addEventListener("load",()=>{
+  if(navigator.connection?.effectiveType&&navigator.connection.effectiveType!=="4g")return;
+  if("requestIdleCallback" in window)requestIdleCallback(warmMapEngine);
+});
 async function initMap(){
   if(map){refreshMapDate();requestAnimationFrame(()=>{map.resize();sectionMap.sync();scheduleWest();loadX();refreshReports()});renderSheet();drawSel();showShoreMarkers();if(mapReady)focusRequestedLU();return}
   if(initMap.loading)return;
@@ -1465,7 +1480,12 @@ async function initMap(){
     const css=document.createElement("link");css.id="maplibreStyle";css.rel="stylesheet";css.href=MAPLIBRE.css;css.crossOrigin="anonymous";css.integrity=MAPLIBRE_SRI.css;document.head.append(css);
   }
   const kind=store.get("base","luft")==="topo"?"topo":"luft";
-  const zonesReady=loadZoneModules().then(()=>true,()=>false);
+  const zonesReady=loadZoneModules().then(()=>{
+    prepareSections(false);
+    const view=initialMapView();
+    void sectionMap.preload(view.center,(view.zoom??5)+1);
+    return true;
+  },()=>false);
   let viewMap=initMap.baseMap;
   try{
     if(!viewMap){
@@ -1473,9 +1493,19 @@ async function initMap(){
       if(!$("#v-karte").classList.contains("on"))return;
       labelFont=fontFrom(style);
       const view=initialMapView();
-      viewMap=new maplibregl.Map({container:"map",style,validateStyle:!packagedStyles.has(style),...(view.bounds?{bounds:view.bounds,fitBoundsOptions:{padding:16}}:view),
+      const later=kind==="luft"&&packagedStyles.has(style)?style.layers.filter(layer=>style.sources[layer.source]?.type==="vector"):[];
+      const initial=later.length?{...style,layers:style.layers.filter(layer=>!later.includes(layer))}:style;
+      viewMap=new maplibregl.Map({container:"map",style:initial,validateStyle:!packagedStyles.has(style),...(view.bounds?{bounds:view.bounds,fitBoundsOptions:{padding:16}}:view),
         minZoom:5,maxZoom:19.5,maxBounds:[[3.5,44.6],[12.9,49.0]],attributionControl:false,dragRotate:true,pitchWithRotate:false,touchPitch:false,
         fadeDuration:180,cooperativeGestures:false,locale:{"NavigationControl.ZoomIn":"Vergrössern","NavigationControl.ZoomOut":"Verkleinern"}});
+      const version=baseChange;
+      if(later.length)viewMap.once("idle",async()=>{
+        for(const layer of later){
+          if(baseChange!==version||!viewMap.getSource(layer.source)||viewMap.getLayer(layer.id))return;
+          viewMap.addLayer(layer,viewMap.getLayer("fb-hydro")?"fb-hydro":undefined);
+          await new Promise(resolve=>requestAnimationFrame(resolve));
+        }
+      });
       initMap.baseMap=viewMap;
       bindBaseControls(viewMap);
       viewMap.once("style.load",()=>{initMap.baseStyleReady=true});

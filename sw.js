@@ -1,12 +1,12 @@
 // Fischer-Begleiter Service Worker
-const APP = "fb-app-v86";      // versionierte App-Dateien
+const APP = "fb-app-v87";      // versionierte App-Dateien
 const LIB = "fb-lib-v1";      // Kartenbibliothek: Cache zuerst
 const TILES = "fb-tiles-v1";  // Kartenkacheln: Cache zuerst, begrenzt
 const MAX_TILES = 600;
 const IMG = "fb-img-v1";     // Fischfotos (Wikimedia): Cache zuerst
 const SECTIONS = "fb-sections-v1"; // Abschnittsdateien mit Inhalts-Hash
 
-const CORE=["./index.html","./beta/index.html","./manifest.webmanifest","./assets/kiro-32.png","./assets/kiro-header.png"];
+const CORE=["./index.html","./beta/index.html","./manifest.webmanifest","./assets/pixel-kiro-32.png","./assets/pixel-kiro-header.png"];
 const OFFLINE="fb-offline-v1";
 const scope=self.registration.scope;
 function optionalAsset(url){

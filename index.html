@@ -7,8 +7,8 @@
 <meta name="theme-color" content="#162024" media="(prefers-color-scheme: dark)">
 <title>Fischer-Begleiter</title>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" type="image/png" sizes="32x32" href="assets/kiro-32.png">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/kiro-180.png">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/pixel-kiro-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/pixel-kiro-180.png">
 <style>
 :root{
  --bg:#f2f4f1;--sf:#fff;--sf2:#f5f7f5;--line:#dce2de;--tx:#12222a;--mut:#5a6a6c;
@@ -29,8 +29,8 @@ a{color:var(--acc)}
 #topbar{position:fixed;top:0;left:0;right:0;z-index:1000;padding-top:env(safe-area-inset-top);background:var(--sf);border-bottom:1px solid var(--line)}
 #topbar .in{height:var(--tb);display:flex;align-items:center;gap:9px;padding:0 max(12px,env(safe-area-inset-right)) 0 max(12px,env(safe-area-inset-left))}
 #tbHome{display:grid;place-items:center;flex:none;width:48px;height:52px;padding:0;border:0;background:transparent;color:var(--acc)}
-#kiro{display:block;width:44px;height:44px;background:url("assets/kiro-header.png") center/contain no-repeat;pointer-events:none;transform-origin:center 88%}
-#kiro.pose{background-image:url("assets/kiro-poses.webp");background-size:400% 300%}
+#kiro{display:block;image-rendering:pixelated;width:44px;height:44px;background:url("assets/pixel-kiro-header.png") center/contain no-repeat;pointer-events:none;transform-origin:center 88%}
+#kiro.pose{background-image:url("assets/pixel-kiro-poses.png");background-size:400% 300%}
 #tbHome:focus-visible{outline:2px solid currentColor;outline-offset:-2px;border-radius:10px}
 #topbar.bad #tbHome{color:#fff}
 @media(forced-colors:active){#topbar #tbHome{color:ButtonText}}
@@ -6250,7 +6250,7 @@ async function poseKiro(pose){
   if(index<1)return;
   const bird=$("#kiro");
   if(!kiroSheet){
-    const sprite=new Image();sprite.src="assets/kiro-poses.webp";
+    const sprite=new Image();sprite.src="assets/pixel-kiro-poses.png";
     kiroSheet=sprite.decode().catch(()=>{kiroSheet=null});
   }
   await kiroSheet;

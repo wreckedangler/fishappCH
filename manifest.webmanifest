@@ -10,8 +10,8 @@
   "theme_color": "#0e5c63",
   "lang": "de-CH",
   "icons": [
-    { "src": "assets/kiro-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "assets/kiro-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "assets/kiro-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "assets/pixel-kiro-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/pixel-kiro-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/pixel-kiro-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

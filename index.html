@@ -7,8 +7,8 @@
 <meta name="theme-color" content="#162024" media="(prefers-color-scheme: dark)">
 <title>Fischer-Begleiter</title>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/schild-apple-180.png">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/kiro-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/kiro-180.png">
 <style>
 :root{
  --bg:#f2f4f1;--sf:#fff;--sf2:#f5f7f5;--line:#dce2de;--tx:#12222a;--mut:#5a6a6c;
@@ -29,10 +29,9 @@ a{color:var(--acc)}
 #topbar{position:fixed;top:0;left:0;right:0;z-index:1000;padding-top:env(safe-area-inset-top);background:var(--sf);border-bottom:1px solid var(--line)}
 #topbar .in{height:var(--tb);display:flex;align-items:center;gap:9px;padding:0 max(12px,env(safe-area-inset-right)) 0 max(12px,env(safe-area-inset-left))}
 #tbHome{display:grid;place-items:center;flex:none;width:48px;height:52px;padding:0;border:0;background:transparent;color:var(--acc)}
-#tbHome svg{display:block;pointer-events:none}
-#tbHome .shield-focus{fill:none;stroke:none}
-#tbHome:focus-visible{outline:0}
-#tbHome:focus-visible .shield-focus{stroke:currentColor;stroke-width:90;stroke-linejoin:round}
+#kiro{display:block;width:44px;height:44px;background:url("assets/kiro-header.png") center/contain no-repeat;pointer-events:none;transform-origin:center 88%}
+#kiro.pose{background-image:url("assets/kiro-poses.webp");background-size:400% 300%}
+#tbHome:focus-visible{outline:2px solid currentColor;outline-offset:-2px;border-radius:10px}
 #topbar.bad #tbHome{color:#fff}
 @media(forced-colors:active){#topbar #tbHome{color:ButtonText}}
 #tbCanton{flex:0 0 auto;min-height:38px;min-width:46px;padding:6px 10px;border-radius:var(--rc);background:var(--sf);border:1px solid var(--line);color:var(--tx);font-weight:650;font-size:14px;letter-spacing:.02em}
@@ -955,12 +954,7 @@ main{overscroll-behavior-y:none}
     <span style="min-width:0"><span class="txt" id="tbTxt">Standort wird gesucht …</span><span class="sub" id="tbSub"></span></span>
   </button>
   <button type="button" id="tbHome" data-v="hier" aria-label="Fischer-Begleiter – zur Startansicht">
-    <svg width="40" height="52" viewBox="207 60 864 1150" aria-hidden="true" focusable="false">
-      <path id="shieldEdge" class="shield-focus" d="M640 112 C532 194 396 242 259 236 C246 333 246 432 254 530
-        C260 670 306 807 389 920 C459 1012 546 1089 639 1158 C731 1087 823 1013 890 916
-        C985 781 1019 614 1026 452 C1031 380 1028 307 1018 236 C881 245 749 191 640 112 Z"/>
-      <image href="assets/schild-192.png" x="79" y="75" width="1120" height="1120"/>
-    </svg>
+    <span id="kiro" aria-hidden="true"></span>
   </button>
 </div></div>
 
@@ -1622,7 +1616,7 @@ function renderSess(){
       if(!store.set("sessions",sessions)){toast("Session konnte nicht gespeichert werden.");return}
     }
     if(!store.set("sess",null)){toast("Session konnte nicht abgeschlossen werden.");return}
-    state.sess=null;renderSess();renderStats();
+    state.sess=null;renderSess();renderStats();poseKiro("rest");
     $("#afterSave").innerHTML=`<div class="verdict v-ok"><div class="big">Angeldauer ${Math.floor(mins/60)} h ${mins%60} min</div><div class="ln">Jetzt auch in der offiziellen App «Stop Fischen» drücken.</div></div>`};
 }
 function waterLabel(c,id){
@@ -1793,7 +1787,7 @@ async function preparePhoto(file){
     const blob=await compressPhoto(file);
     if(revision!==photoRevision)return;
     if(draftPhoto)URL.revokeObjectURL(draftPhoto.url);
-    draftPhoto={blob,url:URL.createObjectURL(blob)};
+    poseKiro("camera");draftPhoto={blob,url:URL.createObjectURL(blob)};
     const key=crypto.randomUUID();
     await accessPhoto("put",key,blob);
     if(revision!==photoRevision){await accessPhoto("delete",key);return}
@@ -1876,7 +1870,7 @@ function saveFang(){
     }
     if(toShare)queueShare(f,toShare);
     clearCatchDraft();$("#catchOutcome").value="";syncPickers($("#v-fang"));
-    resetShareDraft();
+    poseKiro("cheer");resetShareDraft();
     resetPhoto();
     const t=now.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
     const so=state.canton==="SO";
@@ -6249,7 +6243,30 @@ function loadCached(){const c=store.get("data",null);if(c&&c.version>=DATA_META.
 /* ================= NAVIGATION & INIT ================= */
 function renderAll(){syncGeo();if(shoreView&&!shoreView.fromMap&&(unknownWater()||shoreView.key!==state.canton+"/"+currentSec().id||secStatus(currentSec()).some(s=>s.lvl==="bad")))clearShore();renderTop();if($("#v-hier").classList.contains("on"))renderHier();if(map&&$("#v-karte").classList.contains("on")){if(mapSel&&mapSel.t==="sec")renderSheet();drawSel()}if($("#v-arten").classList.contains("on"))refreshArtenStatus();if($("#v-fang").classList.contains("on"))renderFang();if($("#v-regeln").classList.contains("on"))renderRegeln()}
 function route(){const key=location.hash.slice(1);return key==="fangbuch"?"stat":["fang","karte","arten","regeln"].includes(key)?key:"hier"}
+const kiroPoses=["home","wave","look","map","note","camera","cheer","book","point","search","fold","rest"];
+let kiroSheet,kiroTimer,kiroAnimation,kiroSequence=0;
+async function poseKiro(pose){
+  const sequence=++kiroSequence,index=kiroPoses.indexOf(pose);
+  if(index<1)return;
+  const bird=$("#kiro");
+  if(!kiroSheet){
+    const sprite=new Image();sprite.src="assets/kiro-poses.webp";
+    kiroSheet=sprite.decode().catch(()=>{kiroSheet=null});
+  }
+  await kiroSheet;
+  if(!kiroSheet||sequence!==kiroSequence)return;
+  clearTimeout(kiroTimer);kiroAnimation?.cancel();
+  bird.classList.add("pose");
+  bird.style.backgroundPosition=(index%4)*100/3+"% "+Math.floor(index/4)*50+"%";
+  if(!matchMedia("(prefers-reduced-motion: reduce)").matches&&bird.animate){
+    const peak=pose==="cheer"?"translateY(-4px) rotate(-6deg)":pose==="look"||pose==="search"?"rotate(7deg)":"rotate(-5deg)";
+    kiroAnimation=bird.animate([{transform:"none"},{transform:peak,offset:.45},{transform:"none"}],{duration:420,easing:"ease-in-out"});
+  }
+  kiroTimer=setTimeout(()=>{bird.classList.remove("pose");bird.style.backgroundPosition=""},1600);
+}
+document.addEventListener("focusin",e=>{if(e.target.id==="mapQ")poseKiro("search")});
 function show(v,restore=false){
+  if(!restore)poseKiro(({hier:"wave",karte:"map",fang:"note",stat:"book",arten:"look",regeln:"point"})[v]);
   if(v!=="karte"){requestedLURev="";cancelMapQuery();clearShore();if(hintMsg)flashHint("")}
   if(!restore&&route()!==v){
     history.replaceState({scroll:scrollY},"",location.href);
@@ -6512,6 +6529,7 @@ $("#pinWater").onclick=async()=>{
   if(previous?.photo&&!item.photo){button.disabled=false;button.textContent="Für offline merken";toast("Karte nicht aktualisiert. Vorhandene Kopie bleibt erhalten.");return}
   const saved=store.set("offlineWaters",[item,...offlineRecords().filter(r=>r.id!==id)]);
   const unused=saved?previous?.photo:item.photo;if(unused)accessPhoto("delete",unused).catch(()=>{});
+  if(saved)poseKiro("fold");
   button.disabled=false;button.textContent="Für offline merken";showOfflineWaters();toast(saved?(item.photo?"Gewässer offline gespeichert":"Regelstand gespeichert · Karte fehlt"):"Speichern fehlgeschlagen");
 };
 let draftStarted=0,draftPhotoKey=null;

@@ -31,8 +31,8 @@ a{color:var(--acc)}
 #topbar{position:fixed;top:0;left:0;right:0;z-index:1000;padding-top:env(safe-area-inset-top);background:var(--sf);border-bottom:1px solid var(--line)}
 #topbar .in{height:var(--tb);display:flex;align-items:center;gap:9px;padding:0 max(12px,env(safe-area-inset-right)) 0 max(12px,env(safe-area-inset-left))}
 #tbHome{display:grid;place-items:center;flex:none;width:48px;height:52px;padding:0;border:0;background:transparent;color:var(--acc)}
-#kiro{display:block;border-radius:22%;width:44px;height:44px;background:url("assets/holzschnitt-kiro-header.png") center/contain no-repeat;pointer-events:none;transform-origin:center 88%}
-#kiro.pose{background-image:url("assets/holzschnitt-kiro-poses.png");background-size:400% 300%}
+#kiro{display:block;width:44px;height:44px;pointer-events:none;transform-origin:center 88%}
+@media(prefers-color-scheme:light){#kiro{filter:brightness(.24)}}
 #tbHome:focus-visible{outline:2px solid currentColor;outline-offset:-2px;border-radius:10px}
 #topbar.bad #tbHome{color:#fff}
 @media(forced-colors:active){#topbar #tbHome{color:ButtonText}}
@@ -957,7 +957,7 @@ main{overscroll-behavior-y:none}
     <span style="min-width:0"><span class="txt" id="tbTxt">Standort wird gesucht …</span><span class="sub" id="tbSub"></span></span>
   </button>
   <button type="button" id="tbHome" data-v="hier" aria-label="Fischrevier – zur Startansicht">
-    <span id="kiro" aria-hidden="true"></span>
+    <canvas id="kiro" width="96" height="96" aria-hidden="true"></canvas>
   </button>
 </div></div>
 
@@ -6247,29 +6247,46 @@ function loadCached(){const c=store.get("data",null);if(c&&c.version>=DATA_META.
 function renderAll(){syncGeo();if(shoreView&&!shoreView.fromMap&&(unknownWater()||shoreView.key!==state.canton+"/"+currentSec().id||secStatus(currentSec()).some(s=>s.lvl==="bad")))clearShore();renderTop();if($("#v-hier").classList.contains("on"))renderHier();if(map&&$("#v-karte").classList.contains("on")){if(mapSel&&mapSel.t==="sec")renderSheet();drawSel()}if($("#v-arten").classList.contains("on"))refreshArtenStatus();if($("#v-fang").classList.contains("on"))renderFang();if($("#v-regeln").classList.contains("on"))renderRegeln()}
 function route(){const key=location.hash.slice(1);return key==="fangbuch"?"stat":["fang","karte","arten","regeln"].includes(key)?key:"hier"}
 const kiroPoses=["home","wave","look","map","note","camera","cheer","book","point","search","fold","rest"];
-let kiroSheet,kiroTimer,kiroAnimation,kiroSequence=0;
-async function poseKiro(pose){
-  const sequence=++kiroSequence,index=kiroPoses.indexOf(pose);
-  if(index<1)return;
-  const bird=$("#kiro");
-  if(!kiroSheet){
-    const sprite=new Image();sprite.src="assets/holzschnitt-kiro-poses.png";
-    kiroSheet=sprite.decode().catch(()=>{kiroSheet=null});
+const kiroPages={hier:"wave",karte:"map",fang:"note",stat:"book",arten:"look",regeln:"point"};
+let kiroSheet,kiroTimer,kiroAnimation,kiroSequence=0,kiroPage="wave";
+async function loadKiroSheet(){
+  const image=new Image();
+  image.src="assets/holzschnitt-kiro-poses.png";
+  await image.decode();
+  const sheet=document.createElement("canvas");
+  sheet.width=image.width;sheet.height=image.height;
+  const ctx=sheet.getContext("2d");
+  ctx.drawImage(image,0,0);
+  const pixels=ctx.getImageData(0,0,sheet.width,sheet.height);
+  // The woodcut has cream ink on green paper. Use ink coverage as opacity.
+  for(let i=0;i<pixels.data.length;i+=4){
+    const ink=Math.max(0,Math.min(1,(pixels.data[i]-12)/235));
+    pixels.data[i+3]=Math.round(255*ink);
+    pixels.data[i]=250;pixels.data[i+1]=240;pixels.data[i+2]=212;
   }
-  await kiroSheet;
-  if(!kiroSheet||sequence!==kiroSequence)return;
+  ctx.putImageData(pixels,0,0);
+  return sheet;
+}
+async function poseKiro(pose,temporary=true,animate=true){
+  const sequence=++kiroSequence,index=kiroPoses.indexOf(pose);
   clearTimeout(kiroTimer);kiroAnimation?.cancel();
-  bird.classList.add("pose");
-  bird.style.backgroundPosition=(index%4)*100/3+"% "+Math.floor(index/4)*50+"%";
-  if(!matchMedia("(prefers-reduced-motion: reduce)").matches&&bird.animate){
+  kiroSheet??=loadKiroSheet().catch(()=>{kiroSheet=null;return null});
+  const sheet=await kiroSheet;
+  if(!sheet||sequence!==kiroSequence||index<0)return;
+  const bird=$("#kiro"),ctx=bird.getContext("2d"),w=sheet.width/4,h=sheet.height/3;
+  ctx.clearRect(0,0,bird.width,bird.height);
+  ctx.drawImage(sheet,index%4*w,Math.floor(index/4)*h,w,h,0,0,bird.width,bird.height);
+  bird.dataset.pose=pose;
+  if(animate&&!matchMedia("(prefers-reduced-motion: reduce)").matches&&bird.animate){
     const peak=pose==="cheer"?"translateY(-4px) rotate(-6deg)":pose==="look"||pose==="search"?"rotate(7deg)":"rotate(-5deg)";
     kiroAnimation=bird.animate([{transform:"none"},{transform:peak,offset:.45},{transform:"none"}],{duration:420,easing:"ease-in-out"});
   }
-  kiroTimer=setTimeout(()=>{bird.classList.remove("pose");bird.style.backgroundPosition=""},1600);
+  if(temporary)kiroTimer=setTimeout(()=>poseKiro(kiroPage,false,false),1600);
 }
 document.addEventListener("focusin",e=>{if(e.target.id==="mapQ")poseKiro("search")});
 function show(v,restore=false){
-  if(!restore)poseKiro(({hier:"wave",karte:"map",fang:"note",stat:"book",arten:"look",regeln:"point"})[v]);
+  kiroPage=kiroPages[v]||"home";
+  poseKiro(kiroPage,false,!restore);
   if(v!=="karte"){requestedLURev="";cancelMapQuery();clearShore();if(hintMsg)flashHint("")}
   if(!restore&&route()!==v){
     history.replaceState({scroll:scrollY},"",location.href);

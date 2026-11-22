@@ -111,7 +111,7 @@ dialog[open]{animation:iosIn .22s var(--ease)}
 #hereWaterInfo[hidden],#hereWaterInfo details[hidden]{display:none}
 #hereWaterInfo details{margin:0;padding:0;background:transparent;border:0}
 #hereWaterInfo details:not([hidden])+details:not([hidden]){border-top:1px solid var(--sep)}
-#hereWaterInfo summary{padding:10px var(--pad,16px);min-height:48px;cursor:pointer}
+#hereWaterInfo summary{margin:0;padding:10px var(--pad,16px);min-height:48px;cursor:pointer}
 #hereWaterInfo summary:focus-visible{outline-offset:-3px}
 #hereWaterInfo summary span{min-width:0}
 #hereWaterInfo strong,#hereWaterInfo small{display:block}

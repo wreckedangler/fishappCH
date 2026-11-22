@@ -24,6 +24,7 @@
 #map canvas{outline:none}
 .maplibregl-ctrl-bottom-right,.maplibregl-ctrl-bottom-left{display:none}
 #mapUI{position:absolute;inset:0;pointer-events:none;z-index:520}
+#v-karte:has(#shorePanel:not([hidden])) #mapUI{grid-area:1 / 1 / 2 / 2}
 #mapUI>*{pointer-events:auto}
 #mapUI button{font-family:inherit}
 .mui-top{position:absolute;top:10px;left:10px;right:10px;z-index:5;display:flex;gap:8px;pointer-events:none}

@@ -1,4 +1,4 @@
-# Fischer-Begleiter 🎣
+# Fischrevier 🎣
 
 Begleit-App fürs Fischen in der Schweiz – läuft im Browser, installierbar aufs
 Handy, ohne App Store.

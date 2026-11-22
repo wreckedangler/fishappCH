@@ -1,7 +1,7 @@
 {
-  "name": "Fischer-Begleiter",
-  "short_name": "Fischen",
-  "description": "Regeln, Karte und Fangbuch fürs Fischen in der Schweiz",
+  "name": "Fischrevier",
+  "short_name": "Fischrevier",
+  "description": "Gewässer, Regeln und Fangbuch",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

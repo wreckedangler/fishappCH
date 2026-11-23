@@ -4,7 +4,8 @@
   "src": [
     ["Aargauische Fischereiverordnung (AFV, SAR 935.211), Stand 1.5.2026", "https://gesetzessammlungen.ag.ch/api/de/versions/3942/pdf_file_with_annexes"],
     ["Übereinkunft über den Fischfang im Hallwilersee (AG/LU, 2021)", "https://www.lexfind.ch/tol/33688/de"],
-    ["Vereinbarung Aare-Grenzstrecke AG/SO (2008)", "https://www.lexfind.ch/tol/15869/de"]
+    ["Vereinbarung Aare-Grenzstrecke AG/SO (2008)", "https://www.lexfind.ch/tol/15869/de"],
+    ["Kreisschreiben Fischerei Aargau, 16.6.2026", "https://www.ag.ch/media/kanton-aargau/bvu/umwelt-natur/fischerei/informationen-fuer-fischer/kreisschreiben-fischerei-2026-6.pdf"]
   ],
   "w": [
     ["fluss", "Rhein, Aare, Reuss, Limmat"],
@@ -45,7 +46,7 @@
     "Karpfen": [{"w": ["hallwil"], "slot": [[35, null]]}, {"slot": [[30, null]]}],
     "Schleie": [{"slot": [[25, null]]}]
   },
-  "prot": ["Nase", "Lachs", "Strömer", "Bachneunauge", "Bitterling"],
+  "prot": ["Nase", "Lachs", "Strömer", "Bachneunauge", "Bitterling", "Aal"],
   "lim": [
     {"n": 6, "sp": ["Bachforelle", "Seeforelle", "Hecht"], "w": ["fluss"], "t": "Forellen und Hechte zusammen pro Tag"},
     {"n": 6, "sp": ["Bachforelle", "Seeforelle"], "w": ["aare_so"], "t": "Forellen pro Tag"},
@@ -61,7 +62,8 @@
     "Widerhaken nur bei Hegenen- und Schleppangelfischerei erlaubt.",
     "1.3.–30.9. in Rhein, Aare, Reuss, Limmat max. 2 Ruten; sonst 1 Rute (max. 5 Angeln).",
     "Lebende Köderfische nur in Weihern/Kleinseen bis 30 ha.",
-    "Laichgebiete von Äsche und Forelle: Betreten Dezember–April verboten; Nase April–Mai."
+    "Laichgebiete von Äsche und Forelle: Betreten Dezember–April verboten; Nase April–Mai.",
+    "Aal: Angelfang seit 2021 verboten (Kreisschreiben Fischerei 16.6.2026)."
   ]
 },
 "BE": {
@@ -145,6 +147,7 @@
     {"n": 1, "sp": ["Äsche"], "t": "Äsche pro Tag (nur mit Sonderbewilligung)"},
     {"n": 150, "per": "Jahr", "sp": ["Bachforelle", "Seeforelle", "Saibling"], "t": "Forellen und Saiblinge pro Jahr"},
     {"n": 50, "per": "Jahr", "sp": ["Bachforelle"], "t": "Bachforellen pro Jahr"},
+    {"n": 30, "per": "Jahr", "sp": ["Bachforelle", "Seeforelle"], "w": ["brienz", "thun", "biel"], "t": "Forellen pro Jahr aus Brienzer-, Thuner- und Bielersee (Art. 14 FiDV)"},
     {"n": 5, "per": "Jahr", "sp": ["Äsche"], "t": "Äschen pro Jahr"}
   ],
   "notes": [
@@ -207,6 +210,7 @@
     "Widerhaken verboten (ausser schwere Setzangelfischerei); pro Rute max. 1 Haken bzw. Kunstköder mit max. 2 Haken.",
     "Nachtfischverbot: Sommerzeit 24–5 Uhr, Winterzeit 22–6 Uhr.",
     "Nicht genannte Arten sind ganzjährig geschont.",
+    "Rhein: Trüsche ab 30 cm, Schonzeit 1.11.–28.2. (§ 8 Abs. 1).",
     "Die meisten Bäche sind Pachtgewässer – Karte beim Pächter.",
     "Hinweis: Das Fischereirecht BL wird 2026 total revidiert; Werte können sich ändern."
   ]
@@ -214,7 +218,8 @@
 "BS": {
   "updated": "2026-01-01",
   "src": [
-    ["Fischereiverordnung Basel-Stadt (SG 912.510), Anhang, in Kraft seit 1.1.2026", "https://www.gesetzessammlung.bs.ch/api/annex_document_dictionaries/16816"]
+    ["Fischereiverordnung Basel-Stadt (SG 912.510), Anhang, in Kraft seit 1.1.2026", "https://www.gesetzessammlung.bs.ch/api/annex_document_dictionaries/16816"],
+    ["Änderung Fischereiverordnung BS vom 14.10.2025 (Bleiverbot ab 1.1.2027)", "https://www.gesetzessammlung.bs.ch/api/de/change_documents/file_dictionaries/1882/pdf_file"]
   ],
   "w": [
     ["rhein", "Rhein"],
@@ -244,7 +249,7 @@
     "Zusätzlich geschützt: Schneider, Groppe, Moderlieschen, Steinbeisser, sowie alle Flusskrebse.",
     "Trüsche: ab 50 cm, Schonzeit 1.11.–Ende Februar.",
     "Rhein: Fischereikarte beim Amt für Umwelt und Energie oder in der App «myfish»; Wiese und Birs sind Pachtgewässer.",
-    "Seit 1.1.2026: Nachtfischverbot aufgehoben. Bleiverbot gilt nach einjähriger Übergangsfrist (voraussichtlich ab 1.1.2027); Klemmbleie bis 10 g pro Rute erlaubt."
+    "Seit 1.1.2026: Nachtfischverbot aufgehoben. Ab 1.1.2027 Bleiverbot (§ 13 Abs. 4 lit. b, Übergangsfrist § 29b); Klemmbleie bis gesamt 10 g pro Rute erlaubt."
   ]
 },
 "JU": {

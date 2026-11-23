@@ -55,7 +55,10 @@
       {"w": ["broye"], "schon": [[3, 15], [5, 15]]},
       {"w": ["neuch", "morat"], "keep": true, "schon": [[4, 15], [5, 31]], "t": "Kein Mindestmass; jeder Egli muss behalten werden"}
     ],
-    "Felchen": [{"w": ["morat"], "slot": [[30, null]], "schon": [[10, 15], [12, 31]]}],
+    "Felchen": [
+      {"w": ["neuch"], "slot": [[25, null]], "schon": [[10, 15], [2, 28]], "t": "Fang 1.3.–14.10."},
+      {"w": ["morat"], "slot": [[30, null]], "schon": [[10, 15], [12, 31]]}
+    ],
     "Karpfen": [{"w": ["broye", "gruyere"], "slot": [[40, null]]}],
     "Wels": [
       {"w": ["broye"], "slot": [[45, null]], "schon": [[5, 15], [6, 15]]},
@@ -71,13 +74,16 @@
     {"n": 5, "per": "Jahr", "sp": ["Äsche"], "t": "Äschen pro Jahr"},
     {"n": 70, "sp": ["Egli (Flussbarsch)"], "w": ["gross", "mittel", "klein", "sarine", "broye", "gruyere", "noir", "lussy"], "t": "Egli pro Tag"},
     {"n": 3, "sp": ["Bachforelle", "Seeforelle"], "w": ["neuch"], "t": "Forellen pro Tag (Neuenburgersee, 30 pro Jahr)"},
-    {"n": 8, "sp": ["Felchen"], "w": ["neuch"], "t": "Felchen pro Tag (Neuenburgersee)"}
+    {"n": 8, "sp": ["Felchen"], "w": ["neuch"], "t": "Felchen pro Tag (Neuenburgersee)"},
+    {"n": 7, "sp": ["Hecht"], "w": ["neuch"], "t": "Hechte pro Tag (Neuenburgersee)"},
+    {"n": 80, "sp": ["Egli (Flussbarsch)"], "w": ["neuch"], "t": "Egli pro Tag (Neuenburgersee)"}
   ],
   "notes": [
     "Widerhaken in Freiburger Fliessgewässern und Grenzgewässern verboten; in Seen/Broyekanal nur mit Sachkundenachweis.",
     "Pro Jahr max. 75 Hechte/Äschen/Zander/Forellen in Seen und 75 in Fliessgewässern.",
     "Nicht einheimische Fische töten (Ausnahmen Hecht in Seen, Zander im Greyerzer-/Schiffenensee).",
-    "Alle Krebse geschützt."
+    "Alle Krebse geschützt.",
+    "Sarine 4–5 zählt zu den mittleren Fliessgewässern (Art. 24): Forelle 26–32 cm oder über 45 cm. Fliessgewässer offen vom ersten Sonntag im März bis zum ersten Sonntag im Oktober."
   ]
 },
 "NE": {
@@ -123,7 +129,8 @@
       {"w": ["neuch"], "keep": true, "schon": [[4, 15], [5, 31]], "t": "Kein Mindestmass; jeder Egli muss behalten werden"}
     ],
     "Wels": [{"w": ["neuch"], "slot": [[50, null]], "schon": [[5, 15], [6, 15]]}],
-    "Saibling": [{"w": ["neuch"], "prot": true, "t": "Seesaibling im Neuenburgersee verboten"}]
+    "Saibling": [{"w": ["neuch"], "prot": true, "t": "Seesaibling im Neuenburgersee verboten"}],
+    "Felchen": [{"w": ["neuch"], "slot": [[25, null]], "schon": [[10, 15], [2, 28]], "t": "Fang 1.3.–14.10."}]
   },
   "prot": ["Aal", "Nase", "Bitterling"],
   "lim": [
@@ -133,13 +140,16 @@
     {"n": 60, "per": "Jahr", "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle", "Äsche"], "w": ["areuse", "doubs1", "doubs2", "thielle", "vthielle", "tailleres"], "t": "Salmoniden pro Jahr (davon max. 30 am Doubs)"},
     {"n": 3, "sp": ["Hecht"], "w": ["doubs2", "tailleres"], "t": "Hechte pro Tag"},
     {"n": 3, "sp": ["Bachforelle", "Seeforelle"], "w": ["neuch"], "t": "Forellen pro Tag (Neuenburgersee, 30 pro Jahr)"},
-    {"n": 8, "sp": ["Felchen"], "w": ["neuch"], "t": "Felchen pro Tag (Neuenburgersee)"}
+    {"n": 8, "sp": ["Felchen"], "w": ["neuch"], "t": "Felchen pro Tag (Neuenburgersee)"},
+    {"n": 7, "sp": ["Hecht"], "w": ["neuch"], "t": "Hechte pro Tag (Neuenburgersee)"},
+    {"n": 80, "sp": ["Egli (Flussbarsch)"], "w": ["neuch"], "t": "Egli pro Tag (Neuenburgersee)"}
   ],
   "notes": [
     "Areuse/Seyon und Doubs Kat. 1: nur Haken ohne Widerhaken; Doubs Kat. 2 Widerhaken erlaubt; Zihl, Alte Zihl, Loclat, Taillères nur mit Sachkundenachweis.",
     "Einheimische Krebse in allen Fliessgewässern geschützt.",
     "Monats-, Wochen- und Tagespatente gelten nicht im März.",
-    "Nachtfischverbot Zihl/Alte Zihl: Sommer 24–5, Winter 20–6 Uhr."
+    "Nachtfischverbot Zihl/Alte Zihl: Sommer 24–5, Winter 20–6 Uhr.",
+    "Areuse: Äschenfang ab dem 2. Sonntag im Mai (2026: 10.5.); Arrêté 2027 noch nicht publiziert."
   ]
 },
 "VD": {
@@ -149,7 +159,9 @@
     ["Canton de Vaud – Pêche: Änderungen ab 1.1.2026 (Léman, Flüsse)", "https://www.vd.ch/peche"],
     ["Règlement d'application Accord CH–F pêche Léman (RO 2025 738), in Kraft 1.1.2026", "https://www.ge.ch/document/1316/annexe/file/541890"],
     ["Règlement d'exécution concordat lac de Neuchâtel 2025–2027", "https://bdlf.fr.ch/frontend/change_document_file_dictionaries/10755/download_pdf_file?locale=fr"],
-    ["Règlement d'exécution concordat lac de Morat 2025–2027", "https://bdlf.fr.ch/frontend/versions/8111/download_pdf_file?locale=fr"]
+    ["Règlement d'exécution concordat lac de Morat 2025–2027", "https://bdlf.fr.ch/frontend/versions/8111/download_pdf_file?locale=fr"],
+    ["Extrait règlement 2026 Lacs de Joux, Brenet et Ter (VD)", "https://www.vd.ch/fileadmin/user_upload/themes/environnement/biodiversite/fichiers_pdf/P%C3%AAche/D%C3%A9couvrez_la_p%C3%AAche_dans_le_canton_de_Vaud__/DGE_Reglement_2026_Joux_Def.pdf"],
+    ["Extrait règlement 2026 Rivières (VD)", "https://www.vd.ch/fileadmin/user_upload/themes/environnement/biodiversite/fichiers_pdf/P%C3%AAche/D%C3%A9couvrez_la_p%C3%AAche_dans_le_canton_de_Vaud__/DGE_Reglement_2026_Rivieres_Def.pdf"]
   ],
   "w": [
     ["fluss", "Flüsse, kleine Seen und Weiher"],
@@ -177,13 +189,17 @@
     "Äsche": [{"prot": true, "t": "Äschenfang im Kanton Waadt nicht erlaubt"}],
     "Saibling": [
       {"w": ["leman"], "keep": true, "schon": [[10, 5], [1, 16]], "t": "Léman: jeder Seesaibling muss behalten werden"},
-      {"w": ["neuch", "morat"], "prot": true, "t": "Seesaibling nicht erlaubt"}
+      {"w": ["neuch", "morat"], "prot": true, "t": "Seesaibling nicht erlaubt"},
+      {"w": ["fluss"], "slot": [[20, null]], "schon": [[11, 2], [6, 6]], "t": "2026: offen 7.6.–1.11."}
     ],
     "Felchen": [
+      {"w": ["neuch"], "slot": [[25, null]], "schon": [[10, 15], [2, 28]], "t": "Fang 1.3.–14.10."},
       {"w": ["leman"], "slot": [[37, null]], "schon": [[10, 5], [1, 16]]},
-      {"w": ["morat"], "slot": [[30, null]], "schon": [[10, 15], [12, 31]]}
+      {"w": ["morat"], "slot": [[30, null]], "schon": [[10, 15], [12, 31]]},
+      {"w": ["joux"], "slot": [[30, null]], "schon": [[11, 1], [12, 15]]}
     ],
     "Hecht": [
+      {"w": ["joux"], "slot": [[50, null]], "schon": [[4, 10], [5, 10]]},
       {"w": ["leman"], "slot": [[50, null]], "schon": [[3, 20], [4, 20]]},
       {"w": ["neuch"], "slot": [[45, null]], "schon": [[4, 1], [4, 20]]},
       {"w": ["morat"], "slot": [[45, null]], "schon": [[3, 15], [4, 15]]},
@@ -192,6 +208,7 @@
     ],
     "Zander": [{"schon": [[3, 15], [4, 15]]}],
     "Egli (Flussbarsch)": [
+      {"w": ["joux"], "slot": [[15, null]], "schon": [[4, 15], [5, 31]]},
       {"w": ["leman"], "keep": true, "schon": [[5, 1], [5, 25]], "t": "Léman: jeder Egli muss behalten werden"},
       {"w": ["neuch", "morat"], "keep": true, "schon": [[4, 15], [5, 31]], "t": "Kein Mindestmass; jeder Egli muss behalten werden"},
       {"keep": true, "schon": [[5, 1], [5, 31]], "t": "Jeder Egli muss behalten werden"}
@@ -214,13 +231,23 @@
     {"n": 5, "sp": ["Hecht"], "w": ["leman"], "t": "Hechte pro Tag (Léman)"},
     {"n": 100, "sp": ["Egli (Flussbarsch)"], "w": ["leman"], "t": "Egli pro Tag (Léman)"},
     {"n": 3, "sp": ["Bachforelle", "Seeforelle"], "w": ["neuch"], "t": "Forellen pro Tag (Neuenburgersee)"},
-    {"n": 8, "sp": ["Felchen"], "w": ["neuch"], "t": "Felchen pro Tag (Neuenburgersee)"}
+    {"n": 8, "sp": ["Felchen"], "w": ["neuch"], "t": "Felchen pro Tag (Neuenburgersee)"},
+    {"n": 2, "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle"], "w": ["joux"], "t": "Forellen pro Tag (Joux, Brenet, Ter)"},
+    {"n": 5, "per": "Jahr", "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle"], "w": ["joux"], "t": "Forellen pro Jahr (Joux, Brenet, Ter)"},
+    {"n": 3, "sp": ["Hecht"], "w": ["joux"], "t": "Hechte pro Tag (Joux, Brenet, Ter)"},
+    {"n": 50, "per": "Jahr", "sp": ["Hecht"], "w": ["joux"], "t": "Hechte pro Jahr (Joux, Brenet, Ter)"},
+    {"n": 50, "sp": ["Egli (Flussbarsch)"], "w": ["joux"], "t": "Egli pro Tag (Joux, Brenet, Ter)"},
+    {"n": 600, "per": "Jahr", "sp": ["Egli (Flussbarsch)"], "w": ["joux"], "t": "Egli pro Jahr (Joux, Brenet, Ter)"},
+    {"n": 8, "sp": ["Felchen"], "w": ["joux"], "t": "Felchen pro Tag (Joux, Brenet, Ter)"},
+    {"n": 7, "sp": ["Hecht"], "w": ["neuch"], "t": "Hechte pro Tag (Neuenburgersee)"},
+    {"n": 80, "sp": ["Egli (Flussbarsch)"], "w": ["neuch"], "t": "Egli pro Tag (Neuenburgersee)"}
   ],
   "notes": [
     "Widerhaken verboten; ab 1.1.2026 auch Doppel- und Drillingshaken in Flüssen verboten (Ausnahmen einzelne Seen/Weiher mit Sachkundenachweis).",
     "Lebende Köderfische verboten.",
     "Ganzjährig verboten: Aal, Blageon, Bitterling, Nase, Bachneunauge, Schneider; Krebse nur mit Bewilligung.",
-    "Barbe in der Broye: Schonzeit 1.5.–31.7.; Wels im Broyekanal ab 50 cm, Schonzeit 15.5.–15.6."
+    "Barbe in der Broye: Schonzeit 1.5.–31.7.; Wels im Broyekanal ab 50 cm, Schonzeit 15.5.–15.6.",
+    "Lac Ter: Fischen vom 1.1. bis 10.5. verboten."
   ]
 },
 "GE": {
@@ -275,7 +302,8 @@
   "src": [
     ["Arrêté quinquennal sur l'exercice de la pêche en Valais 2024–2028 (RS 923.170), état 1.2.2025", "https://lex.vs.ch/api/fr/versions/3453/pdf_file"],
     ["Ordonnance sur l'exercice de la pêche (OcPê, RS 923.100)", "https://www.lexfind.ch/tolv/96856/fr"],
-    ["Règlement d'application Accord CH–F pêche Léman (RO 2025 738), in Kraft 1.1.2026", "https://www.ge.ch/document/1316/annexe/file/541890"]
+    ["Règlement d'application Accord CH–F pêche Léman (RO 2025 738), in Kraft 1.1.2026", "https://www.ge.ch/document/1316/annexe/file/541890"],
+    ["Législation pour la pêche, Service de la chasse, de la pêche et de la faune (VS)", "https://www.vs.ch/fr/web/scpf/legislation-pour-la-peche"]
   ],
   "w": [
     ["rhone", "Rhône und Flüsse der Ebene"],
@@ -325,7 +353,8 @@
     "Widerhaken verboten (Ausnahme: Tümpel der Rhoneebene mit Sachkundenachweis).",
     "Krebse im ganzen Kanton geschützt.",
     "Namaycush ab 30 cm.",
-    "Öffnungszeiten je Gewässertyp gemäss Fünfjahresbeschluss und interaktiver Fischereikarte prüfen."
+    "Öffnungszeiten je Gewässertyp gemäss Fünfjahresbeschluss und interaktiver Fischereikarte prüfen.",
+    "Bis auf Weiteres Betretungs- und Fischereiverbot: Lonza ab Ferdensee talaufwärts inkl. Zuflüsse (Bergsturz-Sperrzone Lötschental) und Navisence vom Ausgleichsbecken Vissoie bis zur Rhone."
   ]
 },
 "TI": {
@@ -369,7 +398,7 @@
       {"slot": [[40, null]], "schon": [[12, 1], [9, 30]], "t": "Nur mit Patent D3, 1.10.–30.11., Mi/Sa/So, in bestimmten Zonen"}
     ],
     "Felchen": [
-      {"w": ["verbano"], "slot": [[25, null]], "schon": [[11, 1], [1, 31]]},
+      {"w": ["verbano"], "slot": [[30, null]], "schon": [[11, 1], [1, 31]], "t": "Lavarello ab 30 cm, Bondella ab 25 cm"},
       {"w": ["ceresio"], "slot": [[30, null]], "schon": [[11, 15], [1, 24]]},
       {"slot": [[30, null]]}
     ],
@@ -403,7 +432,8 @@
     "Widerhaken grundsätzlich verboten; erlaubt in nummerierten Alpen-/Stauseen (Kunstköder, Köderfisch) und in Verbano/Ceresio (Schlepp- und Rutenfischerei).",
     "Marmorierte Forelle (Trota marmorata) geschützt; im See auch Alborella und Pigo.",
     "Krebsfang im ganzen Kanton verboten.",
-    "Lebende Köderfische in Fliessgewässern verboten."
+    "Lebende Köderfische in Fliessgewässern verboten.",
+    "Alpenseen: offen vom ersten Sonntag im Juni bis zum zweiten Sonntag im Oktober."
   ]
 }
 }

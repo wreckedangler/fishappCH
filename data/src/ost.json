@@ -48,7 +48,8 @@
     "Einzelhaken mit Widerhaken nur mit Sachkundenachweis; Mehrfachhaken immer ohne Widerhaken.",
     "Freiangelrecht vom Ufer am Zürich-, Greifen-, Pfäffiker- und Türlersee (eingeschränkte Geräte, Haken ohne Widerhaken).",
     "Fliessgewässer und Kleinseen sind meist verpachtet – Karte beim Revierpächter.",
-    "Stein- und Dohlenkrebs ganzjährig geschützt; Edelkrebs ab 12 cm, Schonzeit 1.10.–15.7."
+    "Stein- und Dohlenkrebs ganzjährig geschützt; Edelkrebs ab 12 cm, Schonzeit 1.10.–15.7.",
+    "Zürichsee: Mündungsbereiche wichtiger Laichgewässer 1.12.–31.1. gesperrt (zh.ch/fischerei)."
   ]
 },
 "SH": {
@@ -139,7 +140,8 @@
     "Nachtfischverbot 24–6 Uhr (Ausnahmen Bodensee/Untersee).",
     "Lebende Köderfische verboten.",
     "Freiangelei vom Ufer am Bodensee-Obersee, Untersee und Rhein.",
-    "Obersee: Seeforellen-Schongebiete (Goldach-, Steinachmündung, Luxburger Bucht, Güttingen) 1.11.–31.1. gesperrt."
+    "Obersee: Seeforellen-Schongebiete (Goldach-, Steinachmündung, Luxburger Bucht, Güttingen) 1.11.–31.1. gesperrt.",
+    "Bodensee-Obersee 2027: Gemäss IBKF-Beschluss (Juni 2026) Felchen-Angelfischerei 1.5.–31.8.2027 mit max. 3 Felchen pro Tag vorgesehen – amtliche Bestimmungen 2027 noch nicht publiziert."
   ]
 },
 "SG": {
@@ -228,7 +230,9 @@
     "In Fliessgewässern während der Forellenschonzeit: keine Löffel, Spinner, Köderfische, keine Grundfischerei.",
     "Nachtfischverbot: Sommerzeit 23–4 Uhr, sonst 19–6 Uhr.",
     "Lebende Köderfische verboten.",
-    "Zusätzlich geschützt: Schneider, Moderlieschen, Stein- und Dohlenkrebs, Bach- und Teichmuschel. Edelkrebs ab 12 cm, Schonzeit 1.10.–31.7."
+    "Zusätzlich geschützt: Schneider, Moderlieschen, Stein- und Dohlenkrebs, Bach- und Teichmuschel. Edelkrebs ab 12 cm, Schonzeit 1.10.–31.7.",
+    "Bodensee-Obersee 2027: Gemäss IBKF-Beschluss (Juni 2026) Felchen-Angelfischerei 1.5.–31.8.2027 mit max. 3 Felchen pro Tag vorgesehen – amtliche Bestimmungen 2027 noch nicht publiziert.",
+    "Walensee: Fischereiverbot an den Mündungen von Seez und Glarner Linth 1.9.–25.12. Linthkanal: befristetes Schongebiet 2025–2027 beachten."
   ]
 },
 "AR": {
@@ -279,13 +283,14 @@
     "Amerikanischer Seesaibling (Namaycush): kein Mindestmass, muss getötet werden, zählt nicht zur Tageslimite.",
     "Fischverbot: Schwarz bis Bahnbrücke Neffenmoos, Mühlelibach, Schwendebach Chobel–Blüemlisalp, Zuflüsse Sämtisersee.",
     "Fliegenstrecke: Schwendebach ab Brücke Blüemlisalp bis Sitter (ARA Appenzell).",
-    "Jeder Fang sofort mit Strecke, Zeit, Länge und Art in die Statistik eintragen."
+    "Jeder Fang sofort mit Strecke, Zeit, Länge und Art in die Statistik eintragen.",
+    "Neuere Fassung vorhanden: Standeskommissionsbeschluss über die Fischerei 2026 und Fischereivorschriften 2026 (ai.ch/fischerei) – Werte hier noch nach Stand 2023, vor dem Fischen prüfen."
   ]
 },
 "GL": {
-  "updated": "2014-09-01",
+  "updated": "2019-01-15",
   "src": [
-    ["Fischereivorschriften Glarus (GS VI E/31/3), Stand 1.9.2014", "https://gesetze.gl.ch/frontend/versions/1558/download_pdf_file?locale=de"],
+    ["Verordnung über den Vollzug der Fischereigesetzgebung Glarus (GS VI E/31/3) vom 25.11.2014, Stand 15.1.2019", "https://gl.lexwork.naz.ch/de/dta/VI-E.31.3.pdf"],
     ["Ausführungsbestimmungen Walensee (2010)", "https://www.lexfind.ch/tol/15960/de"],
     ["Ausführungsbestimmungen Linthkanal, Stand 1.1.2025", "https://www.lexfind.ch/tolv/249148/de"]
   ],
@@ -294,6 +299,7 @@
     ["walensee", "Walensee"],
     ["linth", "Linthkanal"],
     ["talalp", "Talalpsee, Oberblegisee, Obersee"],
+    ["rauti", "Rauti (KW Spinnerei Oberurnen – Espenstrasse Niederurnen)"],
     ["berg", "Bergseen mit Zuflüssen, Klön und genannte Bergbäche"],
     ["uebrige", "Übrige Gewässer"]
   ],
@@ -301,23 +307,25 @@
     {"w": ["berg"], "from": [10, 1], "to": [4, 30], "t": "Saison 1.5.–30.9."},
     {"w": ["talalp"], "from": [1, 1], "to": [4, 30], "t": "Saison 1.5.–31.12."},
     {"w": ["kloen"], "from": [1, 1], "to": [3, 31], "t": "Saison 1.4.–31.12."},
-    {"w": ["uebrige"], "from": [10, 1], "to": [3, 31], "t": "Saison 1.4.–30.9."}
+    {"w": ["uebrige"], "from": [10, 1], "to": [3, 31], "t": "Saison 1.4.–30.9."},
+    {"w": ["rauti"], "from": [10, 1], "to": [5, 14], "t": "Saison Rauti 15.5.–30.9."}
   ],
   "sp": {
     "Forelle": [
-      {"w": ["kloen"], "slot": [[35, null]], "schon": [[10, 1], [3, 31]]},
+      {"w": ["kloen"], "slot": [[30, null]], "schon": [[10, 1], [3, 31]]},
       {"w": ["walensee"], "slot": [[40, null]], "schon": [[10, 1], [12, 25]]},
       {"w": ["linth"], "slot": [[32, null]], "schon": [[10, 1], [1, 31]]},
       {"slot": [[23, null]], "schon": [[10, 1], [3, 31]]}
     ],
     "Saibling": [
       {"w": ["walensee"], "schon": [[10, 1], [12, 25]], "t": "Kein Mindestmass im Walensee"},
+      {"w": ["kloen"], "slot": [[30, null]], "schon": [[10, 1], [3, 31]]},
       {"slot": [[23, null]], "schon": [[10, 1], [3, 31]]}
     ],
     "Äsche": [
       {"w": ["walensee"], "slot": [[32, null]], "schon": [[2, 1], [5, 31]]},
       {"w": ["linth"], "slot": [[32, null]], "schon": [[1, 1], [5, 31]]},
-      {"slot": [[32, null]], "schon": [[1, 1], [4, 30]]}
+      {"slot": [[35, null]], "schon": [[1, 1], [4, 30]]}
     ],
     "Felchen": [
       {"w": ["walensee"], "slot": [[28, null]], "schon": [[11, 20], [12, 31]]},
@@ -328,17 +336,16 @@
       {"w": ["walensee"], "slot": [[45, null]], "schon": [[4, 1], [5, 31]]},
       {"w": ["talalp"], "schon": [[3, 1], [4, 30]], "t": "Kein Schonmass in Oberblegisee und Obersee"},
       {"slot": [[45, null]], "schon": [[3, 1], [4, 30]]}
-    ],
-    "Egli (Flussbarsch)": [{"slot": [[15, null]]}]
+    ]
   },
   "prot": [],
   "lim": [
     {"n": 1, "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle"], "w": ["linth"], "t": "Forelle pro Tag (Linthkanal, seit 1.1.2025)"},
     {"n": 1, "sp": ["Äsche"], "w": ["linth"], "t": "Äsche pro Tag (Linthkanal)"},
     {"n": 6, "sp": ["Felchen"], "w": ["linth"], "t": "Felchen pro Tag (Linthkanal)"},
-    {"n": 6, "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle", "Saibling", "Äsche"], "w": ["kloen", "talalp", "berg", "uebrige"], "t": "Edelfische pro Tag (davon max. 1 Äsche)"},
-    {"n": 1, "sp": ["Äsche"], "w": ["kloen", "talalp", "berg", "uebrige"], "t": "Äsche pro Tag"},
-    {"n": 15, "sp": ["Felchen"], "w": ["kloen", "talalp", "berg", "uebrige"], "t": "Felchen pro Tag"},
+    {"n": 6, "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle", "Saibling", "Äsche"], "w": ["kloen", "talalp", "berg", "uebrige", "rauti"], "t": "Edelfische pro Tag (davon max. 1 Äsche)"},
+    {"n": 1, "sp": ["Äsche"], "w": ["kloen", "talalp", "berg", "uebrige", "rauti"], "t": "Äsche pro Tag"},
+    {"n": 15, "sp": ["Felchen"], "w": ["kloen", "talalp", "berg", "uebrige", "rauti"], "t": "Felchen pro Tag"},
     {"n": 4, "sp": ["Bachforelle", "Seeforelle", "Regenbogenforelle"], "w": ["walensee"], "t": "Forellen pro Tag (Walensee)"},
     {"n": 5, "sp": ["Felchen"], "w": ["walensee"], "t": "Blalig pro Tag (Walensee)"},
     {"n": 5, "sp": ["Hecht"], "w": ["walensee"], "t": "Hechte pro Tag (Walensee)"}
@@ -348,7 +355,8 @@
     "Nachtfischverbot: Sommerzeit 23–4 Uhr, sonst 20–6 Uhr.",
     "Krebsfang und lebende Köderfische verboten.",
     "Freiangelrecht vom Ufer am Walensee und Klöntalersee.",
-    "Stand der kantonalen Vorschriften 2014 – vor dem Fischen auf gl.ch prüfen."
+    "Eisfischen: in den Eisfischgewässern Forellen-Schonzeit 15.1.–Ende Februar aufgehoben. Fangzeit 1.5.–31.12. gilt laut Verordnung für Obersee und Talalpsee; Oberblegisee ist dort nicht genannt – vor Ort prüfen.",
+    "Linthkanal: Äsche gemäss Glarner Fassung (Stand 1.1.2025) 35 cm und 1.1.–31.5., Schwyzer Fassung nennt 32 cm – strengeren Wert beachten."
   ]
 },
 "GR": {
@@ -370,7 +378,7 @@
   ],
   "sp": {
     "Forelle": [
-      {"w": ["fenster", "alpenrhein"], "slot": [[26, 34], [50, null]], "t": "Ab 50 cm in grossen Flüssen ab 15.7. geschont"},
+      {"w": ["fenster", "alpenrhein"], "slot": [[26, 34], [50, null]], "t": "Ab 50 cm in grossen Flüssen ab 15.7. geschont", "chk": false},
       {"w": ["see"], "slot": [[24, null]]},
       {"slot": [[24, null]], "t": "Gewässerspezifische Masse gemäss Anhang 1 FBV beachten"}
     ],
@@ -399,7 +407,8 @@
     "Nur 1 Rute; max. 3 Hakenspitzen pro Köder.",
     "Nachtfischverbot 23–5 Uhr.",
     "Ganzjährig geschützt: Nase, Groppe, Strömer, Aal, Bartgrundel, Dohlen- und Edelkrebs.",
-    "Viele Gewässer haben eigene Masse – interaktive Fischereikarte des AJF prüfen."
+    "Viele Gewässer haben eigene Masse – interaktive Fischereikarte des AJF prüfen.",
+    "Zu prüfen: Gemäss FBV 2026 Anhang 1 gilt im Alpenrhein (301–305) und in der Moesa (804–806) offenbar ein Mindestmass 26 cm statt Fangfenster; Forellen ab 50 cm dort ab 15.7. geschont (Art. 15). Bis zur Bestätigung gilt hier das strengere Fangfenster."
   ]
 }
 }
